@@ -1,6 +1,6 @@
 <?php
-// views/admin.php
-// Just the content — no <html>, no sidebar. The layout provides those.
+
+
 ?>
 
 <div class="mb-8">

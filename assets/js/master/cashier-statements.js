@@ -1,18 +1,18 @@
-// assets/js/master/cashier-statements.js
+
 (function () {
     const baseUrl = document.body.dataset.baseUrl;
     const alertEl = document.getElementById('alert');
 
-    // -------- Data from PHP --------
+    
     const dataEl = document.getElementById('cashierData');
     const chargeItems  = dataEl ? JSON.parse(dataEl.dataset.chargeItems  || '[]') : [];
     const paymentTypes = dataEl ? JSON.parse(dataEl.dataset.paymentTypes || '[]') : [];
 
-    // -------- State --------
+    
     let currentStatementId = null;
     let currentStatement   = null;
 
-    // -------- Helpers --------
+    
     function peso(n) {
         return '₱' + Number(n || 0).toLocaleString('en-PH', {
             minimumFractionDigits: 2,
@@ -22,7 +22,7 @@
 
     function fmtDate(v) {
         if (!v) return '—';
-        const d = new Date(v.replace(' ', 'T'));   // safe for "YYYY-MM-DD HH:MM:SS"
+        const d = new Date(v.replace(' ', 'T'));   
         return isNaN(d.getTime()) ? v : d.toLocaleString();
     }
 
@@ -36,7 +36,7 @@
         setTimeout(() => alertEl.classList.add('hidden'), 4000);
     }
 
-    // -------- Filters --------
+    
     const searchInput  = document.getElementById('filterSearch');
     const statusFilter = document.getElementById('filterStatus');
     const clearBtn     = document.getElementById('filterClear');
@@ -87,9 +87,9 @@
         applyFilters();
     });
 
-    // =========================================================
-    // Manage Modal
-    // =========================================================
+    
+    
+    
     const manageModal = document.getElementById('manageModal');
 
     function openManageModal() {
@@ -105,7 +105,7 @@
         el.addEventListener('click', closeManageModal);
     });
 
-    // Manage tabs
+    
     document.querySelectorAll('.manage-tab-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             const tab = btn.dataset.mtab;
@@ -121,7 +121,7 @@
         });
     });
 
-    // Manage button clicks
+    
     document.querySelectorAll('.manage-btn').forEach(btn => {
         btn.addEventListener('click', async () => {
             const id = btn.dataset.statementId;
@@ -159,7 +159,7 @@
         renderRooms(s);
     }
 
-    // -------- Charges panel --------
+    
     function renderCharges(s) {
         const body = document.getElementById('chargesBody');
         const none = document.getElementById('noCharges');
@@ -213,7 +213,7 @@
         });
     }
 
-    // -------- Payments panel (FIX) --------
+    
     function renderPayments(s) {
         const body = document.getElementById('paymentsBody');
         const none = document.getElementById('noPayments');
@@ -258,7 +258,7 @@
         });
     }
 
-    // -------- Rooms panel --------
+    
     function renderRooms(s) {
         const body = document.getElementById('roomsBody');
         const none = document.getElementById('noRooms');
@@ -284,7 +284,7 @@
         });
     }
 
-    // -------- Remove charge / payment --------
+    
     async function removeCharge(chargeId) {
         if (!confirm('Remove this charge?')) return;
         try {
@@ -315,9 +315,9 @@
         }
     }
 
-    // =========================================================
-    // Sync Charges
-    // =========================================================
+    
+    
+    
     document.getElementById('syncChargesBtn')?.addEventListener('click', async function () {
         const btn = this;
         btn.disabled = true;
@@ -338,9 +338,9 @@
         }
     });
 
-    // =========================================================
-    // Add Charge Modal
-    // =========================================================
+    
+    
+    
     const chargeModal = document.getElementById('chargeModal');
     const chargeItemSelect = document.getElementById('charge_item_id');
     chargeItems.forEach(c => {
@@ -402,9 +402,9 @@
         }
     });
 
-    // =========================================================
-    // Add Payment Modal
-    // =========================================================
+    
+    
+    
     const paymentModal = document.getElementById('paymentModal');
     const paymentTypeSelect = document.getElementById('payment_type_id');
     paymentTypes.forEach(p => {

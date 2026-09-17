@@ -1,5 +1,5 @@
 <?php
-// views/nurse.php
+
 
 require_once __DIR__ . '/../controllers/NurseController.php';
 
@@ -14,7 +14,7 @@ $roomsNeedingAttention = $controller->getRoomsNeedingAttention();
     <p class="mt-1 text-sm text-slate-500">Patient assignments and room status at a glance.</p>
 </div>
 
-<!-- Stat Cards -->
+
 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
     <div class="bg-white rounded-xl border border-slate-200 p-5">
         <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Active Admissions</p>
@@ -34,7 +34,7 @@ $roomsNeedingAttention = $controller->getRoomsNeedingAttention();
     </div>
 </div>
 
-<!-- Quick Actions -->
+
 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
     <a href="<?= BASE_URL ?>/index.php?page=nurse-patient-search"
        class="flex items-center gap-4 bg-white rounded-xl border border-slate-200 p-5 hover:border-blue-300 hover:shadow-sm transition">
@@ -89,7 +89,7 @@ $roomsNeedingAttention = $controller->getRoomsNeedingAttention();
     </a>
 </div>
 
-<!-- Active Admissions Table -->
+
 <div class="bg-white rounded-xl border border-slate-200 overflow-hidden mb-8">
     <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
         <h3 class="text-lg font-semibold text-slate-900">Active Admissions</h3>
@@ -157,7 +157,7 @@ $roomsNeedingAttention = $controller->getRoomsNeedingAttention();
     </div>
 </div>
 
-<!-- Rooms Needing Attention -->
+
 <?php if (!empty($roomsNeedingAttention)): ?>
 <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
     <div class="px-6 py-4 border-b border-slate-200">

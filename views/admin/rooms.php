@@ -1,5 +1,5 @@
 <?php
-// views/admin/rooms.php
+
 $rooms = $pdo->query(
     'SELECT r.room_id, r.room_number, r.floor_level, r.building,
             rt.room_type_name, rt.rate_per_day,

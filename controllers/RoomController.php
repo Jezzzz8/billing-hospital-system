@@ -1,5 +1,5 @@
 <?php
-// controllers/RoomController.php
+
 
 class RoomController
 {
@@ -7,11 +7,11 @@ class RoomController
 
     public function __construct(PDO $pdo) { $this->pdo = $pdo; }
 
-    // =========================================================
-    // READ
-    // =========================================================
+    
+    
+    
 
-    // All rooms with their type + status
+    
     public function getAll(): array
     {
         return $this->pdo->query(
@@ -26,7 +26,7 @@ class RoomController
         )->fetchAll();
     }
 
-    // Room types for dropdown
+    
     public function getRoomTypes(): array
     {
         return $this->pdo->query(
@@ -36,7 +36,7 @@ class RoomController
         )->fetchAll();
     }
 
-    // Statuses for dropdown
+    
     public function getStatuses(): array
     {
         return $this->pdo->query(
@@ -46,9 +46,9 @@ class RoomController
         )->fetchAll();
     }
 
-    // =========================================================
-    // CREATE
-    // =========================================================
+    
+    
+    
 
     public function create(): void
     {
@@ -82,9 +82,9 @@ class RoomController
         ]);
     }
 
-    // =========================================================
-    // UPDATE
-    // =========================================================
+    
+    
+    
 
     public function update(): void
     {
@@ -118,9 +118,9 @@ class RoomController
         $this->json(200, ['success' => true, 'message' => 'Room updated successfully.']);
     }
 
-    // =========================================================
-    // SOFT DELETE / REACTIVATE
-    // =========================================================
+    
+    
+    
 
     public function toggleActive(): void
     {
@@ -136,7 +136,7 @@ class RoomController
 
         $newState = ((int)$row['is_active'] === 1) ? 0 : 1;
 
-        // Extra check: don't archive a room that's currently assigned to an active admission
+        
         if ($newState === 0) {
             $stmt = $this->pdo->prepare(
                 'SELECT COUNT(*) FROM `room_assignment`
@@ -161,9 +161,9 @@ class RoomController
         ]);
     }
 
-    // =========================================================
-    // PERMANENT DELETE (archived, no FK references)
-    // =========================================================
+    
+    
+    
 
     public function delete(): void
     {
@@ -172,7 +172,7 @@ class RoomController
         $id = (int)($_GET['id'] ?? 0);
         if ($id <= 0) $this->json(400, ['success' => false, 'message' => 'Missing room id.']);
 
-        // Must already be archived
+        
         $stmt = $this->pdo->prepare('SELECT is_active FROM `room` WHERE room_id = ? LIMIT 1');
         $stmt->execute([$id]);
         $row = $stmt->fetch();
@@ -182,7 +182,7 @@ class RoomController
             $this->json(409, ['success' => false, 'message' => 'Archive the room first before deleting.']);
         }
 
-        // Check FK references from room_assignment
+        
         $stmt = $this->pdo->prepare('SELECT COUNT(*) FROM `room_assignment` WHERE room_id = ?');
         $stmt->execute([$id]);
         $refCount = (int)$stmt->fetchColumn();
@@ -201,9 +201,9 @@ class RoomController
         $this->json(200, ['success' => true, 'message' => 'Room permanently deleted.']);
     }
 
-    // =========================================================
-    // HELPERS
-    // =========================================================
+    
+    
+    
 
     private function guard(): void
     {
@@ -230,7 +230,7 @@ class RoomController
     {
         $errors = [];
 
-        // Room type
+        
         $typeId = (int)($data['room_type_id'] ?? 0);
         if ($typeId <= 0) {
             $errors['room_type_id'] = 'Please select a room type.';
@@ -242,7 +242,7 @@ class RoomController
             }
         }
 
-        // Status
+        
         $statusId = (int)($data['status_id'] ?? 0);
         if ($statusId <= 0) {
             $errors['status_id'] = 'Please select a status.';
@@ -254,7 +254,7 @@ class RoomController
             }
         }
 
-        // Room number
+        
         $num = trim((string)($data['room_number'] ?? ''));
         if ($num === '') {
             $errors['room_number'] = 'Room number is required.';

@@ -1,5 +1,5 @@
 <?php
-// controllers/RoomTypeController.php
+
 
 class RoomTypeController
 {
@@ -7,9 +7,9 @@ class RoomTypeController
 
     public function __construct(PDO $pdo) { $this->pdo = $pdo; }
 
-    // =========================================================
-    // READ
-    // =========================================================
+    
+    
+    
 
     public function getAll(): array
     {
@@ -21,9 +21,9 @@ class RoomTypeController
         )->fetchAll();
     }
 
-    // =========================================================
-    // CREATE
-    // =========================================================
+    
+    
+    
 
     public function create(): void
     {
@@ -57,9 +57,9 @@ class RoomTypeController
         ]);
     }
 
-    // =========================================================
-    // UPDATE
-    // =========================================================
+    
+    
+    
 
     public function update(): void
     {
@@ -93,9 +93,9 @@ class RoomTypeController
         $this->json(200, ['success' => true, 'message' => 'Room type updated successfully.']);
     }
 
-    // =========================================================
-    // DELETE (hard delete, blocked if any room uses it)
-    // =========================================================
+    
+    
+    
 
     public function delete(): void
     {
@@ -104,14 +104,14 @@ class RoomTypeController
         $id = (int)($_GET['id'] ?? 0);
         if ($id <= 0) $this->json(400, ['success' => false, 'message' => 'Missing room type id.']);
 
-        // Does it exist?
+        
         $stmt = $this->pdo->prepare('SELECT room_type_id FROM `room_type` WHERE room_type_id = ? LIMIT 1');
         $stmt->execute([$id]);
         if (!$stmt->fetch()) {
             $this->json(404, ['success' => false, 'message' => 'Room type not found.']);
         }
 
-        // Any rooms referencing this type?
+        
         $stmt = $this->pdo->prepare('SELECT COUNT(*) FROM `room` WHERE room_type_id = ?');
         $stmt->execute([$id]);
         $refCount = (int)$stmt->fetchColumn();
@@ -124,7 +124,7 @@ class RoomTypeController
             ]);
         }
 
-        // Safe to delete
+        
         $stmt = $this->pdo->prepare('DELETE FROM `room_type` WHERE room_type_id = ?');
         $stmt->execute([$id]);
 
@@ -134,9 +134,9 @@ class RoomTypeController
         ]);
     }
 
-    // =========================================================
-    // HELPERS
-    // =========================================================
+    
+    
+    
 
     private function guard(): void
     {

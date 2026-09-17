@@ -1,5 +1,5 @@
 <?php
-// views/admin/reports.php
+
 $patientCount = (int)$pdo->query('SELECT COUNT(*) FROM `patient`')->fetchColumn();
 $admissionCount = (int)$pdo->query('SELECT COUNT(*) FROM `admission`')->fetchColumn();
 $roomCount = (int)$pdo->query('SELECT COUNT(*) FROM `room`')->fetchColumn();

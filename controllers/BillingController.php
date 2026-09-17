@@ -1,5 +1,5 @@
 <?php
-// controllers/BillingController.php
+
 
 class BillingController
 {
@@ -7,9 +7,9 @@ class BillingController
 
     public function __construct(PDO $pdo) { $this->pdo = $pdo; }
 
-    // =========================================================
-    // READ
-    // =========================================================
+    
+    
+    
 
     public function getAll(): array
     {
@@ -46,7 +46,7 @@ class BillingController
         $statement = $stmt->fetch();
         if (!$statement) return null;
 
-        // Charges
+        
         $stmt = $this->pdo->prepare(
             'SELECT c.charge_id, c.charge_item_id, c.quantity, c.actual_price,
                     c.charge_datetime, c.notes,
@@ -60,7 +60,7 @@ class BillingController
         $stmt->execute([$statementId]);
         $statement['charges'] = $stmt->fetchAll();
 
-        // Payments
+        
         $stmt = $this->pdo->prepare(
             'SELECT p.payment_id, p.payment_type_id, p.amount, p.payment_datetime,
                     p.transaction_reference, p.notes,
@@ -76,7 +76,7 @@ class BillingController
         return $statement;
     }
 
-    // Dropdown data
+    
     public function getBillingStatuses(): array
     {
         return $this->pdo->query('SELECT status_id, status_name, color_code FROM `billing_status` ORDER BY status_id')->fetchAll();
@@ -99,7 +99,7 @@ class BillingController
         )->fetchAll();
     }
 
-    // Admissions without a billing statement yet
+    
     public function getAdmissionsWithoutStatement(): array
     {
         return $this->pdo->query(
@@ -113,9 +113,9 @@ class BillingController
         )->fetchAll();
     }
 
-    // =========================================================
-    // CREATE
-    // =========================================================
+    
+    
+    
 
     public function create(): void
     {
@@ -149,7 +149,7 @@ class BillingController
                 (float)($data['government_discount'] ?? 0),
                 $totals['tax'],
                 $totals['total'],
-                $totals['total'],   // balance = total (nothing paid yet)
+                $totals['total'],   
                 (int)$_SESSION['user']['user_id'],
                 !empty($data['notes']) ? $data['notes'] : null,
             ]);
@@ -170,9 +170,9 @@ class BillingController
         }
     }
 
-    // =========================================================
-    // UPDATE
-    // =========================================================
+    
+    
+    
 
     public function update(): void
     {
@@ -208,9 +208,9 @@ class BillingController
         }
     }
 
-    // =========================================================
-    // DELETE
-    // =========================================================
+    
+    
+    
 
     public function delete(): void
     {
@@ -219,7 +219,7 @@ class BillingController
         $id = (int)($_GET['id'] ?? 0);
         if ($id <= 0) $this->json(400, ['success' => false, 'message' => 'Missing statement id.']);
 
-        // Check if any payments exist
+        
         $stmt = $this->pdo->prepare('SELECT COUNT(*) FROM `payment` WHERE statement_id = ?');
         $stmt->execute([$id]);
         if ((int)$stmt->fetchColumn() > 0) {
@@ -232,11 +232,11 @@ class BillingController
         try {
             $this->pdo->beginTransaction();
 
-            // Delete charges first
+            
             $stmt = $this->pdo->prepare('DELETE FROM `charge` WHERE statement_id = ?');
             $stmt->execute([$id]);
 
-            // Then the statement
+            
             $stmt = $this->pdo->prepare('DELETE FROM `billing_statement` WHERE statement_id = ?');
             $stmt->execute([$id]);
 
@@ -248,15 +248,15 @@ class BillingController
         }
     }
 
-    // =========================================================
-    // CHARGES
-    // =========================================================
+    
+    
+    
 
     public function addCharge(): void
     {
         $this->guard();
 
-        $id   = (int)($_GET['id'] ?? 0);   // statement_id
+        $id   = (int)($_GET['id'] ?? 0);   
         $data = $this->input();
 
         $itemId   = (int)($data['charge_item_id'] ?? 0);
@@ -266,7 +266,7 @@ class BillingController
             $this->json(422, ['success' => false, 'message' => 'Missing or invalid charge data.']);
         }
 
-        // Fetch item + category (for recurring flag)
+        
         $stmt = $this->pdo->prepare(
             'SELECT ci.charge_item_id, ci.default_price, ci.item_name, ci.is_taxable,
                     cc.is_recurring
@@ -278,7 +278,7 @@ class BillingController
         $item = $stmt->fetch();
         if (!$item) $this->json(404, ['success' => false, 'message' => 'Charge item not found or inactive.']);
 
-        // Use default price (or override)
+        
         $price = isset($data['actual_price']) && is_numeric($data['actual_price'])
             ? (float)$data['actual_price']
             : (float)$item['default_price'];
@@ -304,7 +304,7 @@ class BillingController
                 !empty($data['service_end_date'])   ? $data['service_end_date']   : null,
             ]);
 
-            // Recompute statement totals
+            
             $this->recomputeStatement($id);
 
             $this->pdo->commit();
@@ -342,9 +342,9 @@ class BillingController
         }
     }
 
-    // =========================================================
-    // PAYMENTS
-    // =========================================================
+    
+    
+    
 
     public function addPayment(): void
     {
@@ -448,9 +448,9 @@ class BillingController
         }
     }
 
-    // =========================================================
-    // HELPERS
-    // =========================================================
+    
+    
+    
 
     private function computeTotals(array $data): array
     {
@@ -468,7 +468,7 @@ class BillingController
 
     private function recomputeStatement(int $statementId, array $overrides = []): void
     {
-        // Subtotal + tax from charges
+        
         $stmt = $this->pdo->prepare(
             'SELECT
                 COALESCE(SUM(c.quantity * c.actual_price), 0) AS subtotal,
@@ -482,14 +482,14 @@ class BillingController
 
         $subtotal = (float)$row['subtotal'];
         $taxable  = (float)$row['taxable'];
-        $tax      = round($taxable * 0.12, 2);   // 12% VAT on taxable items
+        $tax      = round($taxable * 0.12, 2);   
 
-        // Payments
+        
         $stmt = $this->pdo->prepare('SELECT COALESCE(SUM(amount), 0) FROM `payment` WHERE statement_id = ?');
         $stmt->execute([$statementId]);
         $paid = (float)$stmt->fetchColumn();
 
-        // Existing values (or overrides)
+        
         $stmt = $this->pdo->prepare('SELECT insurance_coverage_amount, government_discount, status_id, due_date, notes FROM `billing_statement` WHERE statement_id = ? LIMIT 1');
         $stmt->execute([$statementId]);
         $current = $stmt->fetch();
@@ -504,10 +504,10 @@ class BillingController
         $total   = max(0, $subtotal + $tax - $insurance - $discount);
         $balance = max(0, $total - $paid);
 
-        // Auto-set status based on balance if not overridden explicitly
-        // (unless the caller passed a status_id, in which case respect it)
+        
+        
         if (!isset($overrides['status_id'])) {
-            // Look up status ids by meaning
+            
             $stmt = $this->pdo->prepare(
                 'SELECT status_id, is_paid_status, status_name FROM `billing_status` ORDER BY status_id'
             );
@@ -552,13 +552,13 @@ class BillingController
 
     private function autoUpdatePaidStatus(int $statementId): void
     {
-        // Read statement + check if balance == 0
+        
         $stmt = $this->pdo->prepare('SELECT balance_amount FROM `billing_statement` WHERE statement_id = ? LIMIT 1');
         $stmt->execute([$statementId]);
         $balance = (float)$stmt->fetchColumn();
 
         if ($balance <= 0) {
-            // Find a "Paid" status
+            
             $stmt = $this->pdo->query('SELECT status_id FROM `billing_status` WHERE is_paid_status = 1 LIMIT 1');
             $paidStatus = (int)$stmt->fetchColumn();
             if ($paidStatus > 0) {
@@ -596,7 +596,7 @@ class BillingController
         if (empty($data['admission_id']) || (int)$data['admission_id'] <= 0) {
             $errors['admission_id'] = 'Please select an admission.';
         } else {
-            // Prevent duplicate statement per admission
+            
             $sql = 'SELECT statement_id FROM `billing_statement` WHERE admission_id = ?';
             $args = [(int)$data['admission_id']];
             if ($ignoreId !== null) { $sql .= ' AND statement_id <> ?'; $args[] = $ignoreId; }

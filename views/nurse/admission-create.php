@@ -1,5 +1,5 @@
 <?php
-// views/nurse/admission-create.php
+
 
 require_once __DIR__ . '/../../controllers/NurseController.php';
 
@@ -13,7 +13,7 @@ $doctors = $controller->getDoctors();
 $selectedPatientId = (int)($_GET['patient_id'] ?? 0);
 $selectedPatient = $selectedPatientId ? $controller->getPatientDetails($selectedPatientId) : null;
 
-// If patient already has active admission, redirect
+
 if ($selectedPatient && $selectedPatient['current_admission']) {
     header('Location: ' . BASE_URL . '/index.php?page=nurse-room-assignments&admission_id=' . $selectedPatient['current_admission']['admission_id']);
     exit;
@@ -31,7 +31,7 @@ if ($selectedPatient && $selectedPatient['current_admission']) {
     <form id="admissionForm" method="POST" novalidate>
         <input type="hidden" name="patient_id" id="patient_id" value="<?= $selectedPatientId ?>">
 
-        <!-- Patient Selection -->
+        
         <div class="mb-6">
             <label class="block text-sm font-medium text-slate-700 mb-2">Patient <span class="text-rose-500">*</span></label>
             
@@ -58,7 +58,7 @@ if ($selectedPatient && $selectedPatient['current_admission']) {
             <p class="mt-1.5 text-xs text-red-600 hidden" data-error-for="patient_id"></p>
         </div>
 
-        <!-- Admission Details -->
+        
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-6">
             <div>
                 <label class="block text-sm font-medium text-slate-700 mb-1.5">Admission Status</label>
@@ -95,7 +95,7 @@ if ($selectedPatient && $selectedPatient['current_admission']) {
             </div>
         </div>
 
-        <!-- Assigned Doctors -->
+        
         <div class="mb-6">
             <div class="flex items-center justify-between mb-2">
                 <label class="block text-sm font-medium text-slate-700">
@@ -141,12 +141,12 @@ if ($selectedPatient && $selectedPatient['current_admission']) {
             <?php endif; ?>
         </div>
 
-        <!-- Room Selection -->
+        
         <div class="mb-6">
             <label class="block text-sm font-medium text-slate-700 mb-2">Room Preference</label>
             <p class="text-xs text-slate-500 mb-3">Select a preferred room type, then choose an available room.</p>
             
-            <!-- Room Type Filter -->
+            
             <div class="flex flex-wrap gap-2 mb-4">
                 <button type="button" class="room-type-filter active px-3 py-1.5 text-xs font-medium rounded-full border border-blue-200 bg-blue-50 text-blue-700"
                         data-type-id="">All Types</button>
@@ -159,7 +159,7 @@ if ($selectedPatient && $selectedPatient['current_admission']) {
                 <?php endforeach; ?>
             </div>
 
-            <!-- Room List -->
+            
             <div id="roomList" class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-64 overflow-y-auto border border-slate-200 rounded-lg p-3">
                 <?php if (empty($availableRooms)): ?>
                     <div class="col-span-2 text-center py-6 text-slate-400">
@@ -206,7 +206,7 @@ if ($selectedPatient && $selectedPatient['current_admission']) {
     const patientIdInput = document.getElementById('patient_id');
     let searchTimeout = null;
 
-    // ── Doctor selection counter ──
+
     const doctorCheckboxes = document.querySelectorAll('.doctor-checkbox');
     const doctorCountEl = document.getElementById('doctorCount');
     function updateDoctorCount() {
@@ -215,7 +215,7 @@ if ($selectedPatient && $selectedPatient['current_admission']) {
     }
     doctorCheckboxes.forEach(cb => cb.addEventListener('change', updateDoctorCount));
 
-    // Patient search autocomplete
+
     if (patientSearch) {
         patientSearch.addEventListener('input', function() {
             clearTimeout(searchTimeout);
@@ -255,7 +255,7 @@ if ($selectedPatient && $selectedPatient['current_admission']) {
                             patientSearch.value = name;
                             patientResults.classList.add('hidden');
 
-                            // Show selected
+
                             const wrapper = patientSearch.parentElement;
                             wrapper.innerHTML = `
                                 <div class="flex items-center gap-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
@@ -276,7 +276,7 @@ if ($selectedPatient && $selectedPatient['current_admission']) {
             }, 300);
         });
 
-        // Close results on outside click
+
         document.addEventListener('click', function(e) {
             if (!patientSearch.contains(e.target) && !patientResults.contains(e.target)) {
                 patientResults.classList.add('hidden');
@@ -284,7 +284,7 @@ if ($selectedPatient && $selectedPatient['current_admission']) {
         });
     }
 
-    // Room type filter
+
     document.querySelectorAll('.room-type-filter').forEach(btn => {
         btn.addEventListener('click', function() {
             document.querySelectorAll('.room-type-filter').forEach(b => {
@@ -305,7 +305,7 @@ if ($selectedPatient && $selectedPatient['current_admission']) {
         });
     });
 
-    // Form submit
+
     document.getElementById('admissionForm').addEventListener('submit', async function(e) {
         e.preventDefault();
 
@@ -322,7 +322,7 @@ if ($selectedPatient && $selectedPatient['current_admission']) {
             el.classList.add('hidden');
         });
 
-        // ── Build payload manually so nested keys (doctor_ids[], doctor_roles[5]) survive ──
+
         const formEl = this;
         const data = {};
 

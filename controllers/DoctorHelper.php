@@ -1,11 +1,9 @@
 <?php
-// controllers/DoctorHelper.php
+
 
 class DoctorHelper
 {
-    /**
-     * Returns the doctor_id for the currently logged-in user, or null.
-     */
+    
     public static function getCurrentDoctorId(PDO $pdo): ?int
     {
         if (session_status() === PHP_SESSION_NONE) session_start();

@@ -1,5 +1,5 @@
 <?php
-// views/cashier.php
+
 
 require_once __DIR__ . '/../controllers/CashierController.php';
 
@@ -13,7 +13,7 @@ $recent     = $controller->getRecentStatements(10);
     <p class="mt-1 text-sm text-slate-500">Statements, payments, and collections at a glance.</p>
 </div>
 
-<!-- Stat Cards -->
+
 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
     <div class="bg-white rounded-xl border border-slate-200 p-5">
         <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Collected Today</p>
@@ -33,7 +33,7 @@ $recent     = $controller->getRecentStatements(10);
     </div>
 </div>
 
-<!-- Quick Actions -->
+
 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
     <a href="<?= BASE_URL ?>/index.php?page=cashier-statements"
        class="flex items-center gap-4 bg-white rounded-xl border border-slate-200 p-5 hover:border-blue-300 hover:shadow-sm transition">
@@ -75,7 +75,7 @@ $recent     = $controller->getRecentStatements(10);
     </a>
 </div>
 
-<!-- Recent Statements -->
+
 <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
     <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
         <div>

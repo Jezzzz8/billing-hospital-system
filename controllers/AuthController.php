@@ -1,5 +1,5 @@
 <?php
-// app/controllers/AuthController.php
+
 
 class AuthController
 {
@@ -24,11 +24,11 @@ class AuthController
             $this->json(405, ['success' => false, 'message' => 'Method not allowed.']);
         }
 
-        // --- Read raw input ---
+        
         $raw = file_get_contents('php://input');
         $data = json_decode($raw, true) ?: $_POST;
 
-        // Accept "email" (new) with fallback to "username" (old)
+        
         $email    = trim((string)($data['email'] ?? $data['username'] ?? ''));
         $password = (string)($data['password'] ?? '');
 
@@ -40,7 +40,7 @@ class AuthController
             $this->json(422, ['success' => false, 'message' => 'Email and password are required.']);
         }
 
-        // --- Query user by email ---
+        
         $sql = 'SELECT u.user_id, u.username, u.password_hash, u.first_name, u.last_name,
                        u.email, u.is_active, r.role_id, r.role_name
                 FROM `user` u
@@ -68,7 +68,7 @@ class AuthController
                  . ', is_active=' . $user['is_active']
                  . ', role_id=' . $user['role_id']);
 
-        // --- Verify password ---
+        
         $verified = password_verify($password, $user['password_hash']);
         $this->log('password_verify() result: ' . ($verified ? '✅ TRUE' : '❌ FALSE'));
 
@@ -81,7 +81,7 @@ class AuthController
             $this->json(403, ['success' => false, 'message' => 'Account is inactive. Contact an administrator.']);
         }
 
-        // --- Session ---
+        
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
         }
@@ -115,7 +115,7 @@ class AuthController
 private function redirectForRole(int $roleId): string
 {
     return match ($roleId) {
-        1 => '/billing_hospital/index.php?page=dashboard',   // ← fixed
+        1 => '/billing_hospital/index.php?page=dashboard',   
         2 => '/billing_hospital/index.php?page=doctor',
         3 => '/billing_hospital/index.php?page=nurse',
         4 => '/billing_hospital/index.php?page=cashier',

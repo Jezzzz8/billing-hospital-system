@@ -1,5 +1,5 @@
 <?php
-// views/admin/billing.php
+
 require_once __DIR__ . '/../../controllers/BillingController.php';
 
 $controller       = new BillingController($pdo);
@@ -20,7 +20,7 @@ foreach ($statements as $s) {
 }
 ?>
 
-<!-- Data for the modal dropdowns (read by billing.js) -->
+
 <div id="billingData"
      class="hidden"
      data-charge-items='<?= htmlspecialchars(json_encode(array_map(fn($c) => [
@@ -37,7 +37,7 @@ foreach ($statements as $s) {
         'type_name'       => $p['type_name'],
      ], $paymentTypes)), ENT_QUOTES, "UTF-8") ?>'></div>
 
-<!-- Page header -->
+
 <div class="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
     <div>
         <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Billing</h1>
@@ -54,7 +54,7 @@ foreach ($statements as $s) {
 
 <div id="alert" class="hidden mb-5 rounded-lg px-4 py-3 text-sm border"></div>
 
-<!-- Stat cards -->
+
 <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
     <div class="bg-white rounded-xl border border-slate-200 p-5">
         <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Statements</p>
@@ -74,7 +74,7 @@ foreach ($statements as $s) {
     </div>
 </div>
 
-<!-- Filter bar -->
+
 <div class="bg-white rounded-xl border border-slate-200 p-4 mb-4">
     <div class="flex flex-col lg:flex-row lg:items-end gap-3">
         <div class="flex-1">
@@ -116,7 +116,7 @@ foreach ($statements as $s) {
     </div>
 </div>
 
-<!-- Table -->
+
 <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
     <div class="overflow-x-auto">
         <table class="min-w-full text-sm">
@@ -217,7 +217,7 @@ foreach ($statements as $s) {
     </div>
 </div>
 
-<!-- ============ CREATE / EDIT STATEMENT MODAL ============ -->
+
 <div id="statementModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
     <div class="absolute inset-0 bg-slate-900/60" data-close-statement></div>
 
@@ -313,7 +313,7 @@ foreach ($statements as $s) {
     </div>
 </div>
 
-<!-- ============ MANAGE STATEMENT MODAL ============ -->
+
 <div id="manageModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
     <div class="absolute inset-0 bg-slate-900/60" data-close-manage></div>
 
@@ -427,7 +427,7 @@ foreach ($statements as $s) {
     </div>
 </div>
 
-<!-- ============ ADD CHARGE MODAL ============ -->
+
 <div id="chargeModal" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4">
     <div class="absolute inset-0 bg-slate-900/60" data-close-charge></div>
 
@@ -462,7 +462,7 @@ foreach ($statements as $s) {
                 </div>
             </div>
 
-            <!-- Live summary -->
+            
             <div id="chargeSummary" class="hidden rounded-lg border border-blue-100 bg-blue-50 p-4 space-y-1.5">
                 <div class="flex items-center justify-between text-xs text-slate-600">
                     <span>Unit price</span>
@@ -499,7 +499,7 @@ foreach ($statements as $s) {
     </div>
 </div>
 
-<!-- ============ ADD PAYMENT MODAL ============ -->
+
 <div id="paymentModal" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4">
     <div class="absolute inset-0 bg-slate-900/60" data-close-payment></div>
 

@@ -1,5 +1,5 @@
 <?php
-// controllers/AdmissionStatusController.php
+
 
 class AdmissionStatusController
 {
@@ -7,7 +7,7 @@ class AdmissionStatusController
 
     public function __construct(PDO $pdo) { $this->pdo = $pdo; }
 
-    // ---------- READ ----------
+    
     public function getAll(): array
     {
         return $this->pdo->query(
@@ -17,7 +17,7 @@ class AdmissionStatusController
         )->fetchAll();
     }
 
-    // ---------- CREATE ----------
+    
     public function create(): void
     {
         $this->guard();
@@ -46,7 +46,7 @@ class AdmissionStatusController
         ]);
     }
 
-    // ---------- UPDATE ----------
+    
     public function update(): void
     {
         $this->guard();
@@ -76,7 +76,7 @@ class AdmissionStatusController
         $this->json(200, ['success' => true, 'message' => 'Admission status updated successfully.']);
     }
 
-    // ---------- DELETE (hard, with FK check) ----------
+    
     public function delete(): void
     {
         $this->guard();
@@ -90,7 +90,7 @@ class AdmissionStatusController
             $this->json(404, ['success' => false, 'message' => 'Admission status not found.']);
         }
 
-        // Check for FK references in `admission`
+        
         $stmt = $this->pdo->prepare('SELECT COUNT(*) FROM `admission` WHERE status_id = ?');
         $stmt->execute([$id]);
         $refCount = (int)$stmt->fetchColumn();
@@ -109,7 +109,7 @@ class AdmissionStatusController
         $this->json(200, ['success' => true, 'message' => 'Admission status deleted.']);
     }
 
-    // ---------- HELPERS ----------
+    
     private function guard(): void
     {
         header('Content-Type: application/json; charset=utf-8');

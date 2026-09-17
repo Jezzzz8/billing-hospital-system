@@ -1,5 +1,5 @@
 <?php
-// views/nurse/patient-search.php
+
 
 require_once __DIR__ . '/../../controllers/NurseController.php';
 
@@ -13,7 +13,7 @@ $patients = $searchQuery ? $controller->searchPatients($searchQuery) : [];
     <p class="mt-1 text-sm text-slate-500">Search for existing patient records by name, contact, or email.</p>
 </div>
 
-<!-- Search Bar -->
+
 <div class="bg-white rounded-xl border border-slate-200 p-4 mb-6">
     <form method="GET" action="<?= BASE_URL ?>/index.php" class="flex flex-col sm:flex-row gap-3">
         <input type="hidden" name="page" value="nurse-patient-search">
@@ -43,7 +43,7 @@ $patients = $searchQuery ? $controller->searchPatients($searchQuery) : [];
     </form>
 </div>
 
-<!-- Results -->
+
 <?php if ($searchQuery): ?>
     <div class="mb-4 flex items-center justify-between">
         <p class="text-sm text-slate-500">

@@ -1,6 +1,6 @@
 <?php
-// views/partials/topbar.php
-// Expects: $pageTitle, $currentUser
+
+
 ?>
 <header class="bg-white border-b border-slate-200 h-14 lg:h-16 sticky top-0 z-10">
     <div class="h-full flex items-center justify-between pl-16 pr-4 lg:px-6">

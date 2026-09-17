@@ -1,5 +1,5 @@
 <?php
-// controllers/SpecializationController.php
+
 
 class SpecializationController
 {
@@ -7,7 +7,7 @@ class SpecializationController
 
     public function __construct(PDO $pdo) { $this->pdo = $pdo; }
 
-    // ---------- READ ----------
+    
     public function getAll(): array
     {
         return $this->pdo->query(
@@ -17,7 +17,7 @@ class SpecializationController
         )->fetchAll();
     }
 
-    // ---------- CREATE ----------
+    
     public function create(): void
     {
         $this->guard();
@@ -40,7 +40,7 @@ class SpecializationController
         ]);
     }
 
-    // ---------- UPDATE ----------
+    
     public function update(): void
     {
         $this->guard();
@@ -64,7 +64,7 @@ class SpecializationController
         $this->json(200, ['success' => true, 'message' => 'Specialization updated successfully.']);
     }
 
-    // ---------- DELETE (hard, with FK check) ----------
+    
     public function delete(): void
     {
         $this->guard();
@@ -78,7 +78,7 @@ class SpecializationController
             $this->json(404, ['success' => false, 'message' => 'Specialization not found.']);
         }
 
-        // Check FK references in doctor_specialization
+        
         $stmt = $this->pdo->prepare('SELECT COUNT(*) FROM `doctor_specialization` WHERE specialization_id = ?');
         $stmt->execute([$id]);
         $refCount = (int)$stmt->fetchColumn();
@@ -97,7 +97,7 @@ class SpecializationController
         $this->json(200, ['success' => true, 'message' => 'Specialization deleted.']);
     }
 
-    // ---------- HELPERS ----------
+    
     private function guard(): void
     {
         header('Content-Type: application/json; charset=utf-8');

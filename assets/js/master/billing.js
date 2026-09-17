@@ -1,10 +1,10 @@
-// assets/js/master/billing.js
+
 
 document.addEventListener("DOMContentLoaded", () => {
   const baseUrl = document.body.dataset.baseUrl || "";
   const alertBox = document.getElementById("alert");
 
-  // Statements modal
+  
   const statementModal = document.getElementById("statementModal");
   const statementForm = document.getElementById("statementForm");
   const statementModalTitle = document.getElementById("statementModalTitle");
@@ -13,7 +13,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const openCreate = document.getElementById("openCreateBtn");
   const admissionWrapper = document.getElementById("admissionWrapper");
 
-  // Manage modal
+  
   const manageModal = document.getElementById("manageModal");
   const manageTitle = document.getElementById("manageTitle");
   const manageSubtitle = document.getElementById("manageSubtitle");
@@ -26,13 +26,13 @@ document.addEventListener("DOMContentLoaded", () => {
   const sumTotal = document.getElementById("sumTotal");
   const sumBalance = document.getElementById("sumBalance");
 
-  // Charge modal
+  
   const chargeModal = document.getElementById("chargeModal");
   const chargeForm = document.getElementById("chargeForm");
   const saveChargeBtn = document.getElementById("saveChargeBtn");
   const saveChargeLbl = document.getElementById("saveChargeLabel");
 
-  // Live summary elements
+  
   const chargeSummary = document.getElementById("chargeSummary");
   const summaryUnitPrice = document.getElementById("summaryUnitPrice");
   const summaryQty = document.getElementById("summaryQty");
@@ -43,7 +43,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const chargeQuantityEl = document.getElementById("charge_quantity");
   const chargePriceEl = document.getElementById("charge_price");
 
-  // Payment modal
+  
   const paymentModal = document.getElementById("paymentModal");
   const paymentForm = document.getElementById("paymentForm");
   const savePaymentBtn = document.getElementById("savePaymentBtn");
@@ -51,7 +51,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const TAX_RATE = 0.12;
 
-  // ---------- Read dropdown data from hidden div ----------
+  
   const holder = document.getElementById("billingData");
   let CHARGE_ITEMS = [];
   let PAYMENT_TYPES = [];
@@ -91,7 +91,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // ---------- Helpers ----------
+  
   const showAlert = (msg, type = "error") => {
     const styles = {
       error: "bg-red-50 border-red-200 text-red-700",
@@ -132,7 +132,7 @@ document.addEventListener("DOMContentLoaded", () => {
     return parseFloat(str.replace(/[^0-9.\-]/g, "")) || 0;
   };
 
-  // ---------- Modal close handlers ----------
+  
   document
     .querySelectorAll("[data-close-statement]")
     .forEach((el) =>
@@ -165,9 +165,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // =========================================================
-  // STATEMENT: CREATE
-  // =========================================================
+  
+  
+  
   if (openCreate) {
     openCreate.addEventListener("click", () => {
       statementForm.reset();
@@ -180,9 +180,9 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // =========================================================
-  // STATEMENT: EDIT
-  // =========================================================
+  
+  
+  
   document.querySelectorAll(".edit-btn").forEach((btn) => {
     btn.addEventListener("click", async () => {
       const id = btn.dataset.statementId;
@@ -215,9 +215,9 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // =========================================================
-  // STATEMENT: SUBMIT
-  // =========================================================
+  
+  
+  
   statementForm.addEventListener("submit", async (e) => {
     e.preventDefault();
     hideAlert();
@@ -276,9 +276,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // =========================================================
-  // STATEMENT: DELETE
-  // =========================================================
+  
+  
+  
   document.querySelectorAll(".delete-btn").forEach((btn) => {
     btn.addEventListener("click", async () => {
       const id = btn.dataset.statementId;
@@ -305,9 +305,9 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // =========================================================
-  // MANAGE MODAL
-  // =========================================================
+  
+  
+  
   let currentStatementId = null;
   let currentStatement = null;
 
@@ -545,11 +545,11 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // =========================================================
-  // ADD CHARGE MODAL — live price = unit × quantity
-  // =========================================================
+  
+  
+  
 
-  // Computes and displays the running "Price" (unit × qty) plus tax info
+  
   function refreshChargeSummary() {
     const opt = chargeItemEl.selectedOptions[0];
     const hasItem = !!chargeItemEl.value;
@@ -568,10 +568,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const taxAmt = isTaxable ? lineBase * TAX_RATE : 0;
     const lineTotal = lineBase + taxAmt;
 
-    // The Price field shows unit × qty (base price, pre-tax)
+    
     chargePriceEl.value = lineBase.toFixed(2);
 
-    // Live breakdown
+    
     summaryUnitPrice.textContent = fmt(unitPrice);
     summaryQty.textContent = qty;
 
@@ -588,7 +588,7 @@ document.addEventListener("DOMContentLoaded", () => {
     chargeSummary.classList.remove("hidden");
   }
 
-  // Open Add Charge modal
+  
   document.getElementById("addChargeBtn").addEventListener("click", () => {
     chargeForm.reset();
     chargeItemEl.value = "";
@@ -599,10 +599,10 @@ document.addEventListener("DOMContentLoaded", () => {
     openModal(chargeModal);
   });
 
-  // Item change → recompute price
+  
   chargeItemEl.addEventListener("change", refreshChargeSummary);
 
-  // Quantity change → recompute price live
+  
   chargeQuantityEl.addEventListener("input", refreshChargeSummary);
   chargeQuantityEl.addEventListener("change", refreshChargeSummary);
 
@@ -621,7 +621,7 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
 
-      // Send the base unit price to the server (server multiplies by qty itself)
+      
       const opt = chargeItemEl.selectedOptions[0];
       const unitPrice = parseFloat(opt?.dataset.price) || 0;
 
@@ -656,9 +656,9 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // =========================================================
-  // ADD PAYMENT MODAL
-  // =========================================================
+  
+  
+  
   document.getElementById("addPaymentBtn").addEventListener("click", () => {
     paymentForm.reset();
     document.getElementById("payment_type_id").value = "";
@@ -713,9 +713,9 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // =========================================================
-  // SEARCH + FILTER
-  // =========================================================
+  
+  
+  
   const searchInput = document.getElementById("filterSearch");
   const statusFilter = document.getElementById("filterStatus");
   const filterClear = document.getElementById("filterClear");
@@ -761,9 +761,9 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   applyFilters();
 
-  // =========================================================
-  // Flash
-  // =========================================================
+  
+  
+  
   const flash = sessionStorage.getItem("billing_flash");
   if (flash) {
     sessionStorage.removeItem("billing_flash");

@@ -1,10 +1,10 @@
-// assets/js/master/billing-status.js
+
 
 document.addEventListener("DOMContentLoaded", () => {
   const baseUrl = document.body.dataset.baseUrl || "";
   const alertBox = document.getElementById("alert");
 
-  // Modals / forms
+  
   const modal = document.getElementById("statusModal");
   const form = document.getElementById("statusForm");
   const modalTitle = document.getElementById("statusModalTitle");
@@ -12,17 +12,17 @@ document.addEventListener("DOMContentLoaded", () => {
   const submitLbl = document.getElementById("statusSubmitLabel");
   const openCreate = document.getElementById("openCreateBtn");
 
-  // Color inputs
+  
   const colorPicker = document.getElementById("color_picker");
   const colorCode = document.getElementById("color_code");
 
-  // Delete confirm modal
+  
   const deleteModal = document.getElementById("deleteModal");
   const deleteStatusName = document.getElementById("deleteStatusName");
   const confirmDeleteBtn = document.getElementById("confirmDeleteBtn");
   const confirmDeleteLbl = document.getElementById("confirmDeleteLabel");
 
-  // ---------- Helpers ----------
+  
   const showAlert = (msg, type = "error") => {
     const styles = {
       error: "bg-red-50 border-red-200 text-red-700",
@@ -51,7 +51,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const openModal = (el) => el.classList.remove("hidden");
   const closeModal = (el) => el.classList.add("hidden");
 
-  // ---------- Color picker <-> text sync ----------
+  
   if (colorPicker && colorCode) {
     colorPicker.addEventListener("input", () => {
       colorCode.value = colorPicker.value;
@@ -63,7 +63,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // ---------- Modal close handlers ----------
+  
   document.querySelectorAll("[data-close-modal]").forEach((el) => {
     el.addEventListener("click", () => closeModal(modal));
   });
@@ -77,9 +77,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // =========================================================
-  // CREATE
-  // =========================================================
+  
+  
+  
   if (openCreate) {
     openCreate.addEventListener("click", () => {
       form.reset();
@@ -94,9 +94,9 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // =========================================================
-  // EDIT
-  // =========================================================
+  
+  
+  
   document.querySelectorAll(".edit-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       const s = JSON.parse(btn.dataset.status);
@@ -121,7 +121,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // ---------- CREATE / UPDATE submit ----------
+  
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     hideAlert();
@@ -174,9 +174,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // =========================================================
-  // DELETE
-  // =========================================================
+  
+  
+  
   let pendingDeleteId = null;
 
   document.querySelectorAll(".delete-btn").forEach((btn) => {
@@ -227,9 +227,9 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // =========================================================
-  // SEARCH
-  // =========================================================
+  
+  
+  
   const searchInput = document.getElementById("filterSearch");
   const filterClear = document.getElementById("filterClear");
   const filterSummary = document.getElementById("filterSummary");
@@ -272,9 +272,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   applyFilters();
 
-  // =========================================================
-  // Flash message
-  // =========================================================
+  
+  
+  
   const flash = sessionStorage.getItem("billing_status_flash");
   if (flash) {
     sessionStorage.removeItem("billing_status_flash");

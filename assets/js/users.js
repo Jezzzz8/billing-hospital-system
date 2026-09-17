@@ -1,4 +1,4 @@
-// assets/js/users.js
+
 
 document.addEventListener("DOMContentLoaded", () => {
   const baseUrl = document.body.dataset.baseUrl || "";
@@ -26,7 +26,7 @@ document.addEventListener("DOMContentLoaded", () => {
     "confirmDeactivateLabel",
   );
 
-  // ---------- Helpers ----------
+  
   const showAlert = (msg, type = "error") => {
     const styles = {
       error: "bg-red-50 border-red-200 text-red-700",
@@ -55,7 +55,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const openModal = (el) => el.classList.remove("hidden");
   const closeModal = (el) => el.classList.add("hidden");
 
-  // ---------- Modal close handlers ----------
+  
   document.querySelectorAll("[data-close-modal]").forEach((el) => {
     el.addEventListener("click", () => closeModal(userModal));
   });
@@ -73,9 +73,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // =========================================================
-  // CREATE
-  // =========================================================
+  
+  
+  
   openCreateBtn.addEventListener("click", () => {
     userForm.reset();
     clearErrors(userForm);
@@ -87,9 +87,9 @@ document.addEventListener("DOMContentLoaded", () => {
     openModal(userModal);
   });
 
-  // =========================================================
-  // EDIT
-  // =========================================================
+  
+  
+  
   document.querySelectorAll(".edit-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       const u = JSON.parse(btn.dataset.user);
@@ -116,7 +116,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // ---------- CREATE / UPDATE submit ----------
+  
   userForm.addEventListener("submit", async (e) => {
     e.preventDefault();
     hideAlert();
@@ -174,9 +174,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // =========================================================
-  // CHANGE PASSWORD
-  // =========================================================
+  
+  
+  
   document.querySelectorAll(".pw-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       pwForm.reset();
@@ -236,9 +236,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // =========================================================
-  // DEACTIVATE
-  // =========================================================
+  
+  
+  
   document.querySelectorAll(".deactivate-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       confirmUserName.textContent = btn.dataset.userName;
@@ -280,9 +280,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // =========================================================
-  // REACTIVATE
-  // =========================================================
+  
+  
+  
   document.querySelectorAll(".reactivate-btn").forEach((btn) => {
     btn.addEventListener("click", async () => {
       const userId = btn.dataset.userId;
@@ -315,9 +315,9 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // =========================================================
-  // SEARCH + FILTER  (archived hidden by default)
-  // =========================================================
+  
+  
+  
   const searchInput = document.getElementById("filterSearch");
   const roleFilter = document.getElementById("filterRole");
   const showArchived = document.getElementById("showArchived");
@@ -341,7 +341,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const matchesSearch = q === "" || (row.dataset.search || "").includes(q);
       const matchesRole = role === "" || row.dataset.role === role;
 
-      // Archived rows are hidden unless the checkbox is checked
+      
       const isArchived = row.dataset.status === "0";
       const matchesArchived = showInactive || !isArchived;
 
@@ -368,12 +368,12 @@ document.addEventListener("DOMContentLoaded", () => {
     applyFilters();
   });
 
-  // Apply the default state on load (hides archived)
+  
   applyFilters();
 
-  // =========================================================
-  // Flash message
-  // =========================================================
+  
+  
+  
   const flash = sessionStorage.getItem("users_flash");
   if (flash) {
     sessionStorage.removeItem("users_flash");

@@ -1,10 +1,10 @@
-// assets/js/master/diagnosis.js
+
 
 document.addEventListener("DOMContentLoaded", () => {
   const baseUrl = document.body.dataset.baseUrl || "";
   const alertBox = document.getElementById("alert");
 
-  // Modals / forms
+  
   const modal = document.getElementById("diagnosisModal");
   const form = document.getElementById("diagnosisForm");
   const modalTitle = document.getElementById("diagnosisModalTitle");
@@ -12,7 +12,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const submitLbl = document.getElementById("diagnosisSubmitLabel");
   const openCreate = document.getElementById("openCreateBtn");
 
-  // Archive confirm modal
+  
   const confirmModal = document.getElementById("confirmModal");
   const confirmName = document.getElementById("confirmDiagnosisName");
   const confirmDeactivateBtn = document.getElementById("confirmDeactivateBtn");
@@ -20,13 +20,13 @@ document.addEventListener("DOMContentLoaded", () => {
     "confirmDeactivateLabel",
   );
 
-  // Delete confirm modal
+  
   const deleteModal = document.getElementById("deleteModal");
   const deleteDiagnosisName = document.getElementById("deleteDiagnosisName");
   const confirmDeleteBtn = document.getElementById("confirmDeleteBtn");
   const confirmDeleteLbl = document.getElementById("confirmDeleteLabel");
 
-  // ---------- Helpers ----------
+  
   const showAlert = (msg, type = "error") => {
     const styles = {
       error: "bg-red-50 border-red-200 text-red-700",
@@ -55,7 +55,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const openModal = (el) => el.classList.remove("hidden");
   const closeModal = (el) => el.classList.add("hidden");
 
-  // ---------- Modal close handlers ----------
+  
   document.querySelectorAll("[data-close-modal]").forEach((el) => {
     el.addEventListener("click", () => closeModal(modal));
   });
@@ -73,9 +73,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // =========================================================
-  // CREATE
-  // =========================================================
+  
+  
+  
   if (openCreate) {
     openCreate.addEventListener("click", () => {
       form.reset();
@@ -87,9 +87,9 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // =========================================================
-  // EDIT
-  // =========================================================
+  
+  
+  
   document.querySelectorAll(".edit-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       const d = JSON.parse(btn.dataset.diagnosis);
@@ -109,7 +109,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // ---------- CREATE / UPDATE submit ----------
+  
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     hideAlert();
@@ -159,9 +159,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // =========================================================
-  // ARCHIVE (soft delete)
-  // =========================================================
+  
+  
+  
   document.querySelectorAll(".deactivate-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       confirmName.textContent = btn.getAttribute("data-diagnosis-name");
@@ -210,9 +210,9 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // =========================================================
-  // REACTIVATE
-  // =========================================================
+  
+  
+  
   document.querySelectorAll(".reactivate-btn").forEach((btn) => {
     btn.addEventListener("click", async () => {
       const id = btn.getAttribute("data-diagnosis-id");
@@ -247,9 +247,9 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // =========================================================
-  // PERMANENT DELETE (archived items only)
-  // =========================================================
+  
+  
+  
   let pendingDeleteId = null;
 
   document.querySelectorAll(".delete-btn").forEach((btn) => {
@@ -300,9 +300,9 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // =========================================================
-  // SEARCH + FILTER (archived hidden by default)
-  // =========================================================
+  
+  
+  
   const searchInput = document.getElementById("filterSearch");
   const showArchived = document.getElementById("showArchived");
   const filterClear = document.getElementById("filterClear");
@@ -355,9 +355,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   applyFilters();
 
-  // =========================================================
-  // Flash message
-  // =========================================================
+  
+  
+  
   const flash = sessionStorage.getItem("diagnosis_flash");
   if (flash) {
     sessionStorage.removeItem("diagnosis_flash");

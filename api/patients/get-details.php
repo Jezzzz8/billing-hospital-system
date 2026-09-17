@@ -1,5 +1,5 @@
 <?php
-// Returns full patient details for the edit modal (JSON)
+
 require_once __DIR__ . '/../../config/connection.php';
 require_once __DIR__ . '/../../controllers/PatientController.php';
 

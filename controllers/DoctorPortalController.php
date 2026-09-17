@@ -1,5 +1,5 @@
 <?php
-// controllers/DoctorPortalController.php
+
 
 require_once __DIR__ . '/BillingHook.php';
 
@@ -14,9 +14,9 @@ class DoctorPortalController
         $this->doctorId = $doctorId;
     }
 
-    // =========================================================
-    // DASHBOARD
-    // =========================================================
+    
+    
+    
 
     public function getDashboardStats(): array
     {
@@ -84,9 +84,9 @@ class DoctorPortalController
         return $stmt->fetchAll();
     }
 
-    // =========================================================
-    // ADMISSION DETAILS
-    // =========================================================
+    
+    
+    
 
     public function getAdmissionDetails(int $admissionId): ?array
     {
@@ -120,7 +120,7 @@ class DoctorPortalController
 
         $admission['assignment'] = $assignment;
 
-        // Current room
+        
         $stmt = $this->pdo->prepare(
             'SELECT ra.room_assignment_id, ra.start_datetime, ra.daily_rate_at_assignment,
                     r.room_number, rt.room_type_name
@@ -133,7 +133,7 @@ class DoctorPortalController
         $stmt->execute([$admissionId]);
         $admission['room'] = $stmt->fetch() ?: null;
 
-        // Diagnoses
+        
         $stmt = $this->pdo->prepare(
             'SELECT adi.admission_diagnosis_id, adi.diagnosis_id, adi.diagnosis_type,
                     adi.diagnosed_datetime, adi.diagnosed_by_doctor_id,
@@ -149,7 +149,7 @@ class DoctorPortalController
         $stmt->execute([$admissionId]);
         $admission['diagnoses'] = $stmt->fetchAll();
 
-        // Service requests
+        
         $stmt = $this->pdo->prepare(
             'SELECT sr.request_id, sr.charge_item_id, sr.request_datetime, sr.quantity,
                     sr.status, sr.doctor_id,
@@ -167,7 +167,7 @@ class DoctorPortalController
         $stmt->execute([$admissionId]);
         $admission['service_requests'] = $stmt->fetchAll();
 
-        // Consultations
+        
         $stmt = $this->pdo->prepare(
             'SELECT c.consultation_id, c.consultation_datetime, c.purpose, c.status, c.notes
              FROM `consultation` c
@@ -181,9 +181,9 @@ class DoctorPortalController
         return $admission;
     }
 
-    // =========================================================
-    // DIAGNOSES
-    // =========================================================
+    
+    
+    
 
     public function getActiveDiagnoses(): array
     {
@@ -261,9 +261,9 @@ class DoctorPortalController
         $this->json(200, ['success' => true, 'message' => 'Diagnosis removed.']);
     }
 
-    // =========================================================
-    // SERVICE REQUESTS
-    // =========================================================
+    
+    
+    
 
     public function getChargeItems(): array
     {
@@ -278,11 +278,7 @@ class DoctorPortalController
         )->fetchAll();
     }
 
-    /**
-     * Create a service request.
-     * Fires BillingHook::emit at the end so a matching charge is materialized
-     * (if the admission already has a statement).
-     */
+    
     public function createServiceRequest(): void
     {
         $this->guard();
@@ -323,7 +319,7 @@ class DoctorPortalController
 
             $requestId = (int)$this->pdo->lastInsertId();
 
-            // ── Fire billing event: service requested ──
+            
             BillingHook::emit($this->pdo, $admissionId);
 
             $this->json(201, [
@@ -365,15 +361,15 @@ class DoctorPortalController
         );
         $stmt->execute([$id]);
 
-        // ── Fire billing event ──
+        
         BillingHook::emit($this->pdo, (int)$request['admission_id']);
 
         $this->json(200, ['success' => true, 'message' => 'Service request cancelled.']);
     }
 
-    // =========================================================
-    // DISCHARGE READINESS
-    // =========================================================
+    
+    
+    
 
     public function getReadyForDischarge(): array
     {
@@ -440,9 +436,9 @@ class DoctorPortalController
         ]);
     }
 
-    // =========================================================
-    // CONSULTATIONS
-    // =========================================================
+    
+    
+    
 
     public function getConsultations(): array
     {
@@ -518,9 +514,9 @@ class DoctorPortalController
         $this->json(200, ['success' => true, 'message' => 'Consultation status updated.']);
     }
 
-    // =========================================================
-    // PATIENTS LIST
-    // =========================================================
+    
+    
+    
 
     public function getAllMyPatients(): array
     {
@@ -542,9 +538,9 @@ class DoctorPortalController
         return $stmt->fetchAll();
     }
 
-    // =========================================================
-    // HELPERS
-    // =========================================================
+    
+    
+    
 
     private function guard(): void
     {

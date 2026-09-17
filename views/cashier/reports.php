@@ -1,5 +1,5 @@
 <?php
-// views/cashier/reports.php
+
 
 require_once __DIR__ . '/../../controllers/CashierController.php';
 
@@ -15,7 +15,7 @@ foreach ($reports['by_type'] as $t) $grandTotal += (float)$t['total'];
     <p class="mt-1 text-sm text-slate-500">Collections and outstanding balances.</p>
 </div>
 
-<!-- By Payment Type -->
+
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
 
     <div class="lg:col-span-1">
@@ -80,7 +80,7 @@ foreach ($reports['by_type'] as $t) $grandTotal += (float)$t['total'];
     </div>
 </div>
 
-<!-- Top Balances -->
+
 <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
     <div class="px-6 py-4 border-b border-slate-200">
         <h3 class="text-base font-semibold text-slate-900">Top Outstanding Balances</h3>

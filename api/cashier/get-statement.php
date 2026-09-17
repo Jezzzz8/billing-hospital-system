@@ -1,5 +1,5 @@
 <?php
-// api/cashier/get-statement.php
+
 
 require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../config/connection.php';
@@ -20,7 +20,7 @@ if ($id <= 0) {
     exit;
 }
 
-// Safety net: silently sync before returning
+
 try {
     (new ChargeSyncService($pdo))->syncStatement($id);
 } catch (Throwable $e) {

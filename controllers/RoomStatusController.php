@@ -1,5 +1,5 @@
 <?php
-// controllers/RoomStatusController.php
+
 
 class RoomStatusController
 {
@@ -7,7 +7,7 @@ class RoomStatusController
 
     public function __construct(PDO $pdo) { $this->pdo = $pdo; }
 
-    // ---------- READ: all room statuses ----------
+    
     public function getAll(): array
     {
         return $this->pdo->query(
@@ -17,7 +17,7 @@ class RoomStatusController
         )->fetchAll();
     }
 
-    // ---------- CREATE ----------
+    
     public function create(): void
     {
         $this->guard();
@@ -46,7 +46,7 @@ class RoomStatusController
         ]);
     }
 
-    // ---------- UPDATE ----------
+    
     public function update(): void
     {
         $this->guard();
@@ -74,7 +74,7 @@ class RoomStatusController
         $this->json(200, ['success' => true, 'message' => 'Room status updated successfully.']);
     }
 
-    // ---------- DELETE (hard, with FK check) ----------
+    
     public function delete(): void
     {
         $this->guard();
@@ -82,14 +82,14 @@ class RoomStatusController
         $id = (int)($_GET['id'] ?? 0);
         if ($id <= 0) $this->json(400, ['success' => false, 'message' => 'Missing status id.']);
 
-        // Confirm it exists
+        
         $stmt = $this->pdo->prepare('SELECT status_id FROM `room_status` WHERE status_id = ? LIMIT 1');
         $stmt->execute([$id]);
         if (!$stmt->fetch()) {
             $this->json(404, ['success' => false, 'message' => 'Room status not found.']);
         }
 
-        // Check for references in `room`
+        
         $stmt = $this->pdo->prepare('SELECT COUNT(*) FROM `room` WHERE status_id = ?');
         $stmt->execute([$id]);
         $refCount = (int)$stmt->fetchColumn();
@@ -102,14 +102,14 @@ class RoomStatusController
             ]);
         }
 
-        // Safe to delete
+        
         $stmt = $this->pdo->prepare('DELETE FROM `room_status` WHERE status_id = ?');
         $stmt->execute([$id]);
 
         $this->json(200, ['success' => true, 'message' => 'Room status deleted.']);
     }
 
-    // ---------- HELPERS ----------
+    
     private function guard(): void
     {
         header('Content-Type: application/json; charset=utf-8');

@@ -1,12 +1,12 @@
 <?php
-// views/admin/payment-type.php
+
 require_once __DIR__ . '/../../controllers/PaymentTypeController.php';
 
 $paymentTypes = (new PaymentTypeController($pdo))->getAll();
 $totalTypes = count($paymentTypes);
 ?>
 
-<!-- Page header -->
+
 <div class="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
     <div>
         <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Payment Types</h1>
@@ -23,13 +23,13 @@ $totalTypes = count($paymentTypes);
 
 <div id="alert" class="hidden mb-5 rounded-lg px-4 py-3 text-sm border"></div>
 
-<!-- Stat card -->
+
 <div class="bg-white rounded-xl border border-slate-200 p-5 mb-6 max-w-xs">
     <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Total Payment Types</p>
     <p class="mt-2 text-2xl font-bold text-slate-900"><?= $totalTypes ?></p>
 </div>
 
-<!-- Filter bar -->
+
 <div class="bg-white rounded-xl border border-slate-200 p-4 mb-4">
     <div class="flex flex-col sm:flex-row sm:items-end gap-3">
         <div class="flex-1">
@@ -60,7 +60,7 @@ $totalTypes = count($paymentTypes);
     </div>
 </div>
 
-<!-- Table -->
+
 <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
     <div class="overflow-x-auto">
         <table class="min-w-full text-sm">
@@ -124,7 +124,7 @@ $totalTypes = count($paymentTypes);
         </table>
     </div>
 
-    <!-- Empty state -->
+    
     <div id="emptyState" class="hidden text-center py-16">
         <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-slate-100 text-slate-400 mb-3">
             <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
@@ -136,7 +136,7 @@ $totalTypes = count($paymentTypes);
     </div>
 </div>
 
-<!-- ============ CREATE / EDIT MODAL ============ -->
+
 <div id="paymentTypeModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
     <div class="absolute inset-0 bg-slate-900/50" data-close-modal></div>
 
@@ -199,7 +199,7 @@ $totalTypes = count($paymentTypes);
     </div>
 </div>
 
-<!-- ============ CONFIRM DELETE MODAL ============ -->
+
 <div id="deleteModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
     <div class="absolute inset-0 bg-slate-900/50" data-close-delete></div>
 

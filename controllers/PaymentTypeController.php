@@ -1,5 +1,5 @@
 <?php
-// controllers/PaymentTypeController.php
+
 
 class PaymentTypeController
 {
@@ -7,7 +7,7 @@ class PaymentTypeController
 
     public function __construct(PDO $pdo) { $this->pdo = $pdo; }
 
-    // ---------- READ ----------
+    
     public function getAll(): array
     {
         return $this->pdo->query(
@@ -17,7 +17,7 @@ class PaymentTypeController
         )->fetchAll();
     }
 
-    // ---------- CREATE ----------
+    
     public function create(): void
     {
         $this->guard();
@@ -46,7 +46,7 @@ class PaymentTypeController
         ]);
     }
 
-    // ---------- UPDATE ----------
+    
     public function update(): void
     {
         $this->guard();
@@ -76,7 +76,7 @@ class PaymentTypeController
         $this->json(200, ['success' => true, 'message' => 'Payment type updated successfully.']);
     }
 
-    // ---------- DELETE (hard, with FK check) ----------
+    
     public function delete(): void
     {
         $this->guard();
@@ -90,7 +90,7 @@ class PaymentTypeController
             $this->json(404, ['success' => false, 'message' => 'Payment type not found.']);
         }
 
-        // Check for FK references in `payment`
+        
         $stmt = $this->pdo->prepare('SELECT COUNT(*) FROM `payment` WHERE payment_type_id = ?');
         $stmt->execute([$id]);
         $refCount = (int)$stmt->fetchColumn();
@@ -109,7 +109,7 @@ class PaymentTypeController
         $this->json(200, ['success' => true, 'message' => 'Payment type deleted.']);
     }
 
-    // ---------- HELPERS ----------
+    
     private function guard(): void
     {
         header('Content-Type: application/json; charset=utf-8');

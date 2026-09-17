@@ -1,5 +1,5 @@
 <?php
-// index.php
+
 
 session_start();
 require_once __DIR__ . '/config/config.php';
@@ -9,12 +9,12 @@ if (empty($_SESSION['user'])) {
     exit;
 }
 
-// ---------- Shared variables ----------
+
 $currentUser = $_SESSION['user'];
 $fullName    = trim($currentUser['first_name'] . ' ' . $currentUser['last_name']);
 $roleId      = (int)$currentUser['role_id'];
 
-// ---------- Requested page ----------
+
 $defaultPage = match ($roleId) {
     1 => 'dashboard',
     2 => 'doctor',
@@ -25,20 +25,20 @@ $defaultPage = match ($roleId) {
 
 $page = $_GET['page'] ?? $defaultPage;
 
-// ---------- Allowed pages per role ----------
+
 $allowed = [
     1 => [
-        // Main
+        
         'dashboard',
 
-        // People
+        
         'users', 'users-create',
         'doctors', 'patients',
 
-        // Reports
+        
         'billing', 'reports',
 
-        // Master files (flat URLs)
+        
         'gender',
         'role',
         'room-status',
@@ -87,7 +87,7 @@ if (!in_array($page, $allowed[$roleId] ?? [], true)) {
     exit;
 }
 
-// ---------- Layout ----------
+
 $layout = match ($roleId) {
     1 => 'admin',
     2 => 'doctor',
@@ -96,10 +96,10 @@ $layout = match ($roleId) {
     default => 'admin',
 };
 
-// ---------- Content view ----------
-// Admin pages live in views/admin/
-// Nurse pages live in views/nurse/ (with the "nurse-" prefix stripped from the filename)
-// Doctor/Cashier dashboards live directly in views/
+
+
+
+
 $contentFile = null;
 
 if ($roleId === 1) {
@@ -122,11 +122,11 @@ if ($roleId === 1) {
     }
 
 } elseif ($roleId === 4) {
-    // Cashier: dashboard is views/cashier.php, everything else lives in views/cashier/
+    
     if ($page === 'cashier') {
         $contentFile = __DIR__ . '/views/cashier.php';
     } elseif (str_starts_with($page, 'cashier-')) {
-        $viewName = substr($page, 8); // strip "cashier-"
+        $viewName = substr($page, 8); 
         $contentFile = __DIR__ . '/views/cashier/' . $viewName . '.php';
     }
 
@@ -140,11 +140,11 @@ if (!$contentFile || !file_exists($contentFile)) {
     exit;
 }
 
-// ---------- Auto page title (from filename) ----------
+
 $pageTitle = ucwords(str_replace(['-', '/'], [' ', ' · '], $page));
 
-// ---------- Auto page script ----------
-// Look in assets/js/master/ first, then assets/js/
+
+
 $jsCandidates = [
     '/assets/js/master/' . $page . '.js',
     '/assets/js/'        . $page . '.js',
@@ -158,11 +158,11 @@ foreach ($jsCandidates as $relPath) {
     }
 }
 
-// ---------- Sidebar highlight ----------
+
 $currentPage = $page;
 
-// ---------- DB ----------
+
 require_once __DIR__ . '/config/connection.php';
 
-// ---------- Render ----------
+
 require __DIR__ . '/views/layouts/' . $layout . '.php';

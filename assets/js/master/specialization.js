@@ -1,10 +1,10 @@
-// assets/js/master/specialization.js
+
 
 document.addEventListener("DOMContentLoaded", () => {
   const baseUrl = document.body.dataset.baseUrl || "";
   const alertBox = document.getElementById("alert");
 
-  // Modals / forms
+  
   const modal = document.getElementById("specializationModal");
   const form = document.getElementById("specializationForm");
   const modalTitle = document.getElementById("specializationModalTitle");
@@ -12,7 +12,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const submitLbl = document.getElementById("specializationSubmitLabel");
   const openCreate = document.getElementById("openCreateBtn");
 
-  // Delete confirm modal
+  
   const deleteModal = document.getElementById("deleteModal");
   const deleteSpecializationName = document.getElementById(
     "deleteSpecializationName",
@@ -20,7 +20,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const confirmDeleteBtn = document.getElementById("confirmDeleteBtn");
   const confirmDeleteLbl = document.getElementById("confirmDeleteLabel");
 
-  // ---------- Helpers ----------
+  
   const showAlert = (msg, type = "error") => {
     const styles = {
       error: "bg-red-50 border-red-200 text-red-700",
@@ -49,7 +49,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const openModal = (el) => el.classList.remove("hidden");
   const closeModal = (el) => el.classList.add("hidden");
 
-  // ---------- Modal close handlers ----------
+  
   document.querySelectorAll("[data-close-modal]").forEach((el) => {
     el.addEventListener("click", () => closeModal(modal));
   });
@@ -63,9 +63,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // =========================================================
-  // CREATE
-  // =========================================================
+  
+  
+  
   if (openCreate) {
     openCreate.addEventListener("click", () => {
       form.reset();
@@ -77,9 +77,9 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // =========================================================
-  // EDIT
-  // =========================================================
+  
+  
+  
   document.querySelectorAll(".edit-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       const s = JSON.parse(btn.dataset.specialization);
@@ -98,7 +98,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // ---------- CREATE / UPDATE submit ----------
+  
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     hideAlert();
@@ -151,9 +151,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // =========================================================
-  // DELETE
-  // =========================================================
+  
+  
+  
   let pendingDeleteId = null;
 
   document.querySelectorAll(".delete-btn").forEach((btn) => {
@@ -204,9 +204,9 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // =========================================================
-  // SEARCH
-  // =========================================================
+  
+  
+  
   const searchInput = document.getElementById("filterSearch");
   const filterClear = document.getElementById("filterClear");
   const filterSummary = document.getElementById("filterSummary");
@@ -249,9 +249,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   applyFilters();
 
-  // =========================================================
-  // Flash message
-  // =========================================================
+  
+  
+  
   const flash = sessionStorage.getItem("specialization_flash");
   if (flash) {
     sessionStorage.removeItem("specialization_flash");

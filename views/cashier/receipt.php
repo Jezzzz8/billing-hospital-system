@@ -1,5 +1,5 @@
 <?php
-// views/cashier/receipt.php
+
 
 require_once __DIR__ . '/../../controllers/CashierController.php';
 
@@ -29,13 +29,13 @@ if (!$statement) {
 
 <div class="bg-white rounded-xl border border-slate-200 p-8 max-w-3xl mx-auto">
 
-    <!-- Header -->
+    
     <div class="text-center mb-8 pb-6 border-b border-slate-200">
         <h1 class="text-2xl font-bold text-slate-900">Billing Hospital</h1>
         <p class="text-sm text-slate-500 mt-1">Official Billing Statement</p>
     </div>
 
-    <!-- Patient Info -->
+    
     <div class="grid grid-cols-2 gap-6 mb-8">
         <div>
             <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Patient</p>
@@ -58,7 +58,7 @@ if (!$statement) {
         </div>
     </div>
 
-    <!-- Charges Table -->
+    
     <div class="mb-8">
         <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Charges</p>
         <?php if (empty($statement['charges'])): ?>
@@ -97,7 +97,7 @@ if (!$statement) {
         <?php endif; ?>
     </div>
 
-    <!-- Totals -->
+    
     <div class="border-t-2 border-slate-200 pt-4 mb-8">
         <div class="flex justify-end">
             <div class="w-full max-w-xs space-y-1.5">
@@ -141,7 +141,7 @@ if (!$statement) {
         </div>
     </div>
 
-    <!-- Payments -->
+    
     <?php if (!empty($statement['payments'])): ?>
         <div class="mb-8">
             <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Payments</p>
@@ -168,7 +168,7 @@ if (!$statement) {
         </div>
     <?php endif; ?>
 
-    <!-- Footer -->
+    
     <div class="text-center pt-6 border-t border-slate-200 text-xs text-slate-500">
         <p>Thank you for choosing Billing Hospital.</p>
         <p class="mt-1">Statement generated <?= htmlspecialchars(date('M j, Y g:i A', strtotime($statement['statement_date']))) ?></p>

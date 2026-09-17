@@ -1,5 +1,5 @@
 <?php
-// views/nurse/discharge-ready.php
+
 
 require_once __DIR__ . '/../../controllers/NurseController.php';
 
@@ -83,7 +83,7 @@ $readyPatients = $controller->getReadyForDischarge();
     </div>
 <?php endif; ?>
 
-<!-- Discharge Confirmation Modal -->
+
 <div id="dischargeModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
     <div class="absolute inset-0 bg-slate-900/50" data-close-modal></div>
 

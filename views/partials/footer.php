@@ -1,5 +1,5 @@
 <?php
-// views/partials/footer.php
+
 ?>
 <?php if (!empty($pageScript)): ?>
     <script src="<?= htmlspecialchars($pageScript) ?>"></script>

@@ -1,4 +1,4 @@
-// assets/js/master/cashier-payment-counter.js
+
 (function () {
     const baseUrl = document.body.dataset.baseUrl;
     const alertEl = document.getElementById('counterAlert');
@@ -17,9 +17,9 @@
         setTimeout(() => alertEl.classList.add('hidden'), 4000);
     }
 
-    // =========================================================
-    // FILTERS
-    // =========================================================
+    
+    
+    
     const searchInput = document.getElementById('counterSearch');
     const statusFilter = document.getElementById('counterStatus');
     const clearBtn = document.getElementById('counterClear');
@@ -70,9 +70,9 @@
         applyFilters();
     });
 
-    // =========================================================
-    // COLLECT MODAL
-    // =========================================================
+    
+    
+    
     const modal = document.getElementById('collectModal');
     const receiptModal = document.getElementById('receiptModal');
 
@@ -161,9 +161,9 @@
         updatePaymentPreview();
     });
 
-    // =========================================================
-    // SUBMIT
-    // =========================================================
+    
+    
+    
     document.getElementById('confirmCollectBtn')?.addEventListener('click', async function () {
         if (!currentStatement) return;
         if (this.dataset.busy === '1') return;

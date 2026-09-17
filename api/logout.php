@@ -1,5 +1,5 @@
 <?php
-// api/logout.php
+
 
 session_start();
 $_SESSION = [];

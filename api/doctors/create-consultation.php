@@ -1,5 +1,5 @@
 <?php
-// api/doctors/create-consultation.php
+
 
 require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../config/connection.php';

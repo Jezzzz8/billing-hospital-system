@@ -1,5 +1,5 @@
 <?php
-// app/controllers/UserController.php
+
 
 class UserController
 {
@@ -10,9 +10,9 @@ class UserController
         $this->pdo = $pdo;
     }
 
-    // =========================================================
-    // CREATE
-    // =========================================================
+    
+    
+    
     public function create(): void
     {
         $this->guard('POST');
@@ -55,9 +55,9 @@ class UserController
         ]);
     }
 
-    // =========================================================
-    // UPDATE (profile fields)
-    // =========================================================
+    
+    
+    
     public function update(): void
     {
         $this->guard('POST');
@@ -66,7 +66,7 @@ class UserController
         if ($id <= 0) $this->json(400, ['success' => false, 'message' => 'Missing user id.']);
 
         $data = $this->input();
-        // Password is NOT required on update
+        
         $errors = $this->validate($data, $id, false);
         if ($errors) {
             $this->json(422, ['success' => false, 'message' => 'Please fix the highlighted fields.', 'errors' => $errors]);
@@ -97,9 +97,9 @@ class UserController
         $this->json(200, ['success' => true, 'message' => 'User updated successfully.']);
     }
 
-    // =========================================================
-    // CHANGE PASSWORD
-    // =========================================================
+    
+    
+    
     public function changePassword(): void
     {
         $this->guard('POST');
@@ -134,9 +134,9 @@ class UserController
         $this->json(200, ['success' => true, 'message' => 'Password updated successfully.']);
     }
 
-    // =========================================================
-    // SOFT DELETE / REACTIVATE (toggle is_active)
-    // =========================================================
+    
+    
+    
     public function toggleActive(): void
     {
         $this->guard('POST');
@@ -144,7 +144,7 @@ class UserController
         $id = (int)($_GET['id'] ?? 0);
         if ($id <= 0) $this->json(400, ['success' => false, 'message' => 'Missing user id.']);
 
-        // Don't let an admin deactivate themselves
+        
         if ($id === (int)$_SESSION['user']['user_id']) {
             $this->json(409, ['success' => false, 'message' => 'You cannot deactivate your own account.']);
         }
@@ -166,9 +166,9 @@ class UserController
         ]);
     }
 
-    // =========================================================
-    // HELPERS
-    // =========================================================
+    
+    
+    
     private function guard(string $method): void
     {
         header('Content-Type: application/json; charset=utf-8');

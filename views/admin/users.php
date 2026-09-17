@@ -1,5 +1,5 @@
 <?php
-// views/admin/users.php
+
 
 $users = $pdo->query(
     'SELECT u.user_id, u.username, u.first_name, u.last_name, u.email,
@@ -24,7 +24,7 @@ $roles = $pdo->query('SELECT role_id, role_name FROM `role` ORDER BY role_id')->
 
 <div id="alert" class="hidden mb-5 rounded-lg px-4 py-3 text-sm border"></div>
 
-<!-- ============ SEARCH + FILTERS ============ -->
+
 <div class="bg-white rounded-xl border border-slate-200 p-4 mb-4">
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
 
@@ -76,7 +76,7 @@ $roles = $pdo->query('SELECT role_id, role_name FROM `role` ORDER BY role_id')->
     </div>
 </div>
 
-<!-- ============ TABLE ============ -->
+
 <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
     <table class="min-w-full text-sm">
         <thead class="bg-slate-50 text-slate-600">
@@ -159,7 +159,7 @@ $roles = $pdo->query('SELECT role_id, role_name FROM `role` ORDER BY role_id')->
     </div>
 </div>
 
-<!-- ============ CREATE / EDIT MODAL ============ -->
+
 <div id="userModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
     <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" data-close-modal></div>
 
@@ -254,7 +254,7 @@ $roles = $pdo->query('SELECT role_id, role_name FROM `role` ORDER BY role_id')->
     </div>
 </div>
 
-<!-- ============ CHANGE PASSWORD MODAL ============ -->
+
 <div id="pwModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
     <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" data-close-pw></div>
 
@@ -301,7 +301,7 @@ $roles = $pdo->query('SELECT role_id, role_name FROM `role` ORDER BY role_id')->
     </div>
 </div>
 
-<!-- ============ CONFIRM DEACTIVATE MODAL ============ -->
+
 <div id="confirmModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
     <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" data-close-confirm></div>
 

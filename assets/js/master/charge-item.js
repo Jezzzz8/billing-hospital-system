@@ -1,10 +1,10 @@
-// assets/js/master/charge-item.js
+
 
 document.addEventListener("DOMContentLoaded", () => {
   const baseUrl = document.body.dataset.baseUrl || "";
   const alertBox = document.getElementById("alert");
 
-  // Modals / forms
+  
   const modal = document.getElementById("itemModal");
   const form = document.getElementById("itemForm");
   const modalTitle = document.getElementById("itemModalTitle");
@@ -12,7 +12,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const submitLbl = document.getElementById("itemSubmitLabel");
   const openCreate = document.getElementById("openCreateBtn");
 
-  // Archive confirm modal
+  
   const confirmModal = document.getElementById("confirmModal");
   const confirmName = document.getElementById("confirmItemName");
   const confirmDeactivateBtn = document.getElementById("confirmDeactivateBtn");
@@ -20,13 +20,13 @@ document.addEventListener("DOMContentLoaded", () => {
     "confirmDeactivateLabel",
   );
 
-  // Delete confirm modal
+  
   const deleteModal = document.getElementById("deleteModal");
   const deleteItemName = document.getElementById("deleteItemName");
   const confirmDeleteBtn = document.getElementById("confirmDeleteBtn");
   const confirmDeleteLbl = document.getElementById("confirmDeleteLabel");
 
-  // ---------- Helpers ----------
+  
   const showAlert = (msg, type = "error") => {
     const styles = {
       error: "bg-red-50 border-red-200 text-red-700",
@@ -55,7 +55,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const openModal = (el) => el.classList.remove("hidden");
   const closeModal = (el) => el.classList.add("hidden");
 
-  // ---------- Modal close handlers ----------
+  
   document.querySelectorAll("[data-close-modal]").forEach((el) => {
     el.addEventListener("click", () => closeModal(modal));
   });
@@ -73,9 +73,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // =========================================================
-  // CREATE
-  // =========================================================
+  
+  
+  
   if (openCreate) {
     openCreate.addEventListener("click", () => {
       form.reset();
@@ -89,9 +89,9 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // =========================================================
-  // EDIT
-  // =========================================================
+  
+  
+  
   document.querySelectorAll(".edit-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       const i = JSON.parse(btn.dataset.item);
@@ -118,7 +118,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // ---------- CREATE / UPDATE submit ----------
+  
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     hideAlert();
@@ -175,9 +175,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // =========================================================
-  // ARCHIVE
-  // =========================================================
+  
+  
+  
   document.querySelectorAll(".deactivate-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       confirmName.textContent = btn.getAttribute("data-item-name");
@@ -225,9 +225,9 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // =========================================================
-  // REACTIVATE
-  // =========================================================
+  
+  
+  
   document.querySelectorAll(".reactivate-btn").forEach((btn) => {
     btn.addEventListener("click", async () => {
       const id = btn.getAttribute("data-item-id");
@@ -262,9 +262,9 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // =========================================================
-  // PERMANENT DELETE
-  // =========================================================
+  
+  
+  
   let pendingDeleteId = null;
 
   document.querySelectorAll(".delete-btn").forEach((btn) => {
@@ -315,9 +315,9 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // =========================================================
-  // SEARCH + FILTER
-  // =========================================================
+  
+  
+  
   const searchInput = document.getElementById("filterSearch");
   const showArchived = document.getElementById("showArchived");
   const filterClear = document.getElementById("filterClear");
@@ -370,9 +370,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   applyFilters();
 
-  // =========================================================
-  // Flash message
-  // =========================================================
+  
+  
+  
   const flash = sessionStorage.getItem("charge_item_flash");
   if (flash) {
     sessionStorage.removeItem("charge_item_flash");

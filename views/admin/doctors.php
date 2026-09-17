@@ -1,5 +1,5 @@
 <?php
-// views/admin/doctors.php
+
 require_once __DIR__ . '/../../controllers/DoctorController.php';
 
 $controller  = new DoctorController($pdo);
@@ -11,7 +11,7 @@ $activeDoctors   = count(array_filter($doctors, fn($d) => (int)$d['is_active'] =
 $archivedDoctors = $totalDoctors - $activeDoctors;
 ?>
 
-<!-- Page header -->
+
 <div class="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
     <div>
         <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Doctors</h1>
@@ -28,7 +28,7 @@ $archivedDoctors = $totalDoctors - $activeDoctors;
 
 <div id="alert" class="hidden mb-5 rounded-lg px-4 py-3 text-sm border"></div>
 
-<!-- Stat cards -->
+
 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
     <div class="bg-white rounded-xl border border-slate-200 p-5">
         <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Total Doctors</p>
@@ -44,7 +44,7 @@ $archivedDoctors = $totalDoctors - $activeDoctors;
     </div>
 </div>
 
-<!-- Filter bar -->
+
 <div class="bg-white rounded-xl border border-slate-200 p-4 mb-4">
     <div class="flex flex-col lg:flex-row lg:items-end gap-3">
         <div class="flex-1">
@@ -84,7 +84,7 @@ $archivedDoctors = $totalDoctors - $activeDoctors;
     </div>
 </div>
 
-<!-- Table -->
+
 <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
     <div class="overflow-x-auto">
         <table class="min-w-full text-sm">
@@ -215,7 +215,7 @@ $archivedDoctors = $totalDoctors - $activeDoctors;
         </table>
     </div>
 
-    <!-- Empty state -->
+    
     <div id="emptyState" class="hidden text-center py-16">
         <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-slate-100 text-slate-400 mb-3">
             <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
@@ -227,7 +227,7 @@ $archivedDoctors = $totalDoctors - $activeDoctors;
     </div>
 </div>
 
-<!-- ============ CREATE / EDIT MODAL ============ -->
+
 <div id="doctorModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
     <div class="absolute inset-0 bg-slate-900/50" data-close-modal></div>
 
@@ -308,7 +308,7 @@ $archivedDoctors = $totalDoctors - $activeDoctors;
                     <p class="mt-1.5 text-xs text-red-600 hidden" data-error-for="consultation_fee"></p>
                 </div>
 
-                <!-- Specializations -->
+                
                 <div class="sm:col-span-2 border-t border-slate-100 pt-5">
                     <div class="flex items-center justify-between mb-3">
                         <label class="block text-sm font-medium text-slate-700">
@@ -335,7 +335,7 @@ $archivedDoctors = $totalDoctors - $activeDoctors;
 
                     <p class="mt-1.5 text-xs text-red-600 hidden" data-error-for="specializations"></p>
 
-                    <!-- Primary specialization dropdown -->
+                    
                     <div id="primaryWrapper" class="hidden mt-4">
                         <label class="block text-sm font-medium text-slate-700 mb-1.5">
                             Primary Specialization
@@ -373,7 +373,7 @@ $archivedDoctors = $totalDoctors - $activeDoctors;
     </div>
 </div>
 
-<!-- ============ CHANGE PASSWORD MODAL ============ -->
+
 <div id="pwModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
     <div class="absolute inset-0 bg-slate-900/50" data-close-pw></div>
 
@@ -430,7 +430,7 @@ $archivedDoctors = $totalDoctors - $activeDoctors;
     </div>
 </div>
 
-<!-- ============ CONFIRM ARCHIVE MODAL ============ -->
+
 <div id="confirmModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
     <div class="absolute inset-0 bg-slate-900/50" data-close-confirm></div>
 

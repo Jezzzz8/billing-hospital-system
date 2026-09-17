@@ -1,12 +1,12 @@
 <?php
-// views/layouts/admin.php
+
 
 $pageTitle  = $pageTitle  ?? 'Admin Dashboard';
 $pageScript = $pageScript ?? BASE_URL . '/assets/js/logout.js';
 
 require __DIR__ . '/../partials/header.php';
 
-// Sidebar sections — grouped with labels
+
 $sidebarSections = [
     'Main' => [
         ['label' => 'Dashboard', 'href' => BASE_URL . '/index.php?page=dashboard', 'icon' => 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6'],
@@ -39,7 +39,7 @@ $sidebarSections = [
     ],
 ];
 
-// Set this so the sidebar highlights the active link
+
 $currentPage = $_GET['page'] ?? 'dashboard';
 
 require __DIR__ . '/../partials/sidebar.php';

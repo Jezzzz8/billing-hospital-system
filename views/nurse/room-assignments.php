@@ -1,5 +1,5 @@
 <?php
-// views/nurse/room-assignments.php
+
 
 require_once __DIR__ . '/../../controllers/NurseController.php';
 
@@ -24,11 +24,11 @@ if ($admission) {
 $availableRooms  = $controller->getAvailableRooms();
 $roomTypes       = $controller->getRoomTypes();
 
-// ── Doctors for the assignment panel ──
+
 $allDoctors      = $controller->getDoctors();
 $assignedDoctors = $admission ? $controller->getAdmissionDoctors($admissionId) : [];
 
-// Fallback: no admission_id, or it doesn't resolve → show the picker
+
 if (!$admission) {
     $admissions = $controller->getAdmissions();
     ?>
@@ -129,7 +129,7 @@ if (!$admission) {
 
 <div id="alert" class="hidden mb-5 rounded-lg px-4 py-3 text-sm border"></div>
 
-<!-- Patient Info Card -->
+
 <div class="bg-white rounded-xl border border-slate-200 p-6 mb-6">
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div class="flex items-center gap-4">
@@ -154,7 +154,7 @@ if (!$admission) {
     </div>
 </div>
 
-<!-- ============ Assigned Doctors ============ -->
+
 <div class="bg-white rounded-xl border border-slate-200 p-6 mb-6" id="doctorsPanel">
     <div class="flex items-center justify-between mb-4">
         <div>
@@ -168,7 +168,7 @@ if (!$admission) {
         </span>
     </div>
 
-    <!-- Currently assigned -->
+    
     <div id="assignedDoctorsList" class="space-y-2 mb-4">
         <?php if (empty($assignedDoctors)): ?>
             <div id="noDoctorsMsg" class="text-center py-6 border border-dashed border-slate-300 rounded-lg">
@@ -203,7 +203,7 @@ if (!$admission) {
         <?php endif; ?>
     </div>
 
-    <!-- Add a doctor -->
+    
     <div class="flex flex-col sm:flex-row gap-2 pt-4 border-t border-slate-100">
         <select id="newDoctorSelect"
                 class="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm bg-white
@@ -235,7 +235,7 @@ if (!$admission) {
 
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-    <!-- Current Room -->
+    
     <div class="lg:col-span-1">
         <div class="bg-white rounded-xl border border-slate-200 p-6">
             <h3 class="text-base font-semibold text-slate-900 mb-4">Current Room</h3>
@@ -282,7 +282,7 @@ if (!$admission) {
                 </div>
             <?php endif; ?>
 
-            <!-- Transfer History -->
+            
             <?php if (count($transferHistory) > 1): ?>
                 <div class="mt-6 pt-4 border-t border-slate-200">
                     <h4 class="text-sm font-semibold text-slate-700 mb-3">Transfer History</h4>
@@ -312,7 +312,7 @@ if (!$admission) {
         </div>
     </div>
 
-    <!-- Available Rooms -->
+    
     <div class="lg:col-span-2">
         <div class="bg-white rounded-xl border border-slate-200 p-6">
             <div class="flex items-center justify-between mb-4">
@@ -367,7 +367,7 @@ if (!$admission) {
     </div>
 </div>
 
-<!-- Transfer Modal -->
+
 <div id="transferModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
     <div class="absolute inset-0 bg-slate-900/50" data-close-modal></div>
 
@@ -450,9 +450,9 @@ if (!$admission) {
         alertEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 
-    // ============================================================
-    // DOCTORS PANEL
-    // ============================================================
+
+
+
     const addBtn  = document.getElementById('addDoctorBtn');
     const docSel  = document.getElementById('newDoctorSelect');
     const roleSel = document.getElementById('newDoctorRole');
@@ -511,9 +511,9 @@ if (!$admission) {
         });
     });
 
-    // ============================================================
-    // ROOM FILTER
-    // ============================================================
+
+
+
     document.querySelectorAll('.room-type-filter').forEach(btn => {
         btn.addEventListener('click', function() {
             document.querySelectorAll('.room-type-filter').forEach(b => {
@@ -534,9 +534,9 @@ if (!$admission) {
         });
     });
 
-    // ============================================================
-    // ROOM ASSIGN (click a room card)
-    // ============================================================
+
+
+
     document.querySelectorAll('.room-option').forEach(opt => {
         opt.addEventListener('click', async function() {
             if (!confirm(`Assign Room ${this.dataset.roomNumber} to this patient?`)) return;
@@ -564,9 +564,9 @@ if (!$admission) {
         });
     });
 
-    // ============================================================
-    // ROOM TRANSFER
-    // ============================================================
+
+
+
     const transferBtn = document.getElementById('transferBtn');
     const transferModal = document.getElementById('transferModal');
 

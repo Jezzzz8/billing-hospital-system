@@ -1,5 +1,5 @@
 <?php
-// views/doctor/patients.php
+
 
 require_once __DIR__ . '/../../controllers/DoctorPortalController.php';
 require_once __DIR__ . '/../../controllers/DoctorHelper.php';
@@ -16,7 +16,7 @@ $assigned = $controller->getAssignedPatients();
     <p class="mt-1 text-sm text-slate-500">All patients you have treated or are currently assigned to.</p>
 </div>
 
-<!-- Currently Assigned (Active) -->
+
 <div class="mb-8">
     <h2 class="text-lg font-semibold text-slate-900 mb-3">Currently Assigned</h2>
     <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
@@ -61,7 +61,7 @@ $assigned = $controller->getAssignedPatients();
     </div>
 </div>
 
-<!-- All Patients Ever Treated -->
+
 <div>
     <h2 class="text-lg font-semibold text-slate-900 mb-3">Patient History</h2>
     <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">

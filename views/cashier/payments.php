@@ -1,11 +1,11 @@
 <?php
-// views/cashier/payments.php
+
 
 require_once __DIR__ . '/../../controllers/CashierController.php';
 
 $controller = new CashierController($pdo);
 
-// All payments with patient info
+
 $payments = $pdo->query(
     'SELECT p.payment_id, p.statement_id, p.amount, p.payment_datetime,
             p.transaction_reference, p.notes,
@@ -54,7 +54,7 @@ foreach ($payments as $p) $totalAmount += (float)$p['amount'];
     </div>
 </div>
 
-<!-- Filter -->
+
 <div class="bg-white rounded-xl border border-slate-200 p-4 mb-4">
     <div class="flex flex-col sm:flex-row sm:items-end gap-3">
         <div class="flex-1">

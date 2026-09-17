@@ -1,5 +1,5 @@
 <?php
-// views/admin/room.php
+
 require_once __DIR__ . '/../../controllers/RoomController.php';
 
 $controller = new RoomController($pdo);
@@ -12,7 +12,7 @@ $activeRooms   = count(array_filter($rooms, fn($r) => (int)$r['is_active'] === 1
 $archivedRooms = $totalRooms - $activeRooms;
 ?>
 
-<!-- Page header -->
+
 <div class="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
     <div>
         <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Rooms</h1>
@@ -29,7 +29,7 @@ $archivedRooms = $totalRooms - $activeRooms;
 
 <div id="alert" class="hidden mb-5 rounded-lg px-4 py-3 text-sm border"></div>
 
-<!-- Stat cards -->
+
 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
     <div class="bg-white rounded-xl border border-slate-200 p-5">
         <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Total Rooms</p>
@@ -45,7 +45,7 @@ $archivedRooms = $totalRooms - $activeRooms;
     </div>
 </div>
 
-<!-- Filter bar -->
+
 <div class="bg-white rounded-xl border border-slate-200 p-4 mb-4">
     <div class="flex flex-col lg:flex-row lg:items-end gap-3">
         <div class="flex-1">
@@ -85,7 +85,7 @@ $archivedRooms = $totalRooms - $activeRooms;
     </div>
 </div>
 
-<!-- Table -->
+
 <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
     <div class="overflow-x-auto">
         <table class="min-w-full text-sm">
@@ -107,7 +107,7 @@ $archivedRooms = $totalRooms - $activeRooms;
                         )) ?>"
                         data-status="<?= (int)$r['is_active'] ?>">
 
-                        <!-- Room number -->
+                        
                         <td class="px-6 py-4">
                             <div class="flex items-center gap-3">
                                 <div class="w-9 h-9 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
@@ -119,10 +119,10 @@ $archivedRooms = $totalRooms - $activeRooms;
                             </div>
                         </td>
 
-                        <!-- Type -->
+                        
                         <td class="px-6 py-4 text-slate-700"><?= htmlspecialchars($r['room_type_name']) ?></td>
 
-                        <!-- Status with color -->
+                        
                         <td class="px-6 py-4">
                             <span class="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium"
                                   style="background-color: <?= htmlspecialchars($r['color_code']) ?>1A;
@@ -133,7 +133,7 @@ $archivedRooms = $totalRooms - $activeRooms;
                             </span>
                         </td>
 
-                        <!-- Location -->
+                        
                         <td class="px-6 py-4 text-slate-600 text-xs">
                             <?php if ($r['floor_level'] !== null || $r['building']): ?>
                                 <?php if ($r['floor_level'] !== null): ?>Floor <?= (int)$r['floor_level'] ?><?php endif; ?>
@@ -144,7 +144,7 @@ $archivedRooms = $totalRooms - $activeRooms;
                             <?php endif; ?>
                         </td>
 
-                        <!-- Active/Archived -->
+                        
                         <td class="px-6 py-4">
                             <?php if ((int)$r['is_active'] === 1): ?>
                                 <span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-700">
@@ -159,7 +159,7 @@ $archivedRooms = $totalRooms - $activeRooms;
                             <?php endif; ?>
                         </td>
 
-                        <!-- Actions -->
+                        
                         <td class="px-6 py-4 text-right whitespace-nowrap">
                             <div class="inline-flex items-center gap-1.5">
 
@@ -211,7 +211,7 @@ $archivedRooms = $totalRooms - $activeRooms;
         </table>
     </div>
 
-    <!-- Empty state -->
+    
     <div id="emptyState" class="hidden text-center py-16">
         <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-slate-100 text-slate-400 mb-3">
             <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
@@ -223,7 +223,7 @@ $archivedRooms = $totalRooms - $activeRooms;
     </div>
 </div>
 
-<!-- ============ CREATE / EDIT MODAL ============ -->
+
 <div id="roomModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
     <div class="absolute inset-0 bg-slate-900/50" data-close-modal></div>
 
@@ -321,7 +321,7 @@ $archivedRooms = $totalRooms - $activeRooms;
     </div>
 </div>
 
-<!-- ============ CONFIRM ARCHIVE MODAL ============ -->
+
 <div id="confirmModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
     <div class="absolute inset-0 bg-slate-900/50" data-close-confirm></div>
 
@@ -356,7 +356,7 @@ $archivedRooms = $totalRooms - $activeRooms;
     </div>
 </div>
 
-<!-- ============ CONFIRM PERMANENT DELETE MODAL ============ -->
+
 <div id="deleteModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
     <div class="absolute inset-0 bg-slate-900/50" data-close-delete></div>
 

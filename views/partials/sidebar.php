@@ -1,25 +1,25 @@
 <?php
-// views/partials/sidebar.php
 
-// Safety — session + user
+
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 $currentUser = $currentUser ?? ($_SESSION['user'] ?? null);
 if (!$currentUser) return;
 
-// These come from the layout
+
 $sidebarSections = $sidebarSections ?? [];
 $currentPage     = $currentPage ?? ($_GET['page'] ?? '');
 ?>
 
-<!-- Mobile overlay (darker, blurred) -->
+
 <div id="sidebarOverlay"
      class="fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-sm hidden lg:hidden"
      aria-hidden="true"
      onclick="closeSidebar()"></div>
 
-<!-- Sidebar -->
+
 <aside id="sidebar"
        aria-label="Main navigation"
        class="fixed inset-y-0 left-0 z-50 w-72 sm:w-64 bg-white border-r border-slate-200 flex flex-col
@@ -27,7 +27,7 @@ $currentPage     = $currentPage ?? ($_GET['page'] ?? '');
               transition-transform duration-300 ease-out
               will-change-transform">
 
-    <!-- Brand + close (mobile) -->
+    
     <div class="flex items-center justify-between h-16 px-4 sm:px-5 border-b border-slate-100 shrink-0">
         <div class="flex items-center gap-2.5 min-w-0">
             
@@ -39,7 +39,7 @@ $currentPage     = $currentPage ?? ($_GET['page'] ?? '');
             </div>
         </div>
 
-        <!-- Close button — bigger tap target on mobile -->
+        
         <button type="button" onclick="closeSidebar()"
                 aria-label="Close navigation"
                 class="lg:hidden -mr-2 p-2 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition">
@@ -49,7 +49,7 @@ $currentPage     = $currentPage ?? ($_GET['page'] ?? '');
         </button>
     </div>
 
-    <!-- Nav -->
+    
     <nav class="flex-1 overflow-y-auto overscroll-contain px-3 py-4">
         <?php foreach ($sidebarSections as $sectionName => $items): ?>
             <p class="px-3 mt-5 first:mt-0 mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400 select-none">
@@ -81,7 +81,7 @@ $currentPage     = $currentPage ?? ($_GET['page'] ?? '');
         <?php endforeach; ?>
     </nav>
 
-    <!-- User footer -->
+    
     <div class="border-t border-slate-100 p-4 shrink-0">
         <div class="flex items-center gap-3">
             <div class="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-sm font-semibold text-slate-700 shrink-0">
@@ -103,7 +103,7 @@ $currentPage     = $currentPage ?? ($_GET['page'] ?? '');
     </div>
 </aside>
 
-<!-- Mobile hamburger — hidden when sidebar is open (JS toggles) -->
+
 <button type="button" id="sidebarToggle"
         onclick="openSidebar()"
         aria-label="Open navigation"
@@ -123,7 +123,7 @@ $currentPage     = $currentPage ?? ($_GET['page'] ?? '');
             sidebar.classList.remove('-translate-x-full');
             overlay.classList.remove('hidden');
             toggleBtn?.classList.add('hidden');
-            // Lock body scroll
+            
             document.body.style.overflow = 'hidden';
             document.body.style.touchAction = 'none';
         }
@@ -132,34 +132,34 @@ $currentPage     = $currentPage ?? ($_GET['page'] ?? '');
             sidebar.classList.add('-translate-x-full');
             overlay.classList.add('hidden');
             toggleBtn?.classList.remove('hidden');
-            // Restore body scroll
+            
             document.body.style.overflow = '';
             document.body.style.touchAction = '';
         }
 
-        // Expose for the inline onclick attributes
+        
         window.openSidebar  = openSidebar;
         window.closeSidebar = closeSidebar;
 
-        // Auto close when the viewport grows to desktop
+        
         const mq = window.matchMedia('(min-width: 1024px)');
         mq.addEventListener('change', (e) => {
             if (e.matches) closeSidebar();
         });
 
-        // Escape key closes
+        
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') closeSidebar();
         });
 
-        // Close when clicking a nav link (on mobile only)
+        
         sidebar.querySelectorAll('nav a').forEach(link => {
             link.addEventListener('click', () => {
                 if (window.innerWidth < 1024) closeSidebar();
             });
         });
 
-        // Swipe-from-left to open (edge gesture)
+        
         let touchStartX = 0;
         let touchStartY = 0;
 
@@ -175,12 +175,12 @@ $currentPage     = $currentPage ?? ($_GET['page'] ?? '');
             const dx = t.clientX - touchStartX;
             const dy = Math.abs(t.clientY - touchStartY);
 
-            // Open: swipe right from left edge, mostly horizontal
+            
             if (touchStartX < 24 && dx > 60 && dy < 40) {
                 openSidebar();
             }
 
-            // Close: swipe left while open, mostly horizontal
+            
             if (!sidebar.classList.contains('-translate-x-full') && dx < -60 && dy < 40) {
                 closeSidebar();
             }

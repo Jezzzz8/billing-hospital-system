@@ -1,10 +1,10 @@
-// assets/js/master/room.js
+
 
 document.addEventListener("DOMContentLoaded", () => {
   const baseUrl = document.body.dataset.baseUrl || "";
   const alertBox = document.getElementById("alert");
 
-  // Modals / forms
+  
   const modal = document.getElementById("roomModal");
   const form = document.getElementById("roomForm");
   const modalTitle = document.getElementById("roomModalTitle");
@@ -12,7 +12,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const submitLbl = document.getElementById("roomSubmitLabel");
   const openCreate = document.getElementById("openCreateBtn");
 
-  // Archive confirm
+  
   const confirmModal = document.getElementById("confirmModal");
   const confirmRoomNumber = document.getElementById("confirmRoomNumber");
   const confirmDeactivateBtn = document.getElementById("confirmDeactivateBtn");
@@ -20,13 +20,13 @@ document.addEventListener("DOMContentLoaded", () => {
     "confirmDeactivateLabel",
   );
 
-  // Delete confirm
+  
   const deleteModal = document.getElementById("deleteModal");
   const deleteRoomNumber = document.getElementById("deleteRoomNumber");
   const confirmDeleteBtn = document.getElementById("confirmDeleteBtn");
   const confirmDeleteLbl = document.getElementById("confirmDeleteLabel");
 
-  // ---------- Helpers ----------
+  
   const showAlert = (msg, type = "error") => {
     const styles = {
       error: "bg-red-50 border-red-200 text-red-700",
@@ -55,7 +55,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const openModal = (el) => el.classList.remove("hidden");
   const closeModal = (el) => el.classList.add("hidden");
 
-  // ---------- Modal close handlers ----------
+  
   document
     .querySelectorAll("[data-close-modal]")
     .forEach((el) => el.addEventListener("click", () => closeModal(modal)));
@@ -77,9 +77,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // =========================================================
-  // CREATE
-  // =========================================================
+  
+  
+  
   if (openCreate) {
     openCreate.addEventListener("click", () => {
       form.reset();
@@ -91,9 +91,9 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // =========================================================
-  // EDIT
-  // =========================================================
+  
+  
+  
   document.querySelectorAll(".edit-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       const r = JSON.parse(btn.dataset.room);
@@ -115,7 +115,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // ---------- CREATE / UPDATE submit ----------
+  
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     hideAlert();
@@ -165,9 +165,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // =========================================================
-  // ARCHIVE (soft delete)
-  // =========================================================
+  
+  
+  
   document.querySelectorAll(".deactivate-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       confirmRoomNumber.textContent = btn.dataset.roomNumber || "this room";
@@ -215,9 +215,9 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // =========================================================
-  // REACTIVATE
-  // =========================================================
+  
+  
+  
   document.querySelectorAll(".reactivate-btn").forEach((btn) => {
     btn.addEventListener("click", async () => {
       const id = btn.dataset.roomId;
@@ -252,9 +252,9 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // =========================================================
-  // PERMANENT DELETE (archived only)
-  // =========================================================
+  
+  
+  
   let pendingDeleteId = null;
 
   document.querySelectorAll(".delete-btn").forEach((btn) => {
@@ -301,9 +301,9 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // =========================================================
-  // SEARCH + FILTER
-  // =========================================================
+  
+  
+  
   const searchInput = document.getElementById("filterSearch");
   const showArchived = document.getElementById("showArchived");
   const filterClear = document.getElementById("filterClear");
@@ -356,9 +356,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   applyFilters();
 
-  // =========================================================
-  // Flash
-  // =========================================================
+  
+  
+  
   const flash = sessionStorage.getItem("room_flash");
   if (flash) {
     sessionStorage.removeItem("room_flash");

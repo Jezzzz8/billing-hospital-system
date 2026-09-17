@@ -1,5 +1,5 @@
 <?php
-// views/layouts/nurse.php
+
 
 $pageTitle  = $pageTitle  ?? 'Nurse Dashboard';
 $pageScript = $pageScript ?? BASE_URL . '/assets/js/logout.js';

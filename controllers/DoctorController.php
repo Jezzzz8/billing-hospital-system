@@ -1,5 +1,5 @@
 <?php
-// controllers/DoctorController.php
+
 
 class DoctorController
 {
@@ -7,9 +7,9 @@ class DoctorController
 
     public function __construct(PDO $pdo) { $this->pdo = $pdo; }
 
-    // =========================================================
-    // READ
-    // =========================================================
+    
+    
+    
 
     public function getAll(): array
     {
@@ -23,7 +23,7 @@ class DoctorController
              ORDER BY d.doctor_id'
         )->fetchAll();
 
-        // Attach specializations to each doctor
+        
         if ($doctors) {
             $ids = array_column($doctors, 'doctor_id');
             $placeholders = implode(',', array_fill(0, count($ids), '?'));
@@ -61,9 +61,9 @@ class DoctorController
         )->fetchAll();
     }
 
-    // =========================================================
-    // CREATE
-    // =========================================================
+    
+    
+    
 
     public function create(): void
     {
@@ -80,7 +80,7 @@ class DoctorController
         try {
             $this->pdo->beginTransaction();
 
-            // 1. Insert into `user`
+            
             $hash = password_hash((string)$data['password'], PASSWORD_BCRYPT);
             $stmt = $this->pdo->prepare(
                 'INSERT INTO `user`
@@ -97,7 +97,7 @@ class DoctorController
             ]);
             $userId = (int)$this->pdo->lastInsertId();
 
-            // 2. Insert into `doctor`
+            
             $stmt = $this->pdo->prepare(
                 'INSERT INTO `doctor` (user_id, license_number, consultation_fee, is_active)
                  VALUES (?, ?, ?, 1)'
@@ -109,7 +109,7 @@ class DoctorController
             ]);
             $doctorId = (int)$this->pdo->lastInsertId();
 
-            // 3. Insert specializations
+            
             $this->saveSpecializations($doctorId, $data['specializations'] ?? [], (int)($data['primary_specialization_id'] ?? 0));
 
             $this->pdo->commit();
@@ -127,9 +127,9 @@ class DoctorController
         }
     }
 
-    // =========================================================
-    // UPDATE
-    // =========================================================
+    
+    
+    
 
     public function update(): void
     {
@@ -155,7 +155,7 @@ class DoctorController
         try {
             $this->pdo->beginTransaction();
 
-            // 1. Update `user`
+            
             $stmt = $this->pdo->prepare(
                 'UPDATE `user`
                  SET username = ?, first_name = ?, last_name = ?, email = ?, contact_number = ?
@@ -170,7 +170,7 @@ class DoctorController
                 $userId,
             ]);
 
-            // 2. Update `doctor`
+            
             $stmt = $this->pdo->prepare(
                 'UPDATE `doctor` SET license_number = ?, consultation_fee = ? WHERE doctor_id = ?'
             );
@@ -180,7 +180,7 @@ class DoctorController
                 $doctorId,
             ]);
 
-            // 3. Replace specializations
+            
             $stmt = $this->pdo->prepare('DELETE FROM `doctor_specialization` WHERE doctor_id = ?');
             $stmt->execute([$doctorId]);
             $this->saveSpecializations($doctorId, $data['specializations'] ?? [], (int)($data['primary_specialization_id'] ?? 0));
@@ -194,9 +194,9 @@ class DoctorController
         }
     }
 
-    // =========================================================
-    // CHANGE PASSWORD
-    // =========================================================
+    
+    
+    
 
     public function changePassword(): void
     {
@@ -230,9 +230,9 @@ class DoctorController
         $this->json(200, ['success' => true, 'message' => 'Password updated successfully.']);
     }
 
-    // =========================================================
-    // TOGGLE ACTIVE
-    // =========================================================
+    
+    
+    
 
     public function toggleActive(): void
     {
@@ -279,9 +279,9 @@ class DoctorController
         ]);
     }
 
-    // =========================================================
-    // HELPERS
-    // =========================================================
+    
+    
+    
 
     private function saveSpecializations(int $doctorId, array $specIds, int $primaryId): void
     {
@@ -289,7 +289,7 @@ class DoctorController
 
         if (!$specIds) return;
 
-        // Validate that they exist
+        
         $placeholders = implode(',', array_fill(0, count($specIds), '?'));
         $stmt = $this->pdo->prepare("SELECT specialization_id FROM `specialization` WHERE specialization_id IN ($placeholders)");
         $stmt->execute($specIds);
@@ -347,7 +347,7 @@ class DoctorController
         $fee = $data['consultation_fee'] ?? '';
         if ($fee === '' || !is_numeric($fee) || (float)$fee < 0) $errors['consultation_fee'] = 'Enter a valid consultation fee.';
 
-        // Primary specialization must be among the selected ones
+        
         $primaryId = (int)($data['primary_specialization_id'] ?? 0);
         $specIds   = array_map('intval', $data['specializations'] ?? []);
         if ($primaryId > 0 && !in_array($primaryId, $specIds, true)) {

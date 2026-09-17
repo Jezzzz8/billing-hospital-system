@@ -1,5 +1,5 @@
 <?php
-// controllers/BillingStatusController.php
+
 
 class BillingStatusController
 {
@@ -7,7 +7,7 @@ class BillingStatusController
 
     public function __construct(PDO $pdo) { $this->pdo = $pdo; }
 
-    // ---------- READ ----------
+    
     public function getAll(): array
     {
         return $this->pdo->query(
@@ -17,7 +17,7 @@ class BillingStatusController
         )->fetchAll();
     }
 
-    // ---------- CREATE ----------
+    
     public function create(): void
     {
         $this->guard();
@@ -47,7 +47,7 @@ class BillingStatusController
         ]);
     }
 
-    // ---------- UPDATE ----------
+    
     public function update(): void
     {
         $this->guard();
@@ -78,7 +78,7 @@ class BillingStatusController
         $this->json(200, ['success' => true, 'message' => 'Billing status updated successfully.']);
     }
 
-    // ---------- DELETE (hard, with FK check) ----------
+    
     public function delete(): void
     {
         $this->guard();
@@ -92,7 +92,7 @@ class BillingStatusController
             $this->json(404, ['success' => false, 'message' => 'Billing status not found.']);
         }
 
-        // Check for FK references in `billing_statement`
+        
         $stmt = $this->pdo->prepare('SELECT COUNT(*) FROM `billing_statement` WHERE status_id = ?');
         $stmt->execute([$id]);
         $refCount = (int)$stmt->fetchColumn();
@@ -111,7 +111,7 @@ class BillingStatusController
         $this->json(200, ['success' => true, 'message' => 'Billing status deleted.']);
     }
 
-    // ---------- HELPERS ----------
+    
     private function guard(): void
     {
         header('Content-Type: application/json; charset=utf-8');

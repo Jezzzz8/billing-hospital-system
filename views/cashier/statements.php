@@ -1,5 +1,5 @@
 <?php
-// views/cashier/statements.php
+
 
 require_once __DIR__ . '/../../controllers/CashierController.php';
 
@@ -18,7 +18,7 @@ foreach ($statements as $s) {
 }
 ?>
 
-<!-- Data for the modal dropdowns (read by JS) -->
+
 <div id="cashierData"
      class="hidden"
      data-charge-items='<?= htmlspecialchars(json_encode(array_map(fn($c) => [
@@ -35,7 +35,7 @@ foreach ($statements as $s) {
         'type_name'       => $p['type_name'],
      ], $paymentTypes)), ENT_QUOTES, "UTF-8") ?>'></div>
 
-<!-- Page header -->
+
 <div class="mb-8">
     <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Billing Statements</h1>
     <p class="mt-1 text-sm text-slate-500">Review statements, sync charges from admissions, and record payments.</p>
@@ -43,7 +43,7 @@ foreach ($statements as $s) {
 
 <div id="alert" class="hidden mb-5 rounded-lg px-4 py-3 text-sm border"></div>
 
-<!-- Stat cards -->
+
 <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
     <div class="bg-white rounded-xl border border-slate-200 p-5">
         <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Statements</p>
@@ -63,7 +63,7 @@ foreach ($statements as $s) {
     </div>
 </div>
 
-<!-- Filter bar -->
+
 <div class="bg-white rounded-xl border border-slate-200 p-4 mb-4">
     <div class="flex flex-col lg:flex-row lg:items-end gap-3">
         <div class="flex-1">
@@ -102,7 +102,7 @@ foreach ($statements as $s) {
     </div>
 </div>
 
-<!-- Table -->
+
 <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
     <div class="overflow-x-auto">
         <table class="min-w-full text-sm">
@@ -188,7 +188,7 @@ foreach ($statements as $s) {
     </div>
 </div>
 
-<!-- MANAGE MODAL -->
+
 <div id="manageModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
     <div class="absolute inset-0 bg-slate-900/60" data-close-manage></div>
     <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[95vh] flex flex-col">
@@ -215,7 +215,7 @@ foreach ($statements as $s) {
 
         <div class="flex-1 overflow-y-auto p-6">
 
-            <!-- Summary -->
+            
             <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-5">
                 <div class="bg-slate-50 border border-slate-200 rounded-lg p-3">
                     <p class="text-xs text-slate-500">Subtotal</p>
@@ -239,7 +239,7 @@ foreach ($statements as $s) {
                 </div>
             </div>
 
-            <!-- Charges Panel -->
+            
             <div class="manage-tab-panel" data-mpanel="charges">
                 <div class="flex items-center justify-between mb-3">
                     <h4 class="text-sm font-semibold text-slate-900">Charges</h4>
@@ -279,7 +279,7 @@ foreach ($statements as $s) {
                 </div>
             </div>
 
-            <!-- Payments Panel -->
+            
             <div class="manage-tab-panel hidden" data-mpanel="payments">
                 <div class="flex items-center justify-between mb-3">
                     <h4 class="text-sm font-semibold text-slate-900">Payments</h4>
@@ -308,7 +308,7 @@ foreach ($statements as $s) {
                 </div>
             </div>
 
-            <!-- Rooms Panel -->
+            
             <div class="manage-tab-panel hidden" data-mpanel="rooms">
                 <h4 class="text-sm font-semibold text-slate-900 mb-3">Room History</h4>
                 <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
@@ -338,7 +338,7 @@ foreach ($statements as $s) {
     </div>
 </div>
 
-<!-- ADD CHARGE MODAL -->
+
 <div id="chargeModal" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4">
     <div class="absolute inset-0 bg-slate-900/60" data-close-charge></div>
     <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md">
@@ -383,7 +383,7 @@ foreach ($statements as $s) {
     </div>
 </div>
 
-<!-- ADD PAYMENT MODAL -->
+
 <div id="paymentModal" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4">
     <div class="absolute inset-0 bg-slate-900/60" data-close-payment></div>
     <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md">

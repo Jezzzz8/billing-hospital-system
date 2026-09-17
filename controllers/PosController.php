@@ -1,5 +1,5 @@
 <?php
-// controllers/PosController.php
+
 
 class PosController
 {
@@ -7,9 +7,9 @@ class PosController
 
     public function __construct(PDO $pdo) { $this->pdo = $pdo; }
 
-    // =========================================================
-    // READ
-    // =========================================================
+    
+    
+    
 
     public function getCatalog(): array
     {
@@ -31,10 +31,7 @@ class PosController
         )->fetchAll();
     }
 
-    /**
-     * Recent POS sales are just recent billing statements whose admission
-     * has admission_type = 'POS' (i.e. counter sales we created).
-     */
+    
     public function getRecentSales(int $limit = 20): array
     {
         $stmt = $this->pdo->prepare(
@@ -65,9 +62,7 @@ class PosController
         return $stmt->fetchAll();
     }
 
-    /**
-     * Detail view for a "sale" — really a billing statement on a POS admission.
-     */
+    
     public function getSaleDetails(int $saleId): ?array
     {
         $stmt = $this->pdo->prepare(
@@ -88,7 +83,7 @@ class PosController
         $sale = $stmt->fetch();
         if (!$sale) return null;
 
-        // Lines = charges on this statement
+        
         $stmt = $this->pdo->prepare(
             'SELECT c.charge_id, c.charge_item_id, c.quantity, c.actual_price,
                     c.charge_datetime, c.notes,
@@ -104,7 +99,7 @@ class PosController
         $stmt->execute([$saleId]);
         $sale['items'] = $stmt->fetchAll();
 
-        // Payments
+        
         $stmt = $this->pdo->prepare(
             'SELECT p.payment_id, p.amount, p.payment_datetime,
                     p.transaction_reference, p.notes,
@@ -136,9 +131,9 @@ class PosController
         return $stmt->fetchAll();
     }
 
-    // =========================================================
-    // CREATE SALE
-    // =========================================================
+    
+    
+    
 
     public function createSale(): void
     {
@@ -160,9 +155,9 @@ class PosController
         try {
             $this->pdo->beginTransaction();
 
-            // ── 1. Resolve patient ──
-            // If a patient_id was supplied, use it. Otherwise use the shared
-            // "Walk-in Customer" record (created on first POS sale if missing).
+            
+            
+            
             if ($patientId > 0) {
                 $stmt = $this->pdo->prepare(
                     'SELECT patient_id FROM `patient` WHERE patient_id = ? LIMIT 1'
@@ -176,13 +171,13 @@ class PosController
                 $patientId = $this->getOrCreateWalkInPatient($customerName);
             }
 
-            // ── 2. Create POS "admission" (counter sale) ──
+            
             $admissionId = $this->createPosAdmission($patientId, $customerName, $notes);
 
-            // ── 3. Create billing statement for that admission ──
+            
             $statementId = $this->createPosStatement($admissionId);
 
-            // ── 4. Insert charge rows for each cart line ──
+            
             $userId    = (int)$_SESSION['user']['user_id'];
             $subtotal  = 0.0;
             $taxable   = 0.0;
@@ -201,7 +196,7 @@ class PosController
                 $qty  = (int)($line['quantity'] ?? 1);
                 if ($ciId <= 0 || $qty <= 0) continue;
 
-                // Trust only the DB price, not the client
+                
                 $stmt = $this->pdo->prepare(
                     'SELECT charge_item_id, default_price, is_taxable, item_name
                      FROM `charge_item` WHERE charge_item_id = ? AND is_active = 1 LIMIT 1'
@@ -238,14 +233,14 @@ class PosController
                 $this->json(422, ['success' => false, 'message' => 'No valid items in cart.']);
             }
 
-            // ── 5. Compute totals ──
-            // POS sales don't use a discount column on the statement —
-            // the discount is stored as a negative-amount "manual charge".
-            // Simpler: apply discount directly by recomputing on the statement.
+            
+            
+            
+            
             $tax = round($taxable * 0.12, 2);
 
-            // Store discount on the statement's government_discount field
-            // so recomputeStatement() subtracts it from the total.
+            
+            
             $stmt = $this->pdo->prepare(
                 'UPDATE `billing_statement`
                  SET government_discount = ?
@@ -253,11 +248,11 @@ class PosController
             );
             $stmt->execute([$discount, $statementId]);
 
-            // ── 6. Recompute the statement (reuses your existing logic) ──
+            
             require_once __DIR__ . '/ChargeSyncService.php';
             (new ChargeSyncService($this->pdo))->recomputeStatement($statementId);
 
-            // ── 7. Get the recomputed total so we can record the payment ──
+            
             $stmt = $this->pdo->prepare(
                 'SELECT total_amount, balance_amount FROM `billing_statement`
                  WHERE statement_id = ? LIMIT 1'
@@ -267,8 +262,8 @@ class PosController
             $total = (float)$totals['total_amount'];
             $change = max(0, $amountTendered - $total);
 
-            // ── 8. Record payment for the full amount tendered (or total) ──
-            // We record the exact total as paid, and return change to the customer.
+            
+            
             $reference = null;
             if ($total > 0) {
                 $reference = $this->generatePaymentReference();
@@ -291,7 +286,7 @@ class PosController
                 (new ChargeSyncService($this->pdo))->recomputeStatement($statementId);
             }
 
-            // ── 9. Mark the POS admission as discharged immediately ──
+            
             $stmt = $this->pdo->prepare(
                 'UPDATE `admission`
                  SET status_id = (SELECT status_id FROM `admission_status` WHERE status_name = "Discharged" LIMIT 1),
@@ -343,18 +338,14 @@ class PosController
         return $prefix . str_pad((string)$next, 4, '0', STR_PAD_LEFT);
     }
 
-    // =========================================================
-    // HELPERS
-    // =========================================================
+    
+    
+    
 
-    /**
-     * Find the shared "Walk-in Customer" patient record, creating it
-     * on first POS sale. All walk-in sales link to this shared record
-     * so the patient table isn't flooded with one-off rows.
-     */
+    
     private function getOrCreateWalkInPatient(string $customerName): int
     {
-        // Reuse the same shared row across all walk-in sales.
+        
         $stmt = $this->pdo->prepare(
             'SELECT patient_id FROM `patient`
              WHERE first_name = "Walk-in" AND last_name = "Customer"
@@ -364,7 +355,7 @@ class PosController
         $existing = $stmt->fetchColumn();
         if ($existing) return (int)$existing;
 
-        // Create it — gender_id 1 is Male and exists in the seed data.
+        
         $stmt = $this->pdo->prepare(
             'INSERT INTO `patient`
                 (gender_id, first_name, last_name, is_active)
@@ -374,10 +365,7 @@ class PosController
         return (int)$this->pdo->lastInsertId();
     }
 
-    /**
-     * Create a POS counter-sale admission.
-     * Uses admission_type = 'POS' as the discriminator.
-     */
+    
     private function createPosAdmission(int $patientId, string $customerName, string $notes): int
     {
         $statusId = (int)$this->pdo->query(
@@ -386,8 +374,8 @@ class PosController
         )->fetchColumn();
         if ($statusId <= 0) $statusId = 1;
 
-        // Store the customer's display name in chief_complaint
-        // and their free-form notes in the admission notes.
+        
+        
         $chief = $customerName !== '' ? 'POS: ' . $customerName : 'POS: Walk-in';
 
         $stmt = $this->pdo->prepare(
@@ -407,10 +395,7 @@ class PosController
         return (int)$this->pdo->lastInsertId();
     }
 
-    /**
-     * Create a billing statement for the POS admission.
-     * Uses the default "Pending" status.
-     */
+    
     private function createPosStatement(int $admissionId): int
     {
         $statusId = (int)$this->pdo->query(
@@ -437,9 +422,9 @@ class PosController
         return (int)$this->pdo->lastInsertId();
     }
 
-    // =========================================================
-    // GUARD / INPUT / JSON
-    // =========================================================
+    
+    
+    
 
     private function guard(): void
     {

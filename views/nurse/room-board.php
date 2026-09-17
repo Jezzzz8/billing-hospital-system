@@ -1,5 +1,5 @@
 <?php
-// views/nurse/room-board.php
+
 
 require_once __DIR__ . '/../../controllers/NurseController.php';
 
@@ -7,13 +7,13 @@ $controller = new NurseController($pdo);
 $rooms = $controller->getAllRooms();
 $roomTypes = $controller->getRoomsByType();
 
-// Group rooms by type
+
 $roomsByType = [];
 foreach ($rooms as $r) {
     $roomsByType[$r['room_type_name']][] = $r;
 }
 
-// Status counts
+
 $statusCounts = [];
 foreach ($rooms as $r) {
     $status = $r['status_name'];
@@ -26,7 +26,7 @@ foreach ($rooms as $r) {
     <p class="mt-1 text-sm text-slate-500">Visual overview of all rooms and their current status.</p>
 </div>
 
-<!-- Status Summary -->
+
 <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
     <?php foreach ($statusCounts as $status => $count): ?>
         <?php
@@ -45,7 +45,7 @@ foreach ($rooms as $r) {
     <?php endforeach; ?>
 </div>
 
-<!-- Room Grid -->
+
 <?php foreach ($roomsByType as $typeName => $typeRooms): ?>
     <div class="mb-8">
         <div class="flex items-center justify-between mb-4">

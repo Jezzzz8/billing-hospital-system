@@ -1,5 +1,5 @@
 <?php
-// controllers/ChargeSyncService.php
+
 
 class ChargeSyncService
 {
@@ -7,10 +7,7 @@ class ChargeSyncService
 
     public function __construct(PDO $pdo) { $this->pdo = $pdo; }
 
-    /**
-     * Idempotent full sync of a statement.
-     * Scans all three source tables and materializes missing charges.
-     */
+    
     public function syncStatement(int $statementId): void
     {
         $stmt = $this->pdo->prepare(
@@ -34,9 +31,9 @@ class ChargeSyncService
         }
     }
 
-    // =========================================================
-    // SOURCE 1: ROOM ASSIGNMENTS
-    // =========================================================
+    
+    
+    
 
     private function syncLiveRooms(int $statementId, int $admissionId): void
     {
@@ -56,11 +53,11 @@ class ChargeSyncService
         foreach ($assignments as $a) {
             $marker = 'source=room:' . $a['room_assignment_id'];
 
-            // Find the charge item for this room type
+            
             $itemId = $this->findRoomChargeItem($a['room_type_name']);
             if ($itemId <= 0) continue;
 
-            // Already materialized?
+            
             $chk = $this->pdo->prepare(
                 'SELECT charge_id FROM `charge`
                  WHERE statement_id = ? AND notes LIKE ? LIMIT 1'
@@ -68,13 +65,13 @@ class ChargeSyncService
             $chk->execute([$statementId, '%' . $marker . '%']);
             $existing = $chk->fetch();
 
-            // Compute billable days
+            
             $start = new DateTime($a['start_datetime']);
             $end   = $a['end_datetime'] ? new DateTime($a['end_datetime']) : new DateTime();
             $days  = max(1, (int)$start->diff($end)->days);
 
             if ($existing) {
-                // Update quantity (days) and end date — room still active
+                
                 $upd = $this->pdo->prepare(
                     'UPDATE `charge`
                      SET quantity = ?, service_end_date = ?
@@ -107,9 +104,9 @@ class ChargeSyncService
         }
     }
 
-    // =========================================================
-    // SOURCE 2: SERVICE REQUESTS
-    // =========================================================
+    
+    
+    
 
     private function syncLiveServices(int $statementId, int $admissionId): void
     {
@@ -159,9 +156,9 @@ class ChargeSyncService
         }
     }
 
-    // =========================================================
-    // SOURCE 3: DOCTOR CONSULTATION FEES
-    // =========================================================
+    
+    
+    
 
     private function syncLiveDoctors(int $statementId, int $admissionId): void
     {
@@ -210,9 +207,9 @@ class ChargeSyncService
         }
     }
 
-    // =========================================================
-    // RECOMPUTE TOTALS
-    // =========================================================
+    
+    
+    
 
     public function recomputeStatement(int $statementId): void
     {
@@ -252,7 +249,7 @@ class ChargeSyncService
         $total   = max(0, $subtotal + $tax - $insurance - $discount);
         $balance = max(0, $total - $paid);
 
-        // Auto-status
+        
         $stmtStatus = $this->pdo->query(
             'SELECT status_id, is_paid_status, status_name FROM `billing_status`'
         );
@@ -279,9 +276,9 @@ class ChargeSyncService
         ]);
     }
 
-    // =========================================================
-    // CHARGE ITEM LOOKUPS
-    // =========================================================
+    
+    
+    
 
     private function findRoomChargeItem(string $roomTypeName): int
     {
@@ -297,7 +294,7 @@ class ChargeSyncService
         $id = (int)$stmt->fetchColumn();
         if ($id > 0) return $id;
 
-        // Fallback: any room charge item
+        
         $stmt = $this->pdo->prepare(
             'SELECT ci.charge_item_id
              FROM `charge_item` ci

@@ -1,17 +1,17 @@
 <?php
-// views/login.php
+
 $pageTitle  = 'Sign in';
 $pageScript = '/billing_hospital/assets/js/login.js';
 require __DIR__ . '/partials/header.php';
 ?>
 
-<!-- NO <body> tag here — header.php already opened it with data-base-url -->
+
 
 <div class="min-h-screen grid grid-cols-1 lg:grid-cols-8">
 
-    <!-- ============================================================ -->
-    <!-- LEFT: image panel — takes 5 of 8 columns on large screens    -->
-    <!-- ============================================================ -->
+    
+    
+    
     <div class="hidden lg:flex lg:col-span-5 relative bg-slate-900 text-white overflow-hidden">
 
         <img src="<?= BASE_URL ?>/assets/images/bg1.jpg"
@@ -34,14 +34,14 @@ require __DIR__ . '/partials/header.php';
         </div>
     </div>
 
-    <!-- ============================================================ -->
-    <!-- RIGHT: login form — takes 3 of 8 columns                     -->
-    <!-- ============================================================ -->
+    
+    
+    
     <div class="flex items-center justify-center px-6 py-12 bg-white lg:col-span-3">
 
         <div class="w-full max-w-sm">
 
-            <!-- Logo + heading -->
+            
             <div class="mb-10">
               
                 <h1 class="mt-6 text-2xl font-bold text-slate-900 tracking-tight">Sign in</h1>

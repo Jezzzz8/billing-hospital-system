@@ -1,5 +1,5 @@
 <?php
-// controllers/NurseController.php
+
 
 require_once __DIR__ . '/BillingHook.php';
 
@@ -9,9 +9,9 @@ class NurseController
 
     public function __construct(PDO $pdo) { $this->pdo = $pdo; }
 
-    // =========================================================
-    // DASHBOARD
-    // =========================================================
+    
+    
+    
 
     public function getDashboardStats(): array
     {
@@ -77,9 +77,9 @@ class NurseController
         )->fetchAll();
     }
 
-    // =========================================================
-    // PATIENT SEARCH
-    // =========================================================
+    
+    
+    
 
     public function searchPatients(string $query): array
     {
@@ -147,9 +147,9 @@ class NurseController
         return $stmt->fetch() ?: null;
     }
 
-    // =========================================================
-    // PATIENT REGISTRATION
-    // =========================================================
+    
+    
+    
 
     public function registerPatient(): void
     {
@@ -192,9 +192,9 @@ class NurseController
         }
     }
 
-    // =========================================================
-    // ADMISSION
-    // =========================================================
+    
+    
+    
 
     public function createAdmission(): void
     {
@@ -236,25 +236,25 @@ class NurseController
 
             $admissionId = (int)$this->pdo->lastInsertId();
 
-            // ── Room assignment (optional) ──
+            
             if (!empty($data['room_id'])) {
                 $this->assignRoom($admissionId, (int)$data['room_id'], $data);
             }
 
-            // ── Doctor assignment(s) ──
+            
             $doctorIds   = $data['doctor_ids']   ?? [];
             $doctorRoles = $data['doctor_roles'] ?? [];
 
             if (is_array($doctorIds) && $doctorIds) {
                 $this->saveAdmissionDoctors($admissionId, $doctorIds, $doctorRoles);
 
-                // Fire billing sync after we have valid assignments in the txn
+                
                 BillingHook::emit($this->pdo, $admissionId);
             }
 
             $this->pdo->commit();
 
-            // Billing sync is best-effort — never let it fail the request
+            
             try { BillingHook::flushDeferred(); } catch (Throwable $e) {
                 error_log('[NurseController::createAdmission::flushDeferred] ' . $e->getMessage());
             }
@@ -292,9 +292,9 @@ class NurseController
         )->fetchAll();
     }
 
-    // =========================================================
-    // ROOM MANAGEMENT
-    // =========================================================
+    
+    
+    
 
     public function getAvailableRooms(?int $roomTypeId = null): array
     {
@@ -576,9 +576,9 @@ class NurseController
         }
     }
 
-    // =========================================================
-    // DOCTORS
-    // =========================================================
+    
+    
+    
 
     public function getDoctors(): array
     {
@@ -608,13 +608,7 @@ class NurseController
         return $stmt->fetchAll();
     }
 
-    /**
-     * Persist doctor assignments for an admission.
-     * Must be called inside an open transaction.
-     *
-     * NOTE: This helper ONLY inserts rows. It does NOT fire BillingHook —
-     * callers are responsible for that after the surrounding transaction.
-     */
+    
     private function saveAdmissionDoctors(int $admissionId, array $doctorIds, array $doctorRoles): void
     {
         $insert = $this->pdo->prepare(
@@ -650,9 +644,7 @@ class NurseController
         }
     }
 
-    /**
-     * Assign a doctor to an existing admission (post-hoc).
-     */
+    
     public function assignDoctorApi(): void
     {
         $this->guard();
@@ -669,7 +661,7 @@ class NurseController
         try {
             $this->pdo->beginTransaction();
 
-            // 1. Validate the admission is active
+            
             $stmt = $this->pdo->prepare(
                 'SELECT admission_id FROM `admission`
                  WHERE admission_id = ? AND status_id IN (1, 3) LIMIT 1'
@@ -680,7 +672,7 @@ class NurseController
                 $this->json(404, ['success' => false, 'message' => 'Active admission not found.']);
             }
 
-            // 2. Validate the doctor exists and is active
+            
             $stmt = $this->pdo->prepare(
                 'SELECT d.doctor_id, d.consultation_fee
                  FROM `doctor` d
@@ -695,7 +687,7 @@ class NurseController
                 $this->json(404, ['success' => false, 'message' => 'Doctor not found or inactive.']);
             }
 
-            // 3. Duplicate check
+            
             $dup = $this->pdo->prepare(
                 'SELECT admission_doctor_id FROM `admission_doctor`
                  WHERE admission_id = ? AND doctor_id = ? AND ended_datetime IS NULL
@@ -707,15 +699,15 @@ class NurseController
                 $this->json(409, ['success' => false, 'message' => 'This doctor is already assigned to this admission.']);
             }
 
-            // 4. Insert
+            
             $this->saveAdmissionDoctors($admissionId, [$doctorId], [$doctorId => $role]);
 
-            // 5. Fire billing sync inside the transaction (safe — deferred)
+            
             BillingHook::emit($this->pdo, $admissionId);
 
             $this->pdo->commit();
 
-            // 6. Flush billing sync AFTER commit. Never let it fail the request.
+            
             try { BillingHook::flushDeferred(); } catch (Throwable $e) {
                 error_log('[NurseController::assignDoctorApi::flushDeferred] ' . $e->getMessage());
             }
@@ -728,9 +720,7 @@ class NurseController
         }
     }
 
-    /**
-     * Remove a doctor from an admission (soft — marks ended_datetime).
-     */
+    
     public function removeDoctorApi(): void
     {
         $this->guard();
@@ -755,9 +745,9 @@ class NurseController
         }
     }
 
-    // =========================================================
-    // DISCHARGE
-    // =========================================================
+    
+    
+    
 
     public function getReadyForDischarge(): array
     {
@@ -875,9 +865,9 @@ class NurseController
         )->fetchAll();
     }
 
-    // =========================================================
-    // DROPDOWN DATA
-    // =========================================================
+    
+    
+    
 
     public function getGenders(): array
     {
@@ -894,9 +884,9 @@ class NurseController
         return $this->pdo->query('SELECT room_type_id, room_type_name, rate_per_day FROM `room_type` ORDER BY room_type_name')->fetchAll();
     }
 
-    // =========================================================
-    // HELPERS
-    // =========================================================
+    
+    
+    
 
     private function guard(): void
     {

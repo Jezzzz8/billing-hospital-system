@@ -1,10 +1,10 @@
-// assets/js/master/charge-category.js
+
 
 document.addEventListener("DOMContentLoaded", () => {
   const baseUrl = document.body.dataset.baseUrl || "";
   const alertBox = document.getElementById("alert");
 
-  // Modals / forms
+  
   const modal = document.getElementById("categoryModal");
   const form = document.getElementById("categoryForm");
   const modalTitle = document.getElementById("categoryModalTitle");
@@ -12,13 +12,13 @@ document.addEventListener("DOMContentLoaded", () => {
   const submitLbl = document.getElementById("categorySubmitLabel");
   const openCreate = document.getElementById("openCreateBtn");
 
-  // Delete confirm modal
+  
   const deleteModal = document.getElementById("deleteModal");
   const deleteCategoryName = document.getElementById("deleteCategoryName");
   const confirmDeleteBtn = document.getElementById("confirmDeleteBtn");
   const confirmDeleteLbl = document.getElementById("confirmDeleteLabel");
 
-  // ---------- Helpers ----------
+  
   const showAlert = (msg, type = "error") => {
     const styles = {
       error: "bg-red-50 border-red-200 text-red-700",
@@ -47,7 +47,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const openModal = (el) => el.classList.remove("hidden");
   const closeModal = (el) => el.classList.add("hidden");
 
-  // ---------- Modal close handlers ----------
+  
   document.querySelectorAll("[data-close-modal]").forEach((el) => {
     el.addEventListener("click", () => closeModal(modal));
   });
@@ -61,9 +61,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // =========================================================
-  // CREATE
-  // =========================================================
+  
+  
+  
   if (openCreate) {
     openCreate.addEventListener("click", () => {
       form.reset();
@@ -76,9 +76,9 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // =========================================================
-  // EDIT
-  // =========================================================
+  
+  
+  
   document.querySelectorAll(".edit-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       const c = JSON.parse(btn.dataset.category);
@@ -101,7 +101,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // ---------- CREATE / UPDATE submit ----------
+  
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     hideAlert();
@@ -155,9 +155,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // =========================================================
-  // DELETE
-  // =========================================================
+  
+  
+  
   let pendingDeleteId = null;
 
   document.querySelectorAll(".delete-btn").forEach((btn) => {
@@ -208,9 +208,9 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // =========================================================
-  // SEARCH
-  // =========================================================
+  
+  
+  
   const searchInput = document.getElementById("filterSearch");
   const filterClear = document.getElementById("filterClear");
   const filterSummary = document.getElementById("filterSummary");
@@ -253,9 +253,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   applyFilters();
 
-  // =========================================================
-  // Flash message
-  // =========================================================
+  
+  
+  
   const flash = sessionStorage.getItem("charge_category_flash");
   if (flash) {
     sessionStorage.removeItem("charge_category_flash");

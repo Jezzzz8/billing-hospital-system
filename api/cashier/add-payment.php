@@ -1,5 +1,5 @@
 <?php
-// api/cashier/add-payment.php
+
 
 require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../config/connection.php';

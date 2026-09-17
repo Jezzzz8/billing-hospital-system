@@ -1,5 +1,5 @@
 <?php
-// controllers/CashierController.php
+
 require_once __DIR__ . '/ChargeSyncService.php';
 
 class CashierController
@@ -8,9 +8,9 @@ class CashierController
 
     public function __construct(PDO $pdo) { $this->pdo = $pdo; }
 
-    // =========================================================
-    // DASHBOARD
-    // =========================================================
+    
+    
+    
 
     public function getDashboardStats(): array
     {
@@ -72,9 +72,9 @@ class CashierController
         return $stmt->fetchAll();
     }
 
-    // =========================================================
-    // STATEMENTS
-    // =========================================================
+    
+    
+    
 
     public function getAllStatements(): array
     {
@@ -148,7 +148,7 @@ class CashierController
         $statement = $stmt->fetch();
         if (!$statement) return null;
 
-        // Charges
+        
         $stmt = $this->pdo->prepare(
             'SELECT c.charge_id, c.charge_item_id, c.quantity, c.actual_price,
                     c.charge_datetime, c.notes, c.service_start_date, c.service_end_date,
@@ -164,7 +164,7 @@ class CashierController
         $stmt->execute([$statementId]);
         $statement['charges'] = $stmt->fetchAll();
 
-        // Payments — explicit columns so JS always has what it needs
+        
         $stmt = $this->pdo->prepare(
             'SELECT p.payment_id, p.payment_type_id, p.amount,
                     DATE_FORMAT(p.payment_datetime, "%Y-%m-%d %H:%i:%s") AS payment_datetime,
@@ -178,7 +178,7 @@ class CashierController
         $stmt->execute([$statementId]);
         $statement['payments'] = $stmt->fetchAll();
 
-        // Room history
+        
         $stmt = $this->pdo->prepare(
             'SELECT ra.room_assignment_id, ra.start_datetime, ra.end_datetime,
                     ra.daily_rate_at_assignment, ra.transfer_reason, ra.is_active,
@@ -195,9 +195,9 @@ class CashierController
         return $statement;
     }
 
-    // =========================================================
-    // DROPDOWN DATA
-    // =========================================================
+    
+    
+    
 
     public function getBillingStatuses(): array
     {
@@ -241,9 +241,9 @@ class CashierController
         )->fetchAll();
     }
 
-    // =========================================================
-    // SYNC CHARGES FROM ADMISSION
-    // =========================================================
+    
+    
+    
 
     public function syncChargesFromAdmission(int $statementId): void
     {
@@ -259,7 +259,7 @@ class CashierController
         $this->pdo->beginTransaction();
 
         try {
-            // 1. ROOM CHARGES
+            
             $stmt = $this->pdo->prepare(
                 'SELECT ra.room_assignment_id, ra.room_id, ra.start_datetime, ra.end_datetime,
                         ra.daily_rate_at_assignment,
@@ -310,7 +310,7 @@ class CashierController
                 ]);
             }
 
-            // 2. SERVICE REQUESTS
+            
             $stmt = $this->pdo->prepare(
                 'SELECT sr.request_id, sr.charge_item_id, sr.quantity,
                         ci.default_price, ci.item_name
@@ -359,7 +359,7 @@ class CashierController
                 $stmtUpd->execute([(int)$r['request_id']]);
             }
 
-            // 3. DOCTOR CONSULTATION FEES
+            
             $stmt = $this->pdo->prepare(
                 'SELECT ad.admission_doctor_id, ad.consultation_fee_charged, ad.doctor_id,
                         u.first_name, u.last_name
@@ -446,9 +446,9 @@ class CashierController
         return (int)$stmt->fetchColumn();
     }
 
-    // =========================================================
-    // CHARGES
-    // =========================================================
+    
+    
+    
 
     public function addCharge(int $statementId, array $data): void
     {
@@ -521,14 +521,11 @@ class CashierController
         $this->recomputeStatement($statementId);
     }
 
-    // =========================================================
-    // PAYMENTS
-    // =========================================================
+    
+    
+    
 
-    /**
-     * Records a payment and returns the generated reference.
-     * Reference format: PAY-YYYYMMDD-#### (daily sequence).
-     */
+    
     public function addPayment(int $statementId, array $data): string
     {
         $typeId = (int)($data['payment_type_id'] ?? 0);
@@ -577,17 +574,13 @@ class CashierController
         $this->recomputeStatement($statementId);
     }
 
-    /**
-     * Generates the next daily payment reference.
-     * Format: PAY-YYYYMMDD-####
-     * MUST be called inside an open transaction.
-     */
+    
     private function generatePaymentReference(): string
     {
         $date   = date('Ymd');
         $prefix = 'PAY-' . $date . '-';
 
-        // Lock today's highest reference row for the duration of the txn.
+        
         $stmt = $this->pdo->prepare(
             'SELECT transaction_reference
              FROM `payment`
@@ -607,9 +600,9 @@ class CashierController
         return $prefix . str_pad((string)$next, 4, '0', STR_PAD_LEFT);
     }
 
-    // =========================================================
-    // RECOMPUTE STATEMENT TOTALS
-    // =========================================================
+    
+    
+    
 
     public function recomputeStatement(int $statementId): void
     {
@@ -684,9 +677,9 @@ class CashierController
         ]);
     }
 
-    // =========================================================
-    // REPORTS
-    // =========================================================
+    
+    
+    
 
     public function getReportsData(): array
     {
@@ -795,9 +788,9 @@ class CashierController
         }
     }
 
-    // =========================================================
-    // GUARD + JSON
-    // =========================================================
+    
+    
+    
 
     public function guard(): void
     {

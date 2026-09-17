@@ -1,5 +1,5 @@
 <?php
-// views/doctor/consultations.php
+
 
 require_once __DIR__ . '/../../controllers/DoctorPortalController.php';
 require_once __DIR__ . '/../../controllers/DoctorHelper.php';
@@ -20,7 +20,7 @@ $patients = $controller->getAllMyPatients();
 
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-    <!-- Schedule New -->
+    
     <div class="lg:col-span-1">
         <div class="bg-white rounded-xl border border-slate-200 p-6">
             <h3 class="text-base font-semibold text-slate-900 mb-4">Schedule Consultation</h3>
@@ -66,7 +66,7 @@ $patients = $controller->getAllMyPatients();
         </div>
     </div>
 
-    <!-- List -->
+    
     <div class="lg:col-span-2">
         <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
             <div class="px-6 py-4 border-b border-slate-200">

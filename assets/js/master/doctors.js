@@ -1,10 +1,10 @@
-// assets/js/master/doctors.js
+
 
 document.addEventListener("DOMContentLoaded", () => {
   const baseUrl = document.body.dataset.baseUrl || "";
   const alertBox = document.getElementById("alert");
 
-  // Modals / forms
+  
   const modal = document.getElementById("doctorModal");
   const form = document.getElementById("doctorForm");
   const modalTitle = document.getElementById("doctorModalTitle");
@@ -12,14 +12,14 @@ document.addEventListener("DOMContentLoaded", () => {
   const submitLbl = document.getElementById("doctorSubmitLabel");
   const openCreate = document.getElementById("openCreateBtn");
 
-  // Password modal
+  
   const pwModal = document.getElementById("pwModal");
   const pwForm = document.getElementById("pwForm");
   const pwDoctorName = document.getElementById("pwDoctorName");
   const pwSubmitBtn = document.getElementById("pwSubmitBtn");
   const pwSubmitLbl = document.getElementById("pwSubmitLabel");
 
-  // Confirm archive modal
+  
   const confirmModal = document.getElementById("confirmModal");
   const confirmName = document.getElementById("confirmDoctorName");
   const confirmDeactivateBtn = document.getElementById("confirmDeactivateBtn");
@@ -27,14 +27,14 @@ document.addEventListener("DOMContentLoaded", () => {
     "confirmDeactivateLabel",
   );
 
-  // Specialization widgets
+  
   const specCheckboxes = document.querySelectorAll(".spec-checkbox");
   const specCount = document.getElementById("specCount");
   const primaryWrapper = document.getElementById("primaryWrapper");
   const primarySelect = document.getElementById("primary_specialization_id");
   const passwordFieldWrap = document.getElementById("passwordFieldWrapper");
 
-  // ---------- Helpers ----------
+  
   const showAlert = (msg, type = "error") => {
     const styles = {
       error: "bg-red-50 border-red-200 text-red-700",
@@ -63,14 +63,14 @@ document.addEventListener("DOMContentLoaded", () => {
   const openModal = (el) => el.classList.remove("hidden");
   const closeModal = (el) => el.classList.add("hidden");
 
-  // ---------- Specialization UI sync ----------
+  
   function refreshSpecializationUI() {
     const checked = Array.from(specCheckboxes).filter((cb) => cb.checked);
 
-    // Update count
+    
     if (specCount) specCount.textContent = `${checked.length} selected`;
 
-    // Highlight selected
+    
     specCheckboxes.forEach((cb) => {
       const wrapper = cb.closest(".spec-checkbox-wrapper");
       if (!wrapper) return;
@@ -83,7 +83,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
 
-    // Rebuild primary dropdown
+    
     const previousValue = primarySelect?.value || "";
     if (primarySelect) {
       primarySelect.innerHTML =
@@ -99,7 +99,7 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     }
 
-    // Show/hide primary wrapper
+    
     if (primaryWrapper)
       primaryWrapper.classList.toggle("hidden", checked.length < 2);
   }
@@ -108,7 +108,7 @@ document.addEventListener("DOMContentLoaded", () => {
     cb.addEventListener("change", refreshSpecializationUI),
   );
 
-  // ---------- Modal close handlers ----------
+  
   document.querySelectorAll("[data-close-modal]").forEach((el) => {
     el.addEventListener("click", () => closeModal(modal));
   });
@@ -126,9 +126,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // =========================================================
-  // CREATE
-  // =========================================================
+  
+  
+  
   if (openCreate) {
     openCreate.addEventListener("click", () => {
       form.reset();
@@ -144,9 +144,9 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // =========================================================
-  // EDIT
-  // =========================================================
+  
+  
+  
   document.querySelectorAll(".edit-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       const d = JSON.parse(btn.dataset.doctor);
@@ -166,7 +166,7 @@ document.addEventListener("DOMContentLoaded", () => {
       document.getElementById("license_number").value = d.license_number;
       document.getElementById("consultation_fee").value = d.consultation_fee;
 
-      // Specializations
+      
       specCheckboxes.forEach((cb) => (cb.checked = false));
       let primaryId = null;
       (d.specializations || []).forEach((s) => {
@@ -191,7 +191,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // ---------- CREATE / UPDATE submit ----------
+  
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     hideAlert();
@@ -254,9 +254,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // =========================================================
-  // CHANGE PASSWORD
-  // =========================================================
+  
+  
+  
   document.querySelectorAll(".pw-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       pwForm.reset();
@@ -316,9 +316,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // =========================================================
-  // ARCHIVE
-  // =========================================================
+  
+  
+  
   document.querySelectorAll(".deactivate-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       confirmName.textContent = btn.getAttribute("data-doctor-name");
@@ -367,9 +367,9 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // =========================================================
-  // REACTIVATE
-  // =========================================================
+  
+  
+  
   document.querySelectorAll(".reactivate-btn").forEach((btn) => {
     btn.addEventListener("click", async () => {
       const id = btn.getAttribute("data-doctor-id");
@@ -404,9 +404,9 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // =========================================================
-  // SEARCH + FILTER
-  // =========================================================
+  
+  
+  
   const searchInput = document.getElementById("filterSearch");
   const showArchived = document.getElementById("showArchived");
   const filterClear = document.getElementById("filterClear");
@@ -460,9 +460,9 @@ document.addEventListener("DOMContentLoaded", () => {
   applyFilters();
   refreshSpecializationUI();
 
-  // =========================================================
-  // Flash message
-  // =========================================================
+  
+  
+  
   const flash = sessionStorage.getItem("doctor_flash");
   if (flash) {
     sessionStorage.removeItem("doctor_flash");

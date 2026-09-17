@@ -1,5 +1,5 @@
 <?php
-// views/admin/patients.php
+
 require_once __DIR__ . '/../../controllers/PatientController.php';
 
 $controller       = new PatientController($pdo);
@@ -16,7 +16,7 @@ $archivedPatients = $totalPatients - $activePatients;
 $admittedNow      = count(array_filter($patients, fn($p) => !empty($p['admission_id'])));
 ?>
 
-<!-- Data for the modal's doctor/diagnosis dropdowns (read by patients.js) -->
+
 <div id="patientsData"
      class="hidden"
      data-doctors='<?= htmlspecialchars(json_encode(array_map(fn($d) => [
@@ -30,7 +30,7 @@ $admittedNow      = count(array_filter($patients, fn($p) => !empty($p['admission
         'icd_code'       => $d['icd_code'] ?? '',
      ], $allDiagnoses)), ENT_QUOTES, "UTF-8") ?>'></div>
 
-<!-- Page header -->
+
 <div class="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
     <div>
         <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Patients</h1>
@@ -47,7 +47,7 @@ $admittedNow      = count(array_filter($patients, fn($p) => !empty($p['admission
 
 <div id="alert" class="hidden mb-5 rounded-lg px-4 py-3 text-sm border"></div>
 
-<!-- Stat cards -->
+
 <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
     <div class="bg-white rounded-xl border border-slate-200 p-5">
         <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Total Patients</p>
@@ -67,7 +67,7 @@ $admittedNow      = count(array_filter($patients, fn($p) => !empty($p['admission
     </div>
 </div>
 
-<!-- Filter bar -->
+
 <div class="bg-white rounded-xl border border-slate-200 p-4 mb-4">
     <div class="flex flex-col lg:flex-row lg:items-end gap-3">
         <div class="flex-1">
@@ -107,7 +107,7 @@ $admittedNow      = count(array_filter($patients, fn($p) => !empty($p['admission
     </div>
 </div>
 
-<!-- Table -->
+
 <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
     <div class="overflow-x-auto">
         <table class="min-w-full text-sm">
@@ -239,13 +239,13 @@ $admittedNow      = count(array_filter($patients, fn($p) => !empty($p['admission
     </div>
 </div>
 
-<!-- ============ CREATE / EDIT MODAL ============ -->
+
 <div id="patientModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
     <div class="absolute inset-0 bg-slate-900/60" data-close-modal></div>
 
     <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[95vh] flex flex-col">
 
-        <!-- Header -->
+        
         <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200">
             <div class="flex items-center gap-3">
                 <div class="w-9 h-9 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
@@ -265,7 +265,7 @@ $admittedNow      = count(array_filter($patients, fn($p) => !empty($p['admission
             </button>
         </div>
 
-        <!-- Tabs -->
+        
         <div class="border-b border-slate-200 px-6">
             <nav class="flex gap-1 -mb-px overflow-x-auto">
                 <button type="button" class="tab-btn px-4 py-3 text-sm font-medium border-b-2 border-blue-600 text-blue-600 whitespace-nowrap" data-tab="info">Patient Info</button>
@@ -276,14 +276,14 @@ $admittedNow      = count(array_filter($patients, fn($p) => !empty($p['admission
             </nav>
         </div>
 
-        <!-- Form body -->
+        
         <form id="patientForm" method="POST" novalidate class="flex-1 flex flex-col min-h-0">
             <input type="hidden" id="patient_id" name="patient_id">
             <input type="hidden" id="admission_id" name="admission_id">
 
             <div class="flex-1 overflow-y-auto p-6">
 
-                <!-- TAB: Patient Info -->
+                
                 <div class="tab-panel" data-panel="info">
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
                         <div>
@@ -338,7 +338,7 @@ $admittedNow      = count(array_filter($patients, fn($p) => !empty($p['admission
                     </div>
                 </div>
 
-                <!-- TAB: Admission -->
+                
                 <div class="tab-panel hidden" data-panel="admission">
                     <div class="bg-blue-50 border border-blue-100 rounded-lg p-4 mb-5">
                         <label class="inline-flex items-center gap-3 cursor-pointer select-none">
@@ -383,7 +383,7 @@ $admittedNow      = count(array_filter($patients, fn($p) => !empty($p['admission
                     </div>
                 </div>
 
-                <!-- TAB: Room -->
+                
                 <div class="tab-panel hidden" data-panel="room">
                     <div id="roomNotice" class="bg-amber-50 border border-amber-100 rounded-lg p-4 mb-5 text-sm text-amber-800">
                         Room assignment requires the patient to be admitted. Enable <strong>Admit this patient now</strong> in the Admission tab first.
@@ -404,7 +404,7 @@ $admittedNow      = count(array_filter($patients, fn($p) => !empty($p['admission
                     </div>
                 </div>
 
-                <!-- TAB: Doctors -->
+                
                 <div class="tab-panel hidden" data-panel="doctors">
                     <div id="doctorsNotice" class="bg-amber-50 border border-amber-100 rounded-lg p-4 mb-5 text-sm text-amber-800">
                         Doctors can be assigned once the patient is admitted.
@@ -426,7 +426,7 @@ $admittedNow      = count(array_filter($patients, fn($p) => !empty($p['admission
                     </div>
                 </div>
 
-                <!-- TAB: Diagnoses -->
+                
                 <div class="tab-panel hidden" data-panel="diagnoses">
                     <div id="diagnosesNotice" class="bg-amber-50 border border-amber-100 rounded-lg p-4 mb-5 text-sm text-amber-800">
                         Diagnoses can be assigned once the patient is admitted.
@@ -450,7 +450,7 @@ $admittedNow      = count(array_filter($patients, fn($p) => !empty($p['admission
 
             </div>
 
-            <!-- Footer -->
+            
             <div class="px-6 py-4 border-t border-slate-200 bg-slate-50 rounded-b-2xl flex items-center justify-between gap-3">
                 <button type="button" id="prevTab" class="hidden items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -477,7 +477,7 @@ $admittedNow      = count(array_filter($patients, fn($p) => !empty($p['admission
     </div>
 </div>
 
-<!-- ============ CONFIRM ARCHIVE MODAL ============ -->
+
 <div id="confirmModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
     <div class="absolute inset-0 bg-slate-900/50" data-close-confirm></div>
 

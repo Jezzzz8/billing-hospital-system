@@ -1,12 +1,12 @@
 <?php
-// views/admin/room-type.php
+
 require_once __DIR__ . '/../../controllers/RoomTypeController.php';
 
 $roomTypes = (new RoomTypeController($pdo))->getAll();
 $totalRoomTypes = count($roomTypes);
 ?>
 
-<!-- Page header -->
+
 <div class="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
     <div>
         <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Room Types</h1>
@@ -23,13 +23,13 @@ $totalRoomTypes = count($roomTypes);
 
 <div id="alert" class="hidden mb-5 rounded-lg px-4 py-3 text-sm border"></div>
 
-<!-- Stat card -->
+
 <div class="bg-white rounded-xl border border-slate-200 p-5 mb-6 max-w-xs">
     <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Total Room Types</p>
     <p class="mt-2 text-2xl font-bold text-slate-900"><?= $totalRoomTypes ?></p>
 </div>
 
-<!-- Filter bar -->
+
 <div class="bg-white rounded-xl border border-slate-200 p-4 mb-4">
     <div class="flex flex-col sm:flex-row sm:items-end gap-3">
         <div class="flex-1">
@@ -60,7 +60,7 @@ $totalRoomTypes = count($roomTypes);
     </div>
 </div>
 
-<!-- Table -->
+
 <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
     <div class="overflow-x-auto">
         <table class="min-w-full text-sm">
@@ -79,7 +79,7 @@ $totalRoomTypes = count($roomTypes);
                     <tr class="hover:bg-slate-50 room-type-row"
                         data-search="<?= htmlspecialchars(strtolower($rt['room_type_name'] . ' ' . ($rt['description'] ?? ''))) ?>">
 
-                        <!-- Name -->
+                        
                         <td class="px-6 py-4">
                             <div class="flex items-center gap-3">
                                 <div class="w-9 h-9 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
@@ -93,22 +93,22 @@ $totalRoomTypes = count($roomTypes);
                             </div>
                         </td>
 
-                        <!-- Description -->
+                        
                         <td class="px-6 py-4 text-slate-600 max-w-xs">
                             <p class="truncate"><?= htmlspecialchars($rt['description'] ?? '—') ?></p>
                         </td>
 
-                        <!-- Rate -->
+                        
                         <td class="px-6 py-4 text-right font-medium text-slate-900 whitespace-nowrap">
                             ₱<?= number_format((float)$rt['rate_per_day'], 2) ?>
                         </td>
 
-                        <!-- Capacity -->
+                        
                         <td class="px-6 py-4 text-center text-slate-700">
                             <?= (int)$rt['capacity'] ?> pax
                         </td>
 
-                        <!-- Meals -->
+                        
                         <td class="px-6 py-4 text-center">
                             <?php if ((int)$rt['includes_meals'] === 1): ?>
                                 <span class="inline-flex items-center gap-1 text-emerald-600 text-xs font-medium">
@@ -122,7 +122,7 @@ $totalRoomTypes = count($roomTypes);
                             <?php endif; ?>
                         </td>
 
-                        <!-- Actions -->
+                        
                         <td class="px-6 py-4 text-right whitespace-nowrap">
                             <div class="inline-flex items-center gap-1.5">
 
@@ -153,7 +153,7 @@ $totalRoomTypes = count($roomTypes);
         </table>
     </div>
 
-    <!-- Empty state -->
+    
     <div id="emptyState" class="hidden text-center py-16">
         <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-slate-100 text-slate-400 mb-3">
             <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
@@ -165,13 +165,13 @@ $totalRoomTypes = count($roomTypes);
     </div>
 </div>
 
-<!-- ============ CREATE / EDIT MODAL ============ -->
+
 <div id="roomTypeModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
     <div class="absolute inset-0 bg-slate-900/50" data-close-modal></div>
 
     <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col">
 
-        <!-- Header -->
+        
         <div class="flex items-center justify-between px-6 py-5 border-b border-slate-200">
             <div class="flex items-center gap-3">
                 <div class="w-9 h-9 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
@@ -192,7 +192,7 @@ $totalRoomTypes = count($roomTypes);
             </button>
         </div>
 
-        <!-- Form -->
+        
         <form id="roomTypeForm" method="POST" novalidate class="flex-1 overflow-y-auto">
             <input type="hidden" id="room_type_id" name="room_type_id">
 
@@ -239,7 +239,7 @@ $totalRoomTypes = count($roomTypes);
                 </div>
             </div>
 
-            <!-- Sticky footer -->
+            
             <div class="px-6 py-4 border-t border-slate-200 bg-slate-50 rounded-b-2xl flex items-center justify-end gap-3">
                 <button type="button" data-close-modal
                         class="rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50">
@@ -254,7 +254,7 @@ $totalRoomTypes = count($roomTypes);
     </div>
 </div>
 
-<!-- ============ CONFIRM DELETE MODAL ============ -->
+
 <div id="deleteModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
     <div class="absolute inset-0 bg-slate-900/50" data-close-delete></div>
 

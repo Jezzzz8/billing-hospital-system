@@ -1,5 +1,5 @@
 <?php
-// controllers/PatientController.php
+
 
 class PatientController
 {
@@ -7,9 +7,9 @@ class PatientController
 
     public function __construct(PDO $pdo) { $this->pdo = $pdo; }
 
-    // =========================================================
-    // READ
-    // =========================================================
+    
+    
+    
 
     public function getAll(): array
     {
@@ -68,7 +68,7 @@ class PatientController
         $patient['diagnoses']       = [];
 
         if ($admissionId > 0) {
-            // Room assignment
+            
             $stmt = $this->pdo->prepare(
                 'SELECT ra.room_assignment_id, ra.room_id, ra.start_datetime,
                         r.room_number, rt.room_type_name
@@ -81,7 +81,7 @@ class PatientController
             $stmt->execute([$admissionId]);
             $patient['room_assignment'] = $stmt->fetch() ?: null;
 
-            // Doctors — include the doctor's own consultation_fee (authoritative)
+            
             $stmt = $this->pdo->prepare(
                 'SELECT ad.admission_doctor_id, ad.doctor_id, ad.doctor_role,
                         ad.consultation_fee_charged,
@@ -95,7 +95,7 @@ class PatientController
             $stmt->execute([$admissionId]);
             $patient['doctors'] = $stmt->fetchAll();
 
-            // Diagnoses
+            
             $stmt = $this->pdo->prepare(
                 'SELECT adi.admission_diagnosis_id, adi.diagnosis_id, adi.diagnosis_type,
                         adi.diagnosed_by_doctor_id,
@@ -111,7 +111,7 @@ class PatientController
         return $patient;
     }
 
-    // Dropdown data
+    
     public function getGenders(): array
     {
         return $this->pdo->query('SELECT gender_id, gender_name FROM `gender` ORDER BY gender_id')->fetchAll();
@@ -122,7 +122,7 @@ class PatientController
         return $this->pdo->query('SELECT status_id, status_name, color_code FROM `admission_status` ORDER BY status_id')->fetchAll();
     }
 
-    // ---- Available rooms: only is_active = 1 AND Available status ----
+    
     public function getAvailableRooms(): array
     {
         return $this->pdo->query(
@@ -138,7 +138,7 @@ class PatientController
         )->fetchAll();
     }
 
-    // ---- Doctors: fee comes from the doctor record ----
+    
     public function getDoctors(): array
     {
         return $this->pdo->query(
@@ -160,9 +160,9 @@ class PatientController
         )->fetchAll();
     }
 
-    // =========================================================
-    // CREATE
-    // =========================================================
+    
+    
+    
 
     public function create(): void
     {
@@ -218,9 +218,9 @@ class PatientController
         }
     }
 
-    // =========================================================
-    // UPDATE
-    // =========================================================
+    
+    
+    
 
     public function update(): void
     {
@@ -305,9 +305,9 @@ class PatientController
         }
     }
 
-    // =========================================================
-    // TOGGLE ACTIVE
-    // =========================================================
+    
+    
+    
 
     public function toggleActive(): void
     {
@@ -333,9 +333,9 @@ class PatientController
         ]);
     }
 
-    // =========================================================
-    // NESTED WRITES
-    // =========================================================
+    
+    
+    
 
     private function createAdmission(int $patientId, array $data): int
     {
@@ -367,7 +367,7 @@ class PatientController
         $roomId = (int)($data['room_id'] ?? 0);
         if ($roomId <= 0) return;
 
-        // Only allow active + Available rooms
+        
         $stmt = $this->pdo->prepare(
             'SELECT rt.rate_per_day
              FROM `room` r
@@ -381,7 +381,7 @@ class PatientController
         $stmt->execute([$roomId]);
         $rate = $stmt->fetchColumn();
         if ($rate === false) {
-            // Room not available anymore — skip silently
+            
             return;
         }
 
@@ -400,7 +400,7 @@ class PatientController
             (int)$_SESSION['user']['user_id'],
         ]);
 
-        // Update the room's status to Occupied
+        
         $stmt = $this->pdo->prepare('UPDATE `room` SET status_id = 2 WHERE room_id = ?');
         $stmt->execute([$roomId]);
     }
@@ -423,14 +423,14 @@ class PatientController
 
             $role = !empty($d['doctor_role']) ? $d['doctor_role'] : 'Attending';
 
-            // ALWAYS use the doctor's own consultation_fee
+            
             $stmtFee = $this->pdo->prepare('SELECT consultation_fee FROM `doctor` WHERE doctor_id = ? LIMIT 1');
             $stmtFee->execute([$doctorId]);
             $fee = (float)($stmtFee->fetchColumn() ?: 0);
 
             $stmt->execute([$admissionId, $doctorId, $role, $fee]);
 
-            // ── Fire billing event: doctor assigned ──
+            
             require_once __DIR__ . '/BillingHook.php';
             BillingHook::emit($this->pdo, $admissionId);
         }
@@ -458,9 +458,9 @@ class PatientController
         }
     }
 
-    // =========================================================
-    // HELPERS
-    // =========================================================
+    
+    
+    
 
     private function guard(): void
     {

@@ -1,5 +1,5 @@
 <?php
-// api/pos/create-sale.php
+
 
 require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../config/connection.php';

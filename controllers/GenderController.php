@@ -1,5 +1,5 @@
 <?php
-// controllers/GenderController.php
+
 
 class GenderController
 {
@@ -7,7 +7,7 @@ class GenderController
 
     public function __construct(PDO $pdo) { $this->pdo = $pdo; }
 
-    // ---------- READ ----------
+    
     public function getAll(): array
     {
         return $this->pdo->query(
@@ -17,7 +17,7 @@ class GenderController
         )->fetchAll();
     }
 
-    // ---------- CREATE ----------
+    
     public function create(): void
     {
         $this->guard();
@@ -40,7 +40,7 @@ class GenderController
         ]);
     }
 
-    // ---------- UPDATE ----------
+    
     public function update(): void
     {
         $this->guard();
@@ -62,7 +62,7 @@ class GenderController
         $this->json(200, ['success' => true, 'message' => 'Gender updated successfully.']);
     }
 
-    // ---------- DELETE (hard, with FK check) ----------
+    
     public function delete(): void
     {
         $this->guard();
@@ -70,14 +70,14 @@ class GenderController
         $id = (int)($_GET['id'] ?? 0);
         if ($id <= 0) $this->json(400, ['success' => false, 'message' => 'Missing gender id.']);
 
-        // Confirm exists
+        
         $stmt = $this->pdo->prepare('SELECT gender_id FROM `gender` WHERE gender_id = ? LIMIT 1');
         $stmt->execute([$id]);
         if (!$stmt->fetch()) {
             $this->json(404, ['success' => false, 'message' => 'Gender not found.']);
         }
 
-        // Check for FK references in `patient`
+        
         $stmt = $this->pdo->prepare('SELECT COUNT(*) FROM `patient` WHERE gender_id = ?');
         $stmt->execute([$id]);
         $refCount = (int)$stmt->fetchColumn();
@@ -96,7 +96,7 @@ class GenderController
         $this->json(200, ['success' => true, 'message' => 'Gender deleted.']);
     }
 
-    // ---------- HELPERS ----------
+    
     private function guard(): void
     {
         header('Content-Type: application/json; charset=utf-8');

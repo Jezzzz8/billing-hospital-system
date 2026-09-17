@@ -1,5 +1,5 @@
 <?php
-// views/nurse/admissions.php
+
 
 require_once __DIR__ . '/../../controllers/NurseController.php';
 
@@ -24,7 +24,7 @@ $dischargedCount = count($admissions) - $activeCount;
     </a>
 </div>
 
-<!-- Stat cards -->
+
 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6 max-w-xl">
     <div class="bg-white rounded-xl border border-slate-200 p-5">
         <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Active Admissions</p>
@@ -36,7 +36,7 @@ $dischargedCount = count($admissions) - $activeCount;
     </div>
 </div>
 
-<!-- Filter bar -->
+
 <div class="bg-white rounded-xl border border-slate-200 p-4 mb-4">
     <div class="flex flex-col sm:flex-row sm:items-end gap-3">
         <div class="flex-1">
@@ -66,7 +66,7 @@ $dischargedCount = count($admissions) - $activeCount;
     </div>
 </div>
 
-<!-- Table -->
+
 <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
     <div class="overflow-x-auto">
         <table class="min-w-full text-sm">

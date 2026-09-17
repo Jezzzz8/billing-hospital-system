@@ -1,5 +1,5 @@
 <?php
-// views/doctor/service-requests.php
+
 
 require_once __DIR__ . '/../../controllers/DoctorPortalController.php';
 require_once __DIR__ . '/../../controllers/DoctorHelper.php';
@@ -12,7 +12,7 @@ $admission = $admissionId ? $controller->getAdmissionDetails($admissionId) : nul
 $chargeItems = $controller->getChargeItems();
 $assigned = $controller->getAssignedPatients();
 
-// Group charge items by category for the dropdown
+
 $itemsByCategory = [];
 foreach ($chargeItems as $ci) {
     $itemsByCategory[$ci['category_name']][] = $ci;
@@ -72,7 +72,7 @@ if (!$admission) {
     </a>
 </div>
 
-<!-- Patient header -->
+
 <div class="bg-white rounded-xl border border-slate-200 p-6 mb-6">
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -95,7 +95,7 @@ if (!$admission) {
 
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-    <!-- New Request -->
+    
     <div class="lg:col-span-1">
         <div class="bg-white rounded-xl border border-slate-200 p-6">
             <h3 class="text-base font-semibold text-slate-900 mb-4">New Service Request</h3>
@@ -138,7 +138,7 @@ if (!$admission) {
         </div>
     </div>
 
-    <!-- Existing Requests -->
+    
     <div class="lg:col-span-2">
         <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
             <div class="px-6 py-4 border-b border-slate-200">

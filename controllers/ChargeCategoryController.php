@@ -1,5 +1,5 @@
 <?php
-// controllers/ChargeCategoryController.php
+
 
 class ChargeCategoryController
 {
@@ -7,7 +7,7 @@ class ChargeCategoryController
 
     public function __construct(PDO $pdo) { $this->pdo = $pdo; }
 
-    // ---------- READ ----------
+    
     public function getAll(): array
     {
         return $this->pdo->query(
@@ -17,7 +17,7 @@ class ChargeCategoryController
         )->fetchAll();
     }
 
-    // ---------- CREATE ----------
+    
     public function create(): void
     {
         $this->guard();
@@ -49,7 +49,7 @@ class ChargeCategoryController
         ]);
     }
 
-    // ---------- UPDATE ----------
+    
     public function update(): void
     {
         $this->guard();
@@ -81,7 +81,7 @@ class ChargeCategoryController
         $this->json(200, ['success' => true, 'message' => 'Charge category updated successfully.']);
     }
 
-    // ---------- DELETE (hard, with FK check) ----------
+    
     public function delete(): void
     {
         $this->guard();
@@ -95,7 +95,7 @@ class ChargeCategoryController
             $this->json(404, ['success' => false, 'message' => 'Charge category not found.']);
         }
 
-        // Check FK references in charge_item
+        
         $stmt = $this->pdo->prepare('SELECT COUNT(*) FROM `charge_item` WHERE category_id = ?');
         $stmt->execute([$id]);
         $refCount = (int)$stmt->fetchColumn();
@@ -114,7 +114,7 @@ class ChargeCategoryController
         $this->json(200, ['success' => true, 'message' => 'Charge category deleted.']);
     }
 
-    // ---------- HELPERS ----------
+    
     private function guard(): void
     {
         header('Content-Type: application/json; charset=utf-8');

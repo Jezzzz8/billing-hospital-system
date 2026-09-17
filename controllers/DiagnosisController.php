@@ -1,5 +1,5 @@
 <?php
-// controllers/DiagnosisController.php
+
 
 class DiagnosisController
 {
@@ -7,7 +7,7 @@ class DiagnosisController
 
     public function __construct(PDO $pdo) { $this->pdo = $pdo; }
 
-    // ---------- READ ----------
+    
     public function getAll(): array
     {
         return $this->pdo->query(
@@ -17,7 +17,7 @@ class DiagnosisController
         )->fetchAll();
     }
 
-    // ---------- CREATE ----------
+    
     public function create(): void
     {
         $this->guard();
@@ -50,7 +50,7 @@ class DiagnosisController
         ]);
     }
 
-    // ---------- UPDATE ----------
+    
     public function update(): void
     {
         $this->guard();
@@ -84,7 +84,7 @@ class DiagnosisController
         $this->json(200, ['success' => true, 'message' => 'Diagnosis updated successfully.']);
     }
 
-    // ---------- SOFT DELETE / REACTIVATE ----------
+    
     public function toggleActive(): void
     {
         $this->guard();
@@ -109,7 +109,7 @@ class DiagnosisController
         ]);
     }
 
-    // ---------- PERMANENT DELETE ----------
+    
     public function delete(): void
     {
         $this->guard();
@@ -126,7 +126,7 @@ class DiagnosisController
             $this->json(409, ['success' => false, 'message' => 'Archive the diagnosis first before deleting.']);
         }
 
-        // Check FK references in admission_diagnosis
+        
         $stmt = $this->pdo->prepare('SELECT COUNT(*) FROM `admission_diagnosis` WHERE diagnosis_id = ?');
         $stmt->execute([$id]);
         $refCount = (int)$stmt->fetchColumn();
@@ -145,7 +145,7 @@ class DiagnosisController
         $this->json(200, ['success' => true, 'message' => 'Diagnosis permanently deleted.']);
     }
 
-    // ---------- HELPERS ----------
+    
     private function guard(): void
     {
         header('Content-Type: application/json; charset=utf-8');

@@ -1,5 +1,5 @@
 <?php
-// views/nurse/discharge-records.php
+
 
 require_once __DIR__ . '/../../controllers/NurseController.php';
 

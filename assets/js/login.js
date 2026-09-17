@@ -1,4 +1,4 @@
-// assets/js/login.js
+
 
 document.addEventListener("DOMContentLoaded", () => {
   console.log("🔵 login.js loaded");

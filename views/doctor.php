@@ -1,5 +1,5 @@
 <?php
-// views/doctor.php
+
 
 require_once __DIR__ . '/../controllers/DoctorPortalController.php';
 require_once __DIR__ . '/../controllers/DoctorHelper.php';
@@ -19,7 +19,7 @@ $stats = $controller->getDashboardStats();
 $patients = $controller->getAssignedPatients();
 $readyForDischarge = $controller->getReadyForDischarge();
 
-// We'll reuse the ready list method — add a public method below
+
 ?>
 
 <div class="mb-8">
@@ -27,7 +27,7 @@ $readyForDischarge = $controller->getReadyForDischarge();
     <p class="mt-1 text-sm text-slate-500">Your assigned patients and pending tasks.</p>
 </div>
 
-<!-- Stat cards -->
+
 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
     <div class="bg-white rounded-xl border border-slate-200 p-5">
         <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Assigned Admissions</p>
@@ -47,7 +47,7 @@ $readyForDischarge = $controller->getReadyForDischarge();
     </div>
 </div>
 
-<!-- Assigned Patients Table -->
+
 <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
     <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
         <div>

@@ -1,5 +1,5 @@
 <?php
-// controllers/ChargeItemController.php
+
 
 class ChargeItemController
 {
@@ -7,7 +7,7 @@ class ChargeItemController
 
     public function __construct(PDO $pdo) { $this->pdo = $pdo; }
 
-    // ---------- READ ----------
+    
     public function getAll(): array
     {
         return $this->pdo->query(
@@ -21,7 +21,7 @@ class ChargeItemController
         )->fetchAll();
     }
 
-    // ---------- READ: categories for dropdown ----------
+    
     public function getCategories(): array
     {
         return $this->pdo->query(
@@ -31,7 +31,7 @@ class ChargeItemController
         )->fetchAll();
     }
 
-    // ---------- CREATE ----------
+    
     public function create(): void
     {
         $this->guard();
@@ -67,7 +67,7 @@ class ChargeItemController
         ]);
     }
 
-    // ---------- UPDATE ----------
+    
     public function update(): void
     {
         $this->guard();
@@ -103,7 +103,7 @@ class ChargeItemController
         $this->json(200, ['success' => true, 'message' => 'Charge item updated successfully.']);
     }
 
-    // ---------- SOFT DELETE / REACTIVATE ----------
+    
     public function toggleActive(): void
     {
         $this->guard();
@@ -128,7 +128,7 @@ class ChargeItemController
         ]);
     }
 
-    // ---------- PERMANENT DELETE ----------
+    
     public function delete(): void
     {
         $this->guard();
@@ -145,7 +145,7 @@ class ChargeItemController
             $this->json(409, ['success' => false, 'message' => 'Archive the charge item first before deleting.']);
         }
 
-        // Check FK references in `charge` and `service_request`
+        
         $stmt = $this->pdo->prepare('SELECT COUNT(*) FROM `charge` WHERE charge_item_id = ?');
         $stmt->execute([$id]);
         $chargeRefs = (int)$stmt->fetchColumn();
@@ -170,7 +170,7 @@ class ChargeItemController
         $this->json(200, ['success' => true, 'message' => 'Charge item permanently deleted.']);
     }
 
-    // ---------- HELPERS ----------
+    
     private function guard(): void
     {
         header('Content-Type: application/json; charset=utf-8');
@@ -196,7 +196,7 @@ class ChargeItemController
     {
         $errors = [];
 
-        // Category
+        
         $catId = (int)($data['category_id'] ?? 0);
         if ($catId <= 0) {
             $errors['category_id'] = 'Please select a category.';
