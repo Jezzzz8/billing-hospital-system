@@ -1,78 +1,184 @@
 <?php
 // views/nurse.php
+
+require_once __DIR__ . '/../controllers/NurseController.php';
+
+$controller = new NurseController($pdo);
+$stats = $controller->getDashboardStats();
+$activeAdmissions = $controller->getActiveAdmissions();
+$roomsNeedingAttention = $controller->getRoomsNeedingAttention();
 ?>
 
 <div class="mb-8">
-    <h2 class="text-xl font-bold text-slate-900">Hello, Nurse <?= htmlspecialchars($currentUser['first_name']) ?> 💉</h2>
+    <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Dashboard</h1>
     <p class="mt-1 text-sm text-slate-500">Patient assignments and room status at a glance.</p>
 </div>
 
-<div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-8">
-    <div class="bg-white rounded-xl border border-slate-200 p-5 lg:col-span-2">
-        <h3 class="text-lg font-semibold text-slate-900 mb-4">Room Status</h3>
-        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            <?php
-            $rooms = [
-                ['101',   'Available', 'bg-emerald-50 text-emerald-700 border-emerald-200'],
-                ['201',   'Occupied',  'bg-rose-50 text-rose-700 border-rose-200'],
-                ['ICU-1', 'Occupied',  'bg-rose-50 text-rose-700 border-rose-200'],
-                ['102',   'Available', 'bg-emerald-50 text-emerald-700 border-emerald-200'],
-                ['202',   'Reserved',  'bg-blue-50 text-blue-700 border-blue-200'],
-            ];
-            foreach ($rooms as $r): ?>
-                <div class="rounded-lg border p-3 <?= $r[2] ?>">
-                    <p class="text-sm font-semibold">Room <?= $r[0] ?></p>
-                    <p class="text-xs mt-0.5"><?= $r[1] ?></p>
+<!-- Stat Cards -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+    <div class="bg-white rounded-xl border border-slate-200 p-5">
+        <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Active Admissions</p>
+        <p class="mt-2 text-2xl font-bold text-slate-900"><?= $stats['active_admissions'] ?></p>
+    </div>
+    <div class="bg-white rounded-xl border border-slate-200 p-5">
+        <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Available Rooms</p>
+        <p class="mt-2 text-2xl font-bold text-emerald-600"><?= $stats['available_rooms'] ?></p>
+    </div>
+    <div class="bg-white rounded-xl border border-slate-200 p-5">
+        <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Occupied Rooms</p>
+        <p class="mt-2 text-2xl font-bold text-amber-600"><?= $stats['occupied_rooms'] ?></p>
+    </div>
+    <div class="bg-white rounded-xl border border-slate-200 p-5">
+        <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Ready for Discharge</p>
+        <p class="mt-2 text-2xl font-bold text-blue-600"><?= $stats['ready_for_discharge'] ?></p>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+    <a href="<?= BASE_URL ?>/index.php?page=nurse-patient-search"
+       class="flex items-center gap-4 bg-white rounded-xl border border-slate-200 p-5 hover:border-blue-300 hover:shadow-sm transition">
+        <div class="w-12 h-12 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+            <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 10a7 7 0 11-14 0 7 7 0 0114 0z"/>
+            </svg>
+        </div>
+        <div class="min-w-0">
+            <p class="font-semibold text-slate-900 truncate">Find Patient</p>
+            <p class="text-xs text-slate-500 truncate">Search existing records</p>
+        </div>
+    </a>
+
+    <a href="<?= BASE_URL ?>/index.php?page=nurse-patient-register"
+       class="flex items-center gap-4 bg-white rounded-xl border border-slate-200 p-5 hover:border-emerald-300 hover:shadow-sm transition">
+        <div class="w-12 h-12 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+            <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/>
+            </svg>
+        </div>
+        <div class="min-w-0">
+            <p class="font-semibold text-slate-900 truncate">Register Patient</p>
+            <p class="text-xs text-slate-500 truncate">Add new patient</p>
+        </div>
+    </a>
+
+    <a href="<?= BASE_URL ?>/index.php?page=nurse-admission-create"
+       class="flex items-center gap-4 bg-white rounded-xl border border-slate-200 p-5 hover:border-amber-300 hover:shadow-sm transition">
+        <div class="w-12 h-12 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+            <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+            </svg>
+        </div>
+        <div class="min-w-0">
+            <p class="font-semibold text-slate-900 truncate">New Admission</p>
+            <p class="text-xs text-slate-500 truncate">Admit a patient</p>
+        </div>
+    </a>
+
+    <a href="<?= BASE_URL ?>/index.php?page=nurse-room-board"
+       class="flex items-center gap-4 bg-white rounded-xl border border-slate-200 p-5 hover:border-violet-300 hover:shadow-sm transition">
+        <div class="w-12 h-12 rounded-lg bg-violet-50 text-violet-600 flex items-center justify-center shrink-0">
+            <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
+            </svg>
+        </div>
+        <div class="min-w-0">
+            <p class="font-semibold text-slate-900 truncate">Room Board</p>
+            <p class="text-xs text-slate-500 truncate">View all rooms</p>
+        </div>
+    </a>
+</div>
+
+<!-- Active Admissions Table -->
+<div class="bg-white rounded-xl border border-slate-200 overflow-hidden mb-8">
+    <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+        <h3 class="text-lg font-semibold text-slate-900">Active Admissions</h3>
+        <a href="<?= BASE_URL ?>/index.php?page=nurse-admissions" class="text-sm font-medium text-blue-600 hover:text-blue-700">View all →</a>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="min-w-full text-sm">
+            <thead class="bg-slate-50 text-slate-600">
+                <tr>
+                    <th class="text-left px-6 py-3 font-medium">Patient</th>
+                    <th class="text-left px-6 py-3 font-medium">Room</th>
+                    <th class="text-left px-6 py-3 font-medium">Admitted</th>
+                    <th class="text-left px-6 py-3 font-medium">Status</th>
+                    <th class="text-right px-6 py-3 font-medium">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+                <?php if (empty($activeAdmissions)): ?>
+                    <tr>
+                        <td colspan="5" class="px-6 py-8 text-center text-slate-400">No active admissions</td>
+                    </tr>
+                <?php else: ?>
+                    <?php foreach ($activeAdmissions as $a): ?>
+                        <tr class="hover:bg-slate-50">
+                            <td class="px-6 py-3">
+                                <p class="font-medium text-slate-900"><?= htmlspecialchars($a['first_name'] . ' ' . $a['last_name']) ?></p>
+                                <p class="text-xs text-slate-500">#<?= (int)$a['admission_id'] ?></p>
+                            </td>
+                            <td class="px-6 py-3">
+                                <?php if (!empty($a['room_number'])): ?>
+                                    <span class="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium"
+                                          style="background-color: <?= htmlspecialchars($a['room_status_color'] ?? '#6b7280') ?>1A;
+                                                 color: <?= htmlspecialchars($a['room_status_color'] ?? '#6b7280') ?>;
+                                                 border-color: <?= htmlspecialchars($a['room_status_color'] ?? '#6b7280') ?>40;">
+                                        <span class="w-1.5 h-1.5 rounded-full" style="background-color: <?= htmlspecialchars($a['room_status_color'] ?? '#6b7280') ?>"></span>
+                                        <?= htmlspecialchars($a['room_number']) ?>
+                                    </span>
+                                    <p class="text-xs text-slate-500 mt-0.5"><?= htmlspecialchars($a['room_type_name'] ?? '') ?></p>
+                                <?php else: ?>
+                                    <span class="text-xs text-amber-600">No room assigned</span>
+                                <?php endif; ?>
+                            </td>
+                            <td class="px-6 py-3 text-slate-600">
+                                <?= htmlspecialchars(date('M j, Y g:i A', strtotime($a['admission_datetime']))) ?>
+                            </td>
+                            <td class="px-6 py-3">
+                                <span class="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium"
+                                      style="background-color: <?= htmlspecialchars($a['status_color'] ?? '#6b7280') ?>1A;
+                                             color: <?= htmlspecialchars($a['status_color'] ?? '#6b7280') ?>;
+                                             border-color: <?= htmlspecialchars($a['status_color'] ?? '#6b7280') ?>40;">
+                                    <?= htmlspecialchars($a['status_name'] ?? '—') ?>
+                                </span>
+                            </td>
+                            <td class="px-6 py-3 text-right">
+                                <a href="<?= BASE_URL ?>/index.php?page=nurse-room-assignments&admission_id=<?= (int)$a['admission_id'] ?>"
+                                   class="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100">
+                                    Manage
+                                </a>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Rooms Needing Attention -->
+<?php if (!empty($roomsNeedingAttention)): ?>
+<div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+    <div class="px-6 py-4 border-b border-slate-200">
+        <h3 class="text-lg font-semibold text-slate-900">Rooms Needing Attention</h3>
+        <p class="text-xs text-slate-500 mt-0.5">Rooms that may need cleaning or maintenance</p>
+    </div>
+    <div class="p-6">
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            <?php foreach ($roomsNeedingAttention as $r): ?>
+                <div class="rounded-lg border p-3"
+                     style="background-color: <?= htmlspecialchars($r['color_code'] ?? '#6b7280') ?>1A;
+                            border-color: <?= htmlspecialchars($r['color_code'] ?? '#6b7280') ?>40;">
+                    <p class="text-sm font-semibold" style="color: <?= htmlspecialchars($r['color_code'] ?? '#6b7280') ?>">
+                        Room <?= htmlspecialchars($r['room_number']) ?>
+                    </p>
+                    <p class="text-xs mt-0.5" style="color: <?= htmlspecialchars($r['color_code'] ?? '#6b7280') ?>">
+                        <?= htmlspecialchars($r['status_name']) ?>
+                    </p>
                 </div>
             <?php endforeach; ?>
         </div>
     </div>
-
-    <div class="bg-white rounded-xl border border-slate-200 p-5">
-        <h3 class="text-lg font-semibold text-slate-900 mb-4">My Tasks</h3>
-        <ul class="space-y-3 text-sm">
-            <li class="flex items-start gap-2">
-                <span class="mt-1 w-1.5 h-1.5 rounded-full bg-rose-500"></span>
-                <span class="text-slate-700">Administer nebulizer — Room ICU-1</span>
-            </li>
-            <li class="flex items-start gap-2">
-                <span class="mt-1 w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-                <span class="text-slate-700">Vital signs check — Room 201</span>
-            </li>
-            <li class="flex items-start gap-2">
-                <span class="mt-1 w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                <span class="text-slate-700">Discharge prep — Room 101</span>
-            </li>
-        </ul>
-    </div>
 </div>
-
-<div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
-    <div class="px-6 py-4 border-b border-slate-200">
-        <h3 class="text-lg font-semibold text-slate-900">Current In-Patients</h3>
-    </div>
-    <table class="min-w-full text-sm">
-        <thead class="bg-slate-50 text-slate-600">
-            <tr>
-                <th class="text-left px-6 py-3 font-medium">Patient</th>
-                <th class="text-left px-6 py-3 font-medium">Room</th>
-                <th class="text-left px-6 py-3 font-medium">Admitted</th>
-            </tr>
-        </thead>
-        <tbody class="divide-y divide-slate-100">
-            <?php
-            $rows = [
-                ['Juan Dela Peña',    '201',   '2026-09-01'],
-                ['Carlos Villanueva', 'ICU-1', '2026-09-05'],
-                ['Angelica Flores',   '102',   '2026-07-10'],
-            ];
-            foreach ($rows as $r): ?>
-                <tr class="hover:bg-slate-50">
-                    <td class="px-6 py-3 font-medium text-slate-900"><?= htmlspecialchars($r[0]) ?></td>
-                    <td class="px-6 py-3 text-slate-600"><?= htmlspecialchars($r[1]) ?></td>
-                    <td class="px-6 py-3 text-slate-600"><?= htmlspecialchars($r[2]) ?></td>
-                </tr>
-            <?php endforeach; ?>
-        </tbody>
-    </table>
-</div>
+<?php endif; ?>

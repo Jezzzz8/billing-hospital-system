@@ -350,7 +350,7 @@ class BillingController
     {
         $this->guard();
 
-        $id   = (int)($_GET['id'] ?? 0);   // statement_id
+        $id   = (int)($_GET['id'] ?? 0);
         $data = $this->input();
 
         $typeId = (int)($data['payment_type_id'] ?? 0);
@@ -363,17 +363,19 @@ class BillingController
         try {
             $this->pdo->beginTransaction();
 
+            $reference = $this->generatePaymentReference();
+
             $stmt = $this->pdo->prepare(
                 'INSERT INTO `payment`
                     (statement_id, payment_type_id, amount, payment_datetime,
-                     transaction_reference, received_by_user_id, notes)
-                 VALUES (?, ?, ?, NOW(), ?, ?, ?)'
+                    transaction_reference, received_by_user_id, notes)
+                VALUES (?, ?, ?, NOW(), ?, ?, ?)'
             );
             $stmt->execute([
                 $id,
                 $typeId,
                 $amount,
-                !empty($data['transaction_reference']) ? $data['transaction_reference'] : null,
+                $reference,
                 (int)$_SESSION['user']['user_id'],
                 !empty($data['notes']) ? $data['notes'] : null,
             ]);
@@ -382,12 +384,41 @@ class BillingController
             $this->autoUpdatePaidStatus($id);
 
             $this->pdo->commit();
-            $this->json(201, ['success' => true, 'message' => 'Payment recorded.']);
+
+            $this->json(201, [
+                'success'   => true,
+                'message'   => 'Payment recorded.',
+                'reference' => $reference,
+            ]);
         } catch (Throwable $e) {
             $this->pdo->rollBack();
             error_log('[addPayment] ' . $e->getMessage());
             $this->json(500, ['success' => false, 'message' => 'Could not record payment.']);
         }
+    }
+
+    private function generatePaymentReference(): string
+    {
+        $date   = date('Ymd');
+        $prefix = 'PAY-' . $date . '-';
+
+        $stmt = $this->pdo->prepare(
+            'SELECT transaction_reference
+            FROM `payment`
+            WHERE transaction_reference LIKE ?
+            ORDER BY payment_id DESC
+            LIMIT 1
+            FOR UPDATE'
+        );
+        $stmt->execute([$prefix . '%']);
+        $last = (string)$stmt->fetchColumn();
+
+        $next = 1;
+        if ($last !== '' && preg_match('/-(\d+)$/', $last, $m)) {
+            $next = ((int)$m[1]) + 1;
+        }
+
+        return $prefix . str_pad((string)$next, 4, '0', STR_PAD_LEFT);
     }
 
     public function removePayment(): void

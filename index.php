@@ -52,9 +52,33 @@ $allowed = [
         'room-type',
         'room',
     ],
-    2 => ['doctor'],
-    3 => ['nurse'],
-    4 => ['cashier'],
+    2 => [
+        'doctor',
+        'doctor-patients',
+        'doctor-consultations',
+        'doctor-diagnosis-record',
+        'doctor-service-requests',
+        'doctor-discharge-ready',
+    ],
+    3 => [
+        'nurse',
+        'nurse-patient-search',
+        'nurse-patient-register',
+        'nurse-admission-create',
+        'nurse-admissions',
+        'nurse-room-assignments',
+        'nurse-room-board',
+        'nurse-discharge-ready',
+        'nurse-discharge-records',
+    ],
+    4 => [
+        'cashier',
+        'cashier-payment-counter',
+        'cashier-statements',
+        'cashier-payments',
+        'cashier-reports',
+        'cashier-receipt',
+    ],
 ];
 
 if (!in_array($page, $allowed[$roleId] ?? [], true)) {
@@ -73,11 +97,46 @@ $layout = match ($roleId) {
 };
 
 // ---------- Content view ----------
-$contentFile = __DIR__ . '/views/' . ($roleId === 1 ? 'admin/' : '') . $page . '.php';
+// Admin pages live in views/admin/
+// Nurse pages live in views/nurse/ (with the "nurse-" prefix stripped from the filename)
+// Doctor/Cashier dashboards live directly in views/
+$contentFile = null;
 
-if (!file_exists($contentFile)) {
+if ($roleId === 1) {
+    $contentFile = __DIR__ . '/views/admin/' . $page . '.php';
+
+} elseif ($roleId === 2) {
+    if ($page === 'doctor') {
+        $contentFile = __DIR__ . '/views/doctor.php';
+    } elseif (str_starts_with($page, 'doctor-')) {
+        $viewName = substr($page, 7);
+        $contentFile = __DIR__ . '/views/doctor/' . $viewName . '.php';
+    }
+
+} elseif ($roleId === 3) {
+    if ($page === 'nurse') {
+        $contentFile = __DIR__ . '/views/nurse.php';
+    } elseif (str_starts_with($page, 'nurse-')) {
+        $viewName = substr($page, 6);
+        $contentFile = __DIR__ . '/views/nurse/' . $viewName . '.php';
+    }
+
+} elseif ($roleId === 4) {
+    // Cashier: dashboard is views/cashier.php, everything else lives in views/cashier/
+    if ($page === 'cashier') {
+        $contentFile = __DIR__ . '/views/cashier.php';
+    } elseif (str_starts_with($page, 'cashier-')) {
+        $viewName = substr($page, 8); // strip "cashier-"
+        $contentFile = __DIR__ . '/views/cashier/' . $viewName . '.php';
+    }
+
+} else {
+    $contentFile = __DIR__ . '/views/' . $page . '.php';
+}
+
+if (!$contentFile || !file_exists($contentFile)) {
     http_response_code(404);
-    echo 'Content file not found: ' . htmlspecialchars($contentFile);
+    echo 'Content file not found: ' . htmlspecialchars($contentFile ?? 'unknown');
     exit;
 }
 

@@ -663,7 +663,6 @@ document.addEventListener("DOMContentLoaded", () => {
     paymentForm.reset();
     document.getElementById("payment_type_id").value = "";
     document.getElementById("payment_amount").value = "";
-    document.getElementById("payment_reference").value = "";
     document.getElementById("payment_notes").value = "";
     openModal(paymentModal);
   });
@@ -672,7 +671,6 @@ document.addEventListener("DOMContentLoaded", () => {
     savePaymentBtn.addEventListener("click", async () => {
       const typeId = document.getElementById("payment_type_id").value;
       const amount = document.getElementById("payment_amount").value;
-      const reference = document.getElementById("payment_reference").value;
       const notes = document.getElementById("payment_notes").value;
 
       if (!typeId || !amount) {
@@ -687,10 +685,9 @@ document.addEventListener("DOMContentLoaded", () => {
         const { data } = await axios.post(
           `${baseUrl}/api/billing/add-payment.php?id=${currentStatementId}`,
           {
-            payment_type_id: typeId,
-            amount,
-            transaction_reference: reference,
-            notes,
+              payment_type_id: typeId,
+              amount,
+              notes,
           },
           {
             headers: { "Content-Type": "application/json" },

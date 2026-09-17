@@ -1,18 +1,16 @@
 <?php
-// views/admin/billing.php
-require_once __DIR__ . '/../../controllers/BillingController.php';
+// views/cashier/statements.php
 
-$controller       = new BillingController($pdo);
-$statements       = $controller->getAll();
-$billingStatuses  = $controller->getBillingStatuses();
-$paymentTypes     = $controller->getPaymentTypes();
-$chargeItems      = $controller->getChargeItems();
-$admissionsOpen   = $controller->getAdmissionsWithoutStatement();
+require_once __DIR__ . '/../../controllers/CashierController.php';
 
-$totalStatements = count($statements);
-$totalBilled     = 0;
-$totalPaid       = 0;
-$totalBalance    = 0;
+$controller   = new CashierController($pdo);
+$statements   = $controller->getAllStatements();
+$statuses     = $controller->getBillingStatuses();
+$paymentTypes = $controller->getPaymentTypes();
+$chargeItems  = $controller->getChargeItems();
+$admissionsOpen = $controller->getAdmissionsWithoutStatement();
+
+$totalBilled = 0; $totalPaid = 0; $totalBalance = 0;
 foreach ($statements as $s) {
     $totalBilled  += (float)$s['total_amount'];
     $totalPaid    += (float)$s['amount_paid'];
@@ -20,8 +18,8 @@ foreach ($statements as $s) {
 }
 ?>
 
-<!-- Data for the modal dropdowns (read by billing.js) -->
-<div id="billingData"
+<!-- Data for the modal dropdowns (read by JS) -->
+<div id="cashierData"
      class="hidden"
      data-charge-items='<?= htmlspecialchars(json_encode(array_map(fn($c) => [
         'charge_item_id' => (int)$c['charge_item_id'],
@@ -38,18 +36,9 @@ foreach ($statements as $s) {
      ], $paymentTypes)), ENT_QUOTES, "UTF-8") ?>'></div>
 
 <!-- Page header -->
-<div class="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-    <div>
-        <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Billing</h1>
-        <p class="mt-1 text-sm text-slate-500">Manage statements, charges, and payments per admission.</p>
-    </div>
-    <button type="button" id="openCreateBtn"
-            class="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700">
-        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
-        </svg>
-        New Statement
-    </button>
+<div class="mb-8">
+    <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Billing Statements</h1>
+    <p class="mt-1 text-sm text-slate-500">Review statements, sync charges from admissions, and record payments.</p>
 </div>
 
 <div id="alert" class="hidden mb-5 rounded-lg px-4 py-3 text-sm border"></div>
@@ -58,7 +47,7 @@ foreach ($statements as $s) {
 <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
     <div class="bg-white rounded-xl border border-slate-200 p-5">
         <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Statements</p>
-        <p class="mt-2 text-2xl font-bold text-slate-900"><?= $totalStatements ?></p>
+        <p class="mt-2 text-2xl font-bold text-slate-900"><?= count($statements) ?></p>
     </div>
     <div class="bg-white rounded-xl border border-slate-200 p-5">
         <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Total Billed</p>
@@ -89,19 +78,17 @@ foreach ($statements as $s) {
                               focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
             </div>
         </div>
-
         <div>
             <label class="block text-xs font-medium text-slate-500 mb-1.5">Status</label>
             <select id="filterStatus"
                     class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm bg-white
                            focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                 <option value="">All statuses</option>
-                <?php foreach ($billingStatuses as $s): ?>
+                <?php foreach ($statuses as $s): ?>
                     <option value="<?= htmlspecialchars($s['status_name']) ?>"><?= htmlspecialchars($s['status_name']) ?></option>
                 <?php endforeach; ?>
             </select>
         </div>
-
         <button type="button" id="filterClear"
                 class="hidden items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100">
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -110,7 +97,6 @@ foreach ($statements as $s) {
             Clear
         </button>
     </div>
-
     <div id="filterSummary" class="hidden mt-3 pt-3 border-t border-slate-100 text-xs text-slate-500">
         Showing <strong id="filteredCount" class="text-slate-900">0</strong> of <strong id="totalCount" class="text-slate-900">0</strong> statements
     </div>
@@ -144,25 +130,20 @@ foreach ($statements as $s) {
                             <p class="font-semibold text-slate-900">#<?= (int)$s['statement_id'] ?></p>
                             <p class="text-xs text-slate-500"><?= htmlspecialchars(date('M j, Y', strtotime($s['statement_date']))) ?></p>
                         </td>
-
                         <td class="px-6 py-4">
                             <p class="font-medium text-slate-900"><?= htmlspecialchars($s['first_name'] . ' ' . $s['last_name']) ?></p>
                             <p class="text-xs text-slate-500">Admission #<?= (int)$s['admission_id'] ?></p>
                         </td>
-
                         <td class="px-6 py-4 text-right font-medium text-slate-900 whitespace-nowrap">
                             ₱<?= number_format((float)$s['total_amount'], 2) ?>
                         </td>
-
                         <td class="px-6 py-4 text-right text-emerald-700 whitespace-nowrap">
                             ₱<?= number_format((float)$s['amount_paid'], 2) ?>
                         </td>
-
                         <td class="px-6 py-4 text-right font-semibold whitespace-nowrap
                                    <?= (float)$s['balance_amount'] > 0 ? 'text-rose-700' : 'text-slate-400' ?>">
                             ₱<?= number_format((float)$s['balance_amount'], 2) ?>
                         </td>
-
                         <td class="px-6 py-4">
                             <span class="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium"
                                   style="background-color: <?= htmlspecialchars($s['color_code'] ?? '#6b7280') ?>1A;
@@ -172,7 +153,6 @@ foreach ($statements as $s) {
                                 <?= htmlspecialchars($s['status_name']) ?>
                             </span>
                         </td>
-
                         <td class="px-6 py-4 text-right whitespace-nowrap">
                             <div class="inline-flex items-center gap-1.5">
                                 <button type="button"
@@ -183,21 +163,14 @@ foreach ($statements as $s) {
                                     </svg>
                                     Manage
                                 </button>
-                                <button type="button"
-                                        class="edit-btn inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-400"
-                                        data-statement-id="<?= (int)$s['statement_id'] ?>">
+                                <a href="<?= BASE_URL ?>/index.php?page=cashier-receipt&id=<?= (int)$s['statement_id'] ?>"
+                                   target="_blank"
+                                   class="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50">
                                     <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
                                     </svg>
-                                    Edit
-                                </button>
-                                <button type="button"
-                                        class="delete-btn inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-xs font-medium text-rose-700 hover:bg-rose-100 hover:border-rose-300"
-                                        data-statement-id="<?= (int)$s['statement_id'] ?>">
-                                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                                    </svg>
-                                </button>
+                                    Print
+                                </a>
                             </div>
                         </td>
                     </tr>
@@ -205,7 +178,6 @@ foreach ($statements as $s) {
             </tbody>
         </table>
     </div>
-
     <div id="emptyState" class="hidden text-center py-16">
         <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-slate-100 text-slate-400 mb-3">
             <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
@@ -213,111 +185,13 @@ foreach ($statements as $s) {
             </svg>
         </div>
         <p class="text-sm font-medium text-slate-700">No statements match your filters</p>
-        <p class="text-xs text-slate-500 mt-1">Try adjusting your search or clearing the filters.</p>
     </div>
 </div>
 
-<!-- ============ CREATE / EDIT STATEMENT MODAL ============ -->
-<div id="statementModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
-    <div class="absolute inset-0 bg-slate-900/60" data-close-statement></div>
-
-    <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col">
-
-        <div class="flex items-center justify-between px-6 py-5 border-b border-slate-200">
-            <div class="flex items-center gap-3">
-                <div class="w-9 h-9 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
-                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                    </svg>
-                </div>
-                <div>
-                    <h3 id="statementModalTitle" class="text-base font-semibold text-slate-900">New Statement</h3>
-                    <p class="text-xs text-slate-500">Create a billing statement for an admission.</p>
-                </div>
-            </div>
-            <button type="button" data-close-statement class="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100">
-                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
-                </svg>
-            </button>
-        </div>
-
-        <form id="statementForm" method="POST" novalidate class="flex-1 overflow-y-auto">
-            <input type="hidden" id="statement_id" name="statement_id">
-
-            <div class="p-6 space-y-5">
-
-                <div id="admissionWrapper">
-                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Admission</label>
-                    <select id="admission_id" required
-                            class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                        <option value="">— Select admission —</option>
-                        <?php foreach ($admissionsOpen as $a): ?>
-                            <option value="<?= (int)$a['admission_id'] ?>">
-                                #<?= (int)$a['admission_id'] ?> — <?= htmlspecialchars($a['first_name'] . ' ' . $a['last_name']) ?>
-                                (<?= htmlspecialchars(date('M j, Y', strtotime($a['admission_datetime']))) ?>)
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                    <p class="mt-1.5 text-xs text-red-600 hidden" data-error-for="admission_id"></p>
-                </div>
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1.5">Status</label>
-                        <select id="status_id" class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                            <?php foreach ($billingStatuses as $s): ?>
-                                <option value="<?= (int)$s['status_id'] ?>" <?= (int)$s['status_id'] === 1 ? 'selected' : '' ?>>
-                                    <?= htmlspecialchars($s['status_name']) ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1.5">Due Date</label>
-                        <input type="date" id="due_date" class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1.5">Insurance Coverage (₱)</label>
-                        <input type="number" id="insurance_coverage_amount" min="0" step="0.01" placeholder="0.00"
-                               class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1.5">Government Discount (₱)</label>
-                        <input type="number" id="government_discount" min="0" step="0.01" placeholder="0.00"
-                               class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Notes</label>
-                    <textarea id="notes" rows="2" class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></textarea>
-                </div>
-
-                <p class="text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded-lg p-3">
-                    Totals are computed automatically from charges. Add charges and payments in the <strong>Manage</strong> view after saving.
-                </p>
-            </div>
-
-            <div class="px-6 py-4 border-t border-slate-200 bg-slate-50 rounded-b-2xl flex items-center justify-end gap-3">
-                <button type="button" data-close-statement
-                        class="rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50">
-                    Cancel
-                </button>
-                <button type="submit" id="statementSubmitBtn"
-                        class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60">
-                    <span id="statementSubmitLabel">Create Statement</span>
-                </button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<!-- ============ MANAGE STATEMENT MODAL ============ -->
+<!-- MANAGE MODAL -->
 <div id="manageModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
     <div class="absolute inset-0 bg-slate-900/60" data-close-manage></div>
-
-    <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[95vh] flex flex-col">
+    <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[95vh] flex flex-col">
 
         <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200">
             <div>
@@ -332,15 +206,17 @@ foreach ($statements as $s) {
         </div>
 
         <div class="border-b border-slate-200 px-6">
-            <nav class="flex gap-1 -mb-px">
+            <nav class="flex gap-1 -mb-px overflow-x-auto">
                 <button type="button" class="manage-tab-btn px-4 py-3 text-sm font-medium border-b-2 border-blue-600 text-blue-600 whitespace-nowrap" data-mtab="charges">Charges</button>
                 <button type="button" class="manage-tab-btn px-4 py-3 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap" data-mtab="payments">Payments</button>
+                <button type="button" class="manage-tab-btn px-4 py-3 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap" data-mtab="rooms">Rooms</button>
             </nav>
         </div>
 
         <div class="flex-1 overflow-y-auto p-6">
 
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+            <!-- Summary -->
+            <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-5">
                 <div class="bg-slate-50 border border-slate-200 rounded-lg p-3">
                     <p class="text-xs text-slate-500">Subtotal</p>
                     <p id="sumSubtotal" class="text-lg font-bold text-slate-900">₱0.00</p>
@@ -353,22 +229,36 @@ foreach ($statements as $s) {
                     <p class="text-xs text-slate-500">Total</p>
                     <p id="sumTotal" class="text-lg font-bold text-slate-900">₱0.00</p>
                 </div>
+                <div class="bg-emerald-50 border border-emerald-200 rounded-lg p-3">
+                    <p class="text-xs text-emerald-600">Paid</p>
+                    <p id="sumPaid" class="text-lg font-bold text-emerald-700">₱0.00</p>
+                </div>
                 <div class="bg-rose-50 border border-rose-200 rounded-lg p-3">
                     <p class="text-xs text-rose-600">Balance</p>
                     <p id="sumBalance" class="text-lg font-bold text-rose-700">₱0.00</p>
                 </div>
             </div>
 
+            <!-- Charges Panel -->
             <div class="manage-tab-panel" data-mpanel="charges">
                 <div class="flex items-center justify-between mb-3">
                     <h4 class="text-sm font-semibold text-slate-900">Charges</h4>
-                    <button type="button" id="addChargeBtn"
-                            class="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100">
-                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
-                        </svg>
-                        Add Charge
-                    </button>
+                    <div class="flex items-center gap-2">
+                        <button type="button" id="syncChargesBtn"
+                                class="inline-flex items-center gap-1.5 rounded-lg border border-violet-200 bg-violet-50 px-3 py-1.5 text-xs font-medium text-violet-700 hover:bg-violet-100">
+                            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                            </svg>
+                            Sync from Admission
+                        </button>
+                        <button type="button" id="addChargeBtn"
+                                class="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100">
+                            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+                            </svg>
+                            Add Charge
+                        </button>
+                    </div>
                 </div>
 
                 <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
@@ -376,18 +266,20 @@ foreach ($statements as $s) {
                         <thead class="bg-slate-50 border-b border-slate-200">
                             <tr>
                                 <th class="text-left px-4 py-2.5 font-semibold text-slate-700 text-xs uppercase tracking-wide">Item</th>
+                                <th class="text-left px-4 py-2.5 font-semibold text-slate-700 text-xs uppercase tracking-wide">Category</th>
                                 <th class="text-center px-4 py-2.5 font-semibold text-slate-700 text-xs uppercase tracking-wide">Qty</th>
                                 <th class="text-right px-4 py-2.5 font-semibold text-slate-700 text-xs uppercase tracking-wide">Unit Price</th>
-                                <th class="text-right px-4 py-2.5 font-semibold text-slate-700 text-xs uppercase tracking-wide">Line Total</th>
-                                <th class="text-right px-4 py-2.5 font-semibold text-slate-700 text-xs uppercase tracking-wide"></th>
+                                <th class="text-right px-4 py-2.5 font-semibold text-slate-700 text-xs uppercase tracking-wide">Total</th>
+                                <th class="text-right px-4 py-2.5"></th>
                             </tr>
                         </thead>
                         <tbody id="chargesBody" class="divide-y divide-slate-100"></tbody>
                     </table>
-                    <p id="noCharges" class="hidden text-center text-sm text-slate-400 py-8">No charges yet.</p>
+                    <p id="noCharges" class="hidden text-center text-sm text-slate-400 py-8">No charges yet. Click <strong>Sync from Admission</strong> to pull in room, service, and consultation charges.</p>
                 </div>
             </div>
 
+            <!-- Payments Panel -->
             <div class="manage-tab-panel hidden" data-mpanel="payments">
                 <div class="flex items-center justify-between mb-3">
                     <h4 class="text-sm font-semibold text-slate-900">Payments</h4>
@@ -399,7 +291,6 @@ foreach ($statements as $s) {
                         Record Payment
                     </button>
                 </div>
-
                 <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
                     <table class="min-w-full text-sm">
                         <thead class="bg-slate-50 border-b border-slate-200">
@@ -408,12 +299,32 @@ foreach ($statements as $s) {
                                 <th class="text-left px-4 py-2.5 font-semibold text-slate-700 text-xs uppercase tracking-wide">Reference</th>
                                 <th class="text-left px-4 py-2.5 font-semibold text-slate-700 text-xs uppercase tracking-wide">Date</th>
                                 <th class="text-right px-4 py-2.5 font-semibold text-slate-700 text-xs uppercase tracking-wide">Amount</th>
-                                <th class="text-right px-4 py-2.5 font-semibold text-slate-700 text-xs uppercase tracking-wide"></th>
+                                <th class="text-right px-4 py-2.5"></th>
                             </tr>
                         </thead>
                         <tbody id="paymentsBody" class="divide-y divide-slate-100"></tbody>
                     </table>
                     <p id="noPayments" class="hidden text-center text-sm text-slate-400 py-8">No payments yet.</p>
+                </div>
+            </div>
+
+            <!-- Rooms Panel -->
+            <div class="manage-tab-panel hidden" data-mpanel="rooms">
+                <h4 class="text-sm font-semibold text-slate-900 mb-3">Room History</h4>
+                <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                    <table class="min-w-full text-sm">
+                        <thead class="bg-slate-50 border-b border-slate-200">
+                            <tr>
+                                <th class="text-left px-4 py-2.5 font-semibold text-slate-700 text-xs uppercase tracking-wide">Room</th>
+                                <th class="text-left px-4 py-2.5 font-semibold text-slate-700 text-xs uppercase tracking-wide">Type</th>
+                                <th class="text-left px-4 py-2.5 font-semibold text-slate-700 text-xs uppercase tracking-wide">Start</th>
+                                <th class="text-left px-4 py-2.5 font-semibold text-slate-700 text-xs uppercase tracking-wide">End</th>
+                                <th class="text-right px-4 py-2.5 font-semibold text-slate-700 text-xs uppercase tracking-wide">Daily Rate</th>
+                            </tr>
+                        </thead>
+                        <tbody id="roomsBody" class="divide-y divide-slate-100"></tbody>
+                    </table>
+                    <p id="noRooms" class="hidden text-center text-sm text-slate-400 py-8">No room assignments.</p>
                 </div>
             </div>
         </div>
@@ -427,10 +338,9 @@ foreach ($statements as $s) {
     </div>
 </div>
 
-<!-- ============ ADD CHARGE MODAL ============ -->
+<!-- ADD CHARGE MODAL -->
 <div id="chargeModal" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4">
     <div class="absolute inset-0 bg-slate-900/60" data-close-charge></div>
-
     <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md">
         <div class="flex items-center justify-between px-6 py-5 border-b border-slate-200">
             <h3 class="text-base font-semibold text-slate-900">Add Charge</h3>
@@ -440,7 +350,6 @@ foreach ($statements as $s) {
                 </svg>
             </button>
         </div>
-
         <form id="chargeForm" class="p-6 space-y-4">
             <div>
                 <label class="block text-sm font-medium text-slate-700 mb-1.5">Charge Item</label>
@@ -448,7 +357,6 @@ foreach ($statements as $s) {
                     <option value="">— Select item —</option>
                 </select>
             </div>
-
             <div class="grid grid-cols-2 gap-4">
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1.5">Quantity</label>
@@ -456,40 +364,16 @@ foreach ($statements as $s) {
                            class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Price (₱)</label>
-                    <input type="number" id="charge_price" required min="0" step="0.01" readonly tabindex="-1"
-                           class="w-full rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-600 cursor-not-allowed">
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Unit Price (₱)</label>
+                    <input type="number" id="charge_price" required min="0" step="0.01" readonly
+                           class="w-full rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-600">
                 </div>
             </div>
-
-            <!-- Live summary -->
-            <div id="chargeSummary" class="hidden rounded-lg border border-blue-100 bg-blue-50 p-4 space-y-1.5">
-                <div class="flex items-center justify-between text-xs text-slate-600">
-                    <span>Unit price</span>
-                    <span id="summaryUnitPrice" class="font-medium text-slate-900">₱0.00</span>
-                </div>
-                <div class="flex items-center justify-between text-xs text-slate-600">
-                    <span>Quantity</span>
-                    <span id="summaryQty" class="font-medium text-slate-900">1</span>
-                </div>
-                <div id="summaryTaxRow" class="hidden items-center justify-between text-xs text-slate-600">
-                    <span>Tax (12% — taxable item)</span>
-                    <span id="summaryTax" class="font-medium text-slate-900">₱0.00</span>
-                </div>
-                <div class="flex items-center justify-between border-t border-blue-100 pt-2 mt-2">
-                    <span class="text-sm font-semibold text-slate-900">Total</span>
-                    <span id="summaryLineTotal" class="text-lg font-bold text-blue-700">₱0.00</span>
-                </div>
-            </div>
-
-          
-
             <div>
                 <label class="block text-sm font-medium text-slate-700 mb-1.5">Notes <span class="text-slate-400 font-normal">(optional)</span></label>
                 <input type="text" id="charge_notes" class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
             </div>
         </form>
-
         <div class="px-6 py-4 border-t border-slate-200 bg-slate-50 rounded-b-2xl flex items-center justify-end gap-3">
             <button type="button" data-close-charge class="rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50">Cancel</button>
             <button type="button" id="saveChargeBtn" class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60">
@@ -499,10 +383,9 @@ foreach ($statements as $s) {
     </div>
 </div>
 
-<!-- ============ ADD PAYMENT MODAL ============ -->
+<!-- ADD PAYMENT MODAL -->
 <div id="paymentModal" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4">
     <div class="absolute inset-0 bg-slate-900/60" data-close-payment></div>
-
     <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md">
         <div class="flex items-center justify-between px-6 py-5 border-b border-slate-200">
             <h3 class="text-base font-semibold text-slate-900">Record Payment</h3>
@@ -512,8 +395,11 @@ foreach ($statements as $s) {
                 </svg>
             </button>
         </div>
-
         <form id="paymentForm" class="p-6 space-y-4">
+            <div class="bg-emerald-50 border border-emerald-200 rounded-lg p-3">
+                <p class="text-xs text-emerald-700">Current balance</p>
+                <p id="paymentCurrentBalance" class="text-xl font-bold text-emerald-800">₱0.00</p>
+            </div>
             <div>
                 <label class="block text-sm font-medium text-slate-700 mb-1.5">Payment Type</label>
                 <select id="payment_type_id" required class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
@@ -536,7 +422,6 @@ foreach ($statements as $s) {
                 <input type="text" id="payment_notes" class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
             </div>
         </form>
-
         <div class="px-6 py-4 border-t border-slate-200 bg-slate-50 rounded-b-2xl flex items-center justify-end gap-3">
             <button type="button" data-close-payment class="rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50">Cancel</button>
             <button type="button" id="savePaymentBtn" class="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-60">

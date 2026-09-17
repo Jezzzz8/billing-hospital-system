@@ -413,8 +413,8 @@ class PatientController
         $stmt = $this->pdo->prepare(
             'INSERT INTO `admission_doctor`
                 (admission_id, doctor_id, doctor_role, assigned_datetime,
-                 ended_datetime, consultation_fee_charged)
-             VALUES (?, ?, ?, NOW(), NULL, ?)'
+                ended_datetime, consultation_fee_charged)
+            VALUES (?, ?, ?, NOW(), NULL, ?)'
         );
 
         foreach ($doctors as $d) {
@@ -423,12 +423,16 @@ class PatientController
 
             $role = !empty($d['doctor_role']) ? $d['doctor_role'] : 'Attending';
 
-            // ALWAYS use the doctor's own consultation_fee — ignore any client-supplied value
+            // ALWAYS use the doctor's own consultation_fee
             $stmtFee = $this->pdo->prepare('SELECT consultation_fee FROM `doctor` WHERE doctor_id = ? LIMIT 1');
             $stmtFee->execute([$doctorId]);
             $fee = (float)($stmtFee->fetchColumn() ?: 0);
 
             $stmt->execute([$admissionId, $doctorId, $role, $fee]);
+
+            // ── Fire billing event: doctor assigned ──
+            require_once __DIR__ . '/BillingHook.php';
+            BillingHook::emit($this->pdo, $admissionId);
         }
     }
 
