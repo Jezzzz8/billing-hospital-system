@@ -1,13 +1,16 @@
-
 (function () {
     const baseUrl = document.body.dataset.baseUrl;
     const alertEl = document.getElementById('counterAlert');
 
     function peso(n) {
-        return '₱' + Number(n || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        return '₱' + Number(n || 0).toLocaleString('en-PH', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        });
     }
 
     function showAlert(type, msg) {
+        if (!alertEl) return;
         alertEl.className = 'mb-5 rounded-lg px-4 py-3 text-sm border ' +
             (type === 'success'
                 ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
@@ -17,28 +20,35 @@
         setTimeout(() => alertEl.classList.add('hidden'), 4000);
     }
 
-    
-    
-    
-    const searchInput = document.getElementById('counterSearch');
+    const searchInput  = document.getElementById('counterSearch');
     const statusFilter = document.getElementById('counterStatus');
-    const clearBtn = document.getElementById('counterClear');
-    const rows = document.querySelectorAll('.counter-row');
-    const summary = document.getElementById('counterSummary');
-    const filteredCount = document.getElementById('counterFilteredCount');
-    const totalCount = document.getElementById('counterTotalCount');
-    const emptyState = document.getElementById('counterEmpty');
+    const clearBtn     = document.getElementById('counterClear');
+    const rows         = document.querySelectorAll('.counter-row');
+    const summary      = document.getElementById('counterSummary');
+    const filteredCount= document.getElementById('counterFilteredCount');
+    const totalCount   = document.getElementById('counterTotalCount');
+    const emptyState   = document.getElementById('counterEmpty');
 
     function applyFilters() {
-        const q = (searchInput.value || '').toLowerCase().trim();
-        const status = statusFilter.value;
+        const q = (searchInput?.value || '').toLowerCase().trim();
+        const rawStatus = statusFilter?.value ?? '__pending__';
         let visible = 0;
 
         rows.forEach(row => {
-            const search = row.dataset.search || '';
-            const rowStatus = row.dataset.status || '';
+            const search    = row.dataset.search || '';
+            const rowStatus = (row.dataset.status || '').toLowerCase();
+
+            let matchS;
+            if (rawStatus === '__pending__') {
+                matchS = rowStatus === 'pending';
+            } else if (rawStatus === '') {
+                matchS = true;
+            } else {
+                matchS = rowStatus === rawStatus.toLowerCase();
+            }
+
             const matchQ = !q || search.includes(q);
-            const matchS = !status || rowStatus === status;
+
             if (matchQ && matchS) {
                 row.style.display = '';
                 visible++;
@@ -47,42 +57,39 @@
             }
         });
 
-        const filtering = q || status;
+        const filtering = q || rawStatus !== '__pending__';
         if (filtering) {
-            summary.classList.remove('hidden');
-            clearBtn.classList.remove('hidden');
-            clearBtn.classList.add('flex');
-            filteredCount.textContent = visible;
-            totalCount.textContent = rows.length;
+            summary?.classList.remove('hidden');
+            clearBtn?.classList.remove('hidden');
+            clearBtn?.classList.add('flex');
+            if (filteredCount) filteredCount.textContent = visible;
+            if (totalCount)    totalCount.textContent    = rows.length;
         } else {
-            summary.classList.add('hidden');
-            clearBtn.classList.add('hidden');
-            clearBtn.classList.remove('flex');
+            summary?.classList.add('hidden');
+            clearBtn?.classList.add('hidden');
+            clearBtn?.classList.remove('flex');
         }
-        emptyState.classList.toggle('hidden', visible > 0);
+        emptyState?.classList.toggle('hidden', visible > 0);
     }
 
     searchInput?.addEventListener('input', applyFilters);
     statusFilter?.addEventListener('change', applyFilters);
     clearBtn?.addEventListener('click', () => {
-        searchInput.value = '';
-        statusFilter.value = '';
+        if (searchInput)  searchInput.value  = '';
+        if (statusFilter) statusFilter.value = '__pending__';
         applyFilters();
     });
 
-    
-    
-    
-    const modal = document.getElementById('collectModal');
+    const modal        = document.getElementById('collectModal');
     const receiptModal = document.getElementById('receiptModal');
 
     let currentStatement = null;
 
     function openCollectModal() {
-        modal.classList.remove('hidden');
+        if (modal) modal.classList.remove('hidden');
     }
     function closeCollectModal() {
-        modal.classList.add('hidden');
+        if (modal) modal.classList.add('hidden');
         currentStatement = null;
     }
 
@@ -97,7 +104,7 @@
         btn.addEventListener('click', async () => {
             const id = btn.dataset.statementId;
             await loadStatement(id);
-            openCollectModal();
+            if (currentStatement) openCollectModal();
         });
     });
 
@@ -113,36 +120,54 @@
     }
 
     function renderStatement(s) {
-        document.getElementById('collectSubtitle').textContent =
-            `${s.first_name} ${s.last_name} — Statement #${s.statement_id}`;
-        document.getElementById('colStatement').textContent = '#' + s.statement_id;
-        document.getElementById('colPatient').textContent = `${s.first_name} ${s.last_name}`;
-        document.getElementById('colContact').textContent = s.contact_number || '—';
-        document.getElementById('colTotal').textContent = peso(s.total_amount);
-        document.getElementById('colPaid').textContent = peso(s.amount_paid);
-        document.getElementById('colBalance').textContent = peso(s.balance_amount);
+        if (!s) return;
+
+        const elSubtitle = document.getElementById('collectSubtitle');
+        const elStatement= document.getElementById('colStatement');
+        const elPatient  = document.getElementById('colPatient');
+        const elContact  = document.getElementById('colContact');
+        const elTotal    = document.getElementById('colTotal');
+        const elPaid     = document.getElementById('colPaid');
+        const elBalance  = document.getElementById('colBalance');
+
+        if (elSubtitle) elSubtitle.textContent = `${s.first_name} ${s.last_name} — Statement #${s.statement_id}`;
+        if (elStatement) elStatement.textContent = '#' + s.statement_id;
+        if (elPatient)   elPatient.textContent   = `${s.first_name} ${s.last_name}`;
+        if (elContact)   elContact.textContent   = s.contact_number || '—';
+        if (elTotal)     elTotal.textContent     = peso(s.total_amount);
+        if (elPaid)      elPaid.textContent      = peso(s.amount_paid);
+        if (elBalance)   elBalance.textContent   = peso(s.balance_amount);
 
         const amountInput = document.getElementById('col_amount');
-        amountInput.value = Number(s.balance_amount).toFixed(2);
-        amountInput.max = Number(s.balance_amount).toFixed(2);
+        if (amountInput) {
+            amountInput.value = Number(s.balance_amount).toFixed(2);
+            amountInput.max   = Number(s.balance_amount).toFixed(2);
+        }
 
-        document.getElementById('col_payment_type_id').value = '';
-        document.getElementById('col_notes').value = '';
+        const ptSel = document.getElementById('col_payment_type_id');
+        if (ptSel) ptSel.value = '';
+        const notesEl = document.getElementById('col_notes');
+        if (notesEl) notesEl.value = '';
 
         updatePaymentPreview();
     }
 
     function updatePaymentPreview() {
         if (!currentStatement) return;
-        const amount = parseFloat(document.getElementById('col_amount').value) || 0;
+        const amount = parseFloat(document.getElementById('col_amount')?.value) || 0;
         const balance = parseFloat(currentStatement.balance_amount) || 0;
         const after = Math.max(0, balance - amount);
 
-        document.getElementById('colBalanceBefore').textContent = peso(balance);
-        document.getElementById('colThisPayment').textContent = peso(amount);
-        document.getElementById('colBalanceAfter').textContent = peso(after);
+        const beforeEl = document.getElementById('colBalanceBefore');
+        const thisEl   = document.getElementById('colThisPayment');
+        const afterEl  = document.getElementById('colBalanceAfter');
+
+        if (beforeEl) beforeEl.textContent = peso(balance);
+        if (thisEl)   thisEl.textContent   = peso(amount);
+        if (afterEl)  afterEl.textContent  = peso(after);
 
         const hint = document.getElementById('colAmountHint');
+        if (!hint) return;
         if (amount <= 0) {
             hint.textContent = '';
         } else if (amount >= balance) {
@@ -157,13 +182,11 @@
     document.getElementById('col_amount')?.addEventListener('input', updatePaymentPreview);
     document.getElementById('colFullBtn')?.addEventListener('click', () => {
         if (!currentStatement) return;
-        document.getElementById('col_amount').value = Number(currentStatement.balance_amount).toFixed(2);
+        const amt = document.getElementById('col_amount');
+        if (amt) amt.value = Number(currentStatement.balance_amount).toFixed(2);
         updatePaymentPreview();
     });
 
-    
-    
-    
     document.getElementById('confirmCollectBtn')?.addEventListener('click', async function () {
         if (!currentStatement) return;
         if (this.dataset.busy === '1') return;
@@ -171,12 +194,12 @@
 
         const btn = this;
         const label = document.getElementById('confirmCollectLabel');
-        const paymentTypeId = document.getElementById('col_payment_type_id').value;
-        const amount = parseFloat(document.getElementById('col_amount').value) || 0;
-        const notes = document.getElementById('col_notes').value.trim();
+        const paymentTypeId = document.getElementById('col_payment_type_id')?.value;
+        const amount = parseFloat(document.getElementById('col_amount')?.value) || 0;
+        const notes = document.getElementById('col_notes')?.value.trim() || '';
 
         if (!paymentTypeId) { showAlert('error', 'Please select a payment type.'); btn.dataset.busy = '0'; return; }
-        if (amount <= 0) { showAlert('error', 'Enter a positive amount.'); btn.dataset.busy = '0'; return; }
+        if (amount <= 0)   { showAlert('error', 'Enter a positive amount.');     btn.dataset.busy = '0'; return; }
 
         const balance = parseFloat(currentStatement.balance_amount) || 0;
         if (amount > balance + 0.001) {
@@ -191,7 +214,7 @@
         const newBalance = Math.max(0, previousBalance - amount);
 
         btn.disabled = true;
-        label.textContent = 'Recording…';
+        if (label) label.textContent = 'Recording…';
 
         try {
             const res = await axios.post(
@@ -208,23 +231,29 @@
                 closeCollectModal();
                 showAlert('success', res.data.message);
 
-                document.getElementById('receiptSubtitle').textContent =
-                    `Statement #${statementId} — ${patientName}`;
-                document.getElementById('receiptReference').textContent =
-                    res.data.reference || '—';
-                document.getElementById('receiptAmount').textContent = peso(amount);
-                document.getElementById('receiptNewBalance').textContent = peso(newBalance);
-                document.getElementById('receiptPrintBtn').href =
-                    `${baseUrl}/index.php?page=cashier-receipt&id=${statementId}`;
-                receiptModal.classList.remove('hidden');
+                const subEl = document.getElementById('receiptSubtitle');
+                const refEl = document.getElementById('receiptReference');
+                const amtEl = document.getElementById('receiptAmount');
+                const balEl = document.getElementById('receiptNewBalance');
+                const prnEl = document.getElementById('receiptPrintBtn');
+
+                if (subEl) subEl.textContent = `Statement #${statementId} — ${patientName}`;
+                if (refEl) refEl.textContent = res.data.reference || '—';
+                if (amtEl) amtEl.textContent = peso(amount);
+                if (balEl) balEl.textContent = peso(newBalance);
+                if (prnEl) prnEl.href = `${baseUrl}/index.php?page=cashier-receipt&id=${statementId}`;
+
+                receiptModal?.classList.remove('hidden');
 
                 setTimeout(() => location.reload(), 1500);
             }
         } catch (err) {
             showAlert('error', err.response?.data?.message || 'Could not record payment.');
             btn.disabled = false;
-            label.textContent = 'Record Payment';
+            if (label) label.textContent = 'Record Payment';
             btn.dataset.busy = '0';
         }
     });
+
+    applyFilters();
 })();

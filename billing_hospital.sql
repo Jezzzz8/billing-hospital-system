@@ -41,18 +41,6 @@ CREATE TABLE `admission` (
   `notes` text DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Dumping data for table `admission`
---
-
-INSERT INTO `admission` (`admission_id`, `patient_id`, `status_id`, `admission_datetime`, `discharge_datetime`, `chief_complaint`, `admission_type`, `total_room_transfers`, `admitted_by_user_id`, `discharged_by_user_id`, `notes`) VALUES
-(1, 1, 1, '2026-09-01 08:30:00', NULL, 'Chest pain and dizziness', 'Emergency', 0, 5, NULL, 'Under observation for hypertensive episode.'),
-(2, 2, 2, '2026-08-20 14:15:00', '2026-08-25 10:00:00', 'Difficulty breathing', 'Emergency', 0, 5, 1, 'Discharged after successful X-ray review, no complications.'),
-(3, 3, 1, '2026-09-05 09:00:00', NULL, 'Severe asthma attack', 'Emergency', 0, 5, NULL, 'Currently stable, on nebulizer treatment.'),
-(4, 4, 3, '2026-07-10 11:45:00', NULL, 'Fall resulting in leg injury', 'Elective', 1, 5, NULL, 'Transferred to orthopedic ward after initial stabilization.'),
-(5, 6, 1, '2026-09-15 15:53:16', NULL, 'ambot', 'Elective', 0, 1, NULL, 'ahaha'),
-(6, 7, 1, '2026-09-16 08:56:00', NULL, 'das', 'Elective', 0, 1, NULL, NULL);
-
 -- --------------------------------------------------------
 
 --
@@ -67,18 +55,6 @@ CREATE TABLE `admission_diagnosis` (
   `diagnosed_datetime` datetime NOT NULL,
   `diagnosed_by_doctor_id` int(11) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `admission_diagnosis`
---
-
-INSERT INTO `admission_diagnosis` (`admission_diagnosis_id`, `admission_id`, `diagnosis_id`, `diagnosis_type`, `diagnosed_datetime`, `diagnosed_by_doctor_id`) VALUES
-(2, 2, 5, 'Primary', '2026-08-20 15:00:00', 1),
-(3, 3, 2, 'Primary', '2026-09-05 09:30:00', 1),
-(4, 4, 3, 'Primary', '2026-07-10 12:15:00', 1),
-(5, 1, 2, 'Primary', '2026-09-15 21:03:22', 1),
-(6, 5, 2, 'Secondary', '2026-09-15 21:53:16', 2),
-(7, 6, 5, 'Secondary', '2026-09-16 14:56:00', NULL);
 
 -- --------------------------------------------------------
 
@@ -95,19 +71,6 @@ CREATE TABLE `admission_doctor` (
   `ended_datetime` datetime DEFAULT NULL,
   `consultation_fee_charged` decimal(10,2) NOT NULL DEFAULT 0.00
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `admission_doctor`
---
-
-INSERT INTO `admission_doctor` (`admission_doctor_id`, `admission_id`, `doctor_id`, `doctor_role`, `assigned_datetime`, `ended_datetime`, `consultation_fee_charged`) VALUES
-(2, 2, 1, 'Attending', '2026-08-20 14:30:00', '2026-08-25 10:00:00', 600.00),
-(3, 3, 1, 'Consulting', '2026-09-05 09:15:00', NULL, 500.00),
-(4, 4, 1, 'Attending', '2026-07-10 12:00:00', NULL, 700.00),
-(5, 1, 1, 'Attending', '2026-09-15 21:03:22', NULL, 500.00),
-(6, 5, 2, 'Attending', '2026-09-15 21:53:16', NULL, 700.00),
-(7, 5, 2, 'Consulting', '2026-09-15 21:53:16', NULL, 700.00),
-(8, 6, 1, 'Consulting', '2026-09-16 14:56:00', NULL, 500.00);
 
 -- --------------------------------------------------------
 
@@ -128,7 +91,8 @@ CREATE TABLE `admission_status` (
 INSERT INTO `admission_status` (`status_id`, `status_name`, `color_code`) VALUES
 (1, 'Admitted', '#2a64c0'),
 (2, 'Discharged', '#5cbe27'),
-(3, 'Transferred', '#f73b3b');
+(3, 'Transferred', '#f73b3b'),
+(4, 'Ready for Discharge', '#10b981');
 
 -- --------------------------------------------------------
 
@@ -153,18 +117,6 @@ CREATE TABLE `billing_statement` (
   `created_by_user_id` int(11) DEFAULT NULL,
   `notes` text DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `billing_statement`
---
-
-INSERT INTO `billing_statement` (`statement_id`, `admission_id`, `status_id`, `statement_date`, `due_date`, `subtotal_amount`, `insurance_coverage_amount`, `government_discount`, `tax_amount`, `total_amount`, `amount_paid`, `balance_amount`, `created_at`, `created_by_user_id`, `notes`) VALUES
-(1, 1, 1, '2026-09-08 17:00:00', '2026-09-22', 3350.00, 0.00, 0.00, 35.00, 3385.00, 0.00, 3385.00, '2026-09-14 10:02:54', 6, 'Ongoing admission, statement generated mid-stay.'),
-(2, 2, 3, '2026-08-25 11:00:00', '2026-09-08', 3300.00, 500.00, 0.00, 30.00, 2830.00, 2830.00, 0.00, '2026-09-14 10:02:54', 6, 'Fully settled upon discharge.'),
-(3, 3, 3, '2026-09-06 09:00:00', '2026-09-20', 3000.00, 1000.00, 0.00, 0.00, 2000.00, 104000.00, 0.00, '2026-09-14 10:02:54', 6, 'Partial payment received via insurance.'),
-(4, 4, 3, '2026-07-15 16:00:00', '2026-07-29', 50.00, 0.00, 50.00, 6.00, 6.00, 1000.00, 0.00, '2026-09-14 10:02:54', 6, 'Payment past due date.'),
-(6, 5, 1, '2026-09-16 08:43:33', '2026-09-14', 1000.00, 10.00, 10.00, 0.00, 980.00, 0.00, 980.00, '2026-09-16 14:43:33', 1, NULL),
-(7, 6, 1, '2026-09-16 08:56:15', NULL, 0.00, 100.00, 100.00, 0.00, 0.00, 0.00, 0.00, '2026-09-16 14:56:15', 1, NULL);
 
 -- --------------------------------------------------------
 
@@ -207,20 +159,6 @@ CREATE TABLE `charge` (
   `service_start_date` date DEFAULT NULL,
   `service_end_date` date DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `charge`
---
-
-INSERT INTO `charge` (`charge_id`, `statement_id`, `charge_item_id`, `quantity`, `actual_price`, `charge_datetime`, `processed_by_user_id`, `notes`, `service_start_date`, `service_end_date`) VALUES
-(1, 1, 1, 2, 1500.00, '2026-09-03 08:00:00', 6, 'Two nights in private room.', '2026-09-01', '2026-09-03'),
-(2, 1, 3, 1, 350.00, '2026-09-01 10:30:00', 6, 'CBC test on admission.', '2026-09-01', '2026-09-01'),
-(3, 2, 1, 5, 500.00, '2026-08-25 09:00:00', 6, 'Five nights in ward room.', '2026-08-20', '2026-08-25'),
-(4, 2, 6, 1, 600.00, '2026-08-25 09:15:00', 6, 'Attending physician consult fee.', '2026-08-20', '2026-08-20'),
-(5, 3, 2, 1, 3000.00, '2026-09-06 08:00:00', 6, 'One night ICU stay.', '2026-09-05', '2026-09-06'),
-(6, 4, 5, 10, 5.00, '2026-07-11 09:00:00', 6, 'Paracetamol tablets dispensed.', '2026-07-10', '2026-07-14'),
-(7, 6, 6, 1, 500.00, '2026-09-16 14:43:43', 1, NULL, NULL, NULL),
-(8, 6, 6, 1, 500.00, '2026-09-16 14:44:30', 1, NULL, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -292,16 +230,6 @@ CREATE TABLE `consultation` (
   `created_at` datetime NOT NULL DEFAULT current_timestamp(),
   `notes` text DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `consultation`
---
-
-INSERT INTO `consultation` (`consultation_id`, `patient_id`, `doctor_id`, `consultation_datetime`, `purpose`, `status`, `created_at`, `notes`) VALUES
-(1, 1, 1, '2026-09-10 09:00:00', 'Follow-up on hypertension management', 'Completed', '2026-09-14 10:02:54', 'Blood pressure stabilized, continue current medication.'),
-(2, 2, 1, '2026-09-01 13:00:00', 'Post-discharge respiratory check', 'Completed', '2026-09-14 10:02:54', 'Lungs clear, no further treatment needed.'),
-(3, 5, 1, '2026-09-12 10:30:00', 'Routine diabetes check-up', 'Scheduled', '2026-09-14 10:02:54', 'Outpatient consultation, not linked to any admission.'),
-(4, 4, 1, '2026-07-20 15:00:00', 'Cardiac clearance before surgery', 'Completed', '2026-09-14 10:02:54', 'Cleared for orthopedic surgery, no cardiac risk factors found.');
 
 -- --------------------------------------------------------
 
@@ -413,19 +341,6 @@ CREATE TABLE `patient` (
   `is_active` tinyint(1) NOT NULL DEFAULT 1
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Dumping data for table `patient`
---
-
-INSERT INTO `patient` (`patient_id`, `gender_id`, `first_name`, `last_name`, `birth_date`, `contact_number`, `address`, `email`, `emergency_contact`, `emergency_contact_number`, `medical_history`, `created_at`, `is_active`) VALUES
-(1, 1, 'Juan', 'Dela Peña', '1985-03-12', '0918-111-1111', '12 Mabini St, Cagayan de Oro', 'juan.delapena@example.com', 'Maria Dela Peña', '0918-111-2222', 'Hypertension, on maintenance medication.', '2026-09-14 10:02:54', 1),
-(2, 2, 'Liza', 'Mendoza', '1992-07-25', '0918-222-2222', '45 Rizal Ave, Cagayan de Oro', 'liza.mendoza@example.com', 'Pedro Mendoza', '0918-222-3333', 'No known chronic conditions.', '2026-09-14 10:02:54', 1),
-(3, 1, 'Carlos', 'Villanueva', '1978-11-02', '0918-333-3333', '78 Corrales Ave, Cagayan de Oro', 'carlos.v@example.com', 'Rosa Villanueva', '0918-333-4444', 'Asthma since childhood.', '2026-09-14 10:02:54', 1),
-(4, 2, 'Angelica', 'Flores', '2001-01-30', '0918-444-4444', '9 Capistrano St, Cagayan de Oro', 'angelica.f@example.com', 'Ramon Flores', '0918-444-5555', 'Fractured femur, prior surgery in 2019.', '2026-09-14 10:02:54', 1),
-(5, 3, 'Sam', 'Ibarra', '1995-09-14', '0918-555-5555', '23 Velez St, Cagayan de Oro', 'sam.ibarra@example.com', 'Nora Ibarra', '0918-555-6666', 'Type 2 diabetes, diet-controlled.', '2026-09-14 10:02:54', 1),
-(6, 1, 'vladimer', 'tuyor', '2006-05-15', '09295413954', 'Cagayan de oro calaanan canitoan mushu block 4 lot', 'powerless177@gmail.com', 'wala', 'wala', 'wala', '2026-09-15 21:53:16', 1),
-(7, 1, 'vladimer', 'tuyor', '2026-09-16', '09295413954', 'Cagayan de oro calaanan canitoan mushu block 4 lot', 'powerless177@gmail.com', '31', '312', '312', '2026-09-16 14:56:00', 1);
-
 -- --------------------------------------------------------
 
 --
@@ -442,20 +357,6 @@ CREATE TABLE `payment` (
   `received_by_user_id` int(11) DEFAULT NULL,
   `notes` text DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `payment`
---
-
-INSERT INTO `payment` (`payment_id`, `statement_id`, `payment_type_id`, `amount`, `payment_datetime`, `transaction_reference`, `received_by_user_id`, `notes`) VALUES
-(1, 2, 1, 2330.00, '2026-08-25 11:15:00', 'CASH-0001', 6, 'Cash payment at discharge.'),
-(2, 2, 3, 500.00, '2026-08-25 11:20:00', 'INS-88221', 6, 'Insurance co-pay applied.'),
-(3, 3, 3, 1000.00, '2026-09-06 10:00:00', 'INS-88345', 6, 'Partial insurance disbursement.'),
-(4, 1, 2, 1000.00, '2026-09-08 17:30:00', 'CC-559812', 6, 'Partial card payment toward ongoing balance.'),
-(5, 4, 4, 1000.00, '2026-09-15 21:29:17', 'dsa', 1, NULL),
-(6, 3, 4, 1000.00, '2026-09-15 21:48:19', NULL, 1, NULL),
-(7, 3, 1, 2000.00, '2026-09-15 21:48:34', NULL, 1, NULL),
-(8, 3, 1, 100000.00, '2026-09-15 21:48:47', NULL, 1, NULL);
 
 -- --------------------------------------------------------
 
@@ -522,11 +423,11 @@ CREATE TABLE `room` (
 --
 
 INSERT INTO `room` (`room_id`, `room_type_id`, `status_id`, `room_number`, `floor_level`, `building`, `is_active`) VALUES
-(1, 5, 2, '101', 0, 'Main Building', 1),
-(2, 2, 2, '201', 2, 'Main Building', 1),
-(3, 3, 2, 'ICU-1', 3, 'Main Building', 1),
-(4, 1, 2, '102', 1, 'Main Building', 1),
-(5, 2, 2, '202', 2, 'Main Building', 1),
+(1, 5, 1, '101', 0, 'Main Building', 1),
+(2, 2, 1, '201', 2, 'Main Building', 1),
+(3, 3, 1, 'ICU-1', 3, 'Main Building', 1),
+(4, 1, 1, '102', 1, 'Main Building', 1),
+(5, 2, 1, '202', 2, 'Main Building', 1),
 (6, 3, 1, 'asd', 0, 'ambo', 1);
 
 -- --------------------------------------------------------
@@ -546,19 +447,6 @@ CREATE TABLE `room_assignment` (
   `transferred_by_user_id` int(11) DEFAULT NULL,
   `is_active` tinyint(1) NOT NULL DEFAULT 1
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `room_assignment`
---
-
-INSERT INTO `room_assignment` (`room_assignment_id`, `admission_id`, `room_id`, `start_datetime`, `end_datetime`, `daily_rate_at_assignment`, `transfer_reason`, `transferred_by_user_id`, `is_active`) VALUES
-(1, 1, 2, '2026-09-01 09:00:00', '2026-09-15 21:03:22', 1500.00, NULL, 5, 0),
-(2, 2, 1, '2026-08-20 15:00:00', '2026-08-25 10:00:00', 500.00, NULL, 5, 0),
-(3, 3, 3, '2026-09-05 09:45:00', NULL, 3000.00, NULL, 5, 1),
-(4, 4, 4, '2026-07-10 12:30:00', NULL, 500.00, 'Moved to orthopedic ward bed', 5, 1),
-(5, 1, 1, '2026-09-15 21:03:22', NULL, 1500.00, NULL, 1, 1),
-(6, 5, 4, '2026-09-15 21:53:16', NULL, 500.00, NULL, 1, 1),
-(7, 6, 5, '2026-09-16 14:56:00', NULL, 1500.00, NULL, 1, 1);
 
 -- --------------------------------------------------------
 
@@ -625,16 +513,6 @@ CREATE TABLE `service_request` (
   `quantity` int(11) NOT NULL DEFAULT 1,
   `status` varchar(50) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `service_request`
---
-
-INSERT INTO `service_request` (`request_id`, `admission_id`, `doctor_id`, `charge_item_id`, `request_datetime`, `quantity`, `status`) VALUES
-(1, 1, 1, 3, '2026-09-01 10:00:00', 1, 'Completed'),
-(2, 2, 1, 4, '2026-08-21 09:00:00', 1, 'Completed'),
-(3, 3, 1, 5, '2026-09-05 11:00:00', 10, 'Pending'),
-(4, 4, 1, 3, '2026-07-11 08:30:00', 1, 'Completed');
 
 -- --------------------------------------------------------
 
@@ -891,49 +769,49 @@ ALTER TABLE `user`
 -- AUTO_INCREMENT for table `admission`
 --
 ALTER TABLE `admission`
-  MODIFY `admission_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `admission_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1;
 
 --
 -- AUTO_INCREMENT for table `admission_diagnosis`
 --
 ALTER TABLE `admission_diagnosis`
-  MODIFY `admission_diagnosis_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `admission_diagnosis_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1;
 
 --
 -- AUTO_INCREMENT for table `admission_doctor`
 --
 ALTER TABLE `admission_doctor`
-  MODIFY `admission_doctor_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `admission_doctor_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1;
 
 --
 -- AUTO_INCREMENT for table `admission_status`
 --
 ALTER TABLE `admission_status`
-  MODIFY `status_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `status_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `billing_statement`
 --
 ALTER TABLE `billing_statement`
-  MODIFY `statement_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `statement_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1;
 
 --
 -- AUTO_INCREMENT for table `billing_status`
 --
 ALTER TABLE `billing_status`
-  MODIFY `status_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `status_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `charge`
 --
 ALTER TABLE `charge`
-  MODIFY `charge_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `charge_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1;
 
 --
 -- AUTO_INCREMENT for table `charge_category`
 --
 ALTER TABLE `charge_category`
-  MODIFY `category_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `category_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `charge_item`
@@ -945,13 +823,13 @@ ALTER TABLE `charge_item`
 -- AUTO_INCREMENT for table `consultation`
 --
 ALTER TABLE `consultation`
-  MODIFY `consultation_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `consultation_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1;
 
 --
 -- AUTO_INCREMENT for table `diagnosis`
 --
 ALTER TABLE `diagnosis`
-  MODIFY `diagnosis_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `diagnosis_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT for table `doctor`
@@ -969,19 +847,19 @@ ALTER TABLE `doctor_specialization`
 -- AUTO_INCREMENT for table `gender`
 --
 ALTER TABLE `gender`
-  MODIFY `gender_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `gender_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `patient`
 --
 ALTER TABLE `patient`
-  MODIFY `patient_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `patient_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1;
 
 --
 -- AUTO_INCREMENT for table `payment`
 --
 ALTER TABLE `payment`
-  MODIFY `payment_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `payment_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1;
 
 --
 -- AUTO_INCREMENT for table `payment_type`
@@ -993,7 +871,7 @@ ALTER TABLE `payment_type`
 -- AUTO_INCREMENT for table `role`
 --
 ALTER TABLE `role`
-  MODIFY `role_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `role_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `room`
@@ -1005,13 +883,13 @@ ALTER TABLE `room`
 -- AUTO_INCREMENT for table `room_assignment`
 --
 ALTER TABLE `room_assignment`
-  MODIFY `room_assignment_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `room_assignment_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1;
 
 --
 -- AUTO_INCREMENT for table `room_status`
 --
 ALTER TABLE `room_status`
-  MODIFY `status_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `status_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `room_type`
@@ -1023,13 +901,13 @@ ALTER TABLE `room_type`
 -- AUTO_INCREMENT for table `service_request`
 --
 ALTER TABLE `service_request`
-  MODIFY `request_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `request_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1;
 
 --
 -- AUTO_INCREMENT for table `specialization`
 --
 ALTER TABLE `specialization`
-  MODIFY `specialization_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `specialization_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT for table `user`

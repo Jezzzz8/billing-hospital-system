@@ -1,6 +1,5 @@
 <?php
 
-
 require_once __DIR__ . '/../../controllers/CashierController.php';
 
 $controller   = new CashierController($pdo);
@@ -18,7 +17,6 @@ foreach ($statements as $s) {
 }
 ?>
 
-
 <div id="cashierData"
      class="hidden"
      data-charge-items='<?= htmlspecialchars(json_encode(array_map(fn($c) => [
@@ -35,14 +33,42 @@ foreach ($statements as $s) {
         'type_name'       => $p['type_name'],
      ], $paymentTypes)), ENT_QUOTES, "UTF-8") ?>'></div>
 
-
-<div class="mb-8">
-    <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Billing Statements</h1>
-    <p class="mt-1 text-sm text-slate-500">Review statements, sync charges from admissions, and record payments.</p>
+<div class="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div>
+        <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Billing Statements</h1>
+        <p class="mt-1 text-sm text-slate-500">Review statements, sync charges from admissions, and record payments.</p>
+    </div>
+    <button type="button" id="openCreateBtn"
+            class="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+        </svg>
+        New Statement
+    </button>
 </div>
 
-<div id="alert" class="hidden mb-5 rounded-lg px-4 py-3 text-sm border"></div>
+<?php if (!empty($admissionsOpen)): ?>
+    <div class="mb-5 rounded-lg px-4 py-3 text-sm border border-amber-200 bg-amber-50 text-amber-800 flex items-start gap-3">
+        <svg class="w-5 h-5 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M5 19h14a2 2 0 001.84-2.75L13.74 4a2 2 0 00-3.48 0L3.16 16.25A2 2 0 005 19z"/>
+        </svg>
+        <div>
+            <p class="font-semibold">
+                <?= count($admissionsOpen) ?> patient<?= count($admissionsOpen) === 1 ? '' : 's' ?>
+                ready for discharge need<?= count($admissionsOpen) === 1 ? 's' : '' ?> a billing statement
+            </p>
+            <p class="text-xs mt-0.5">
+                The attending doctor has cleared these patients. Create their statements so the nurse
+                can complete the discharge.
+                <button type="button" id="openCreateBtnBanner" class="font-medium underline hover:no-underline">
+                    Create statement now →
+                </button>
+            </p>
+        </div>
+    </div>
+<?php endif; ?>
 
+<div id="alert" class="hidden mb-5 rounded-lg px-4 py-3 text-sm border"></div>
 
 <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
     <div class="bg-white rounded-xl border border-slate-200 p-5">
@@ -62,7 +88,6 @@ foreach ($statements as $s) {
         <p class="mt-2 text-xl font-bold text-rose-600">₱<?= number_format($totalBalance, 2) ?></p>
     </div>
 </div>
-
 
 <div class="bg-white rounded-xl border border-slate-200 p-4 mb-4">
     <div class="flex flex-col lg:flex-row lg:items-end gap-3">
@@ -101,7 +126,6 @@ foreach ($statements as $s) {
         Showing <strong id="filteredCount" class="text-slate-900">0</strong> of <strong id="totalCount" class="text-slate-900">0</strong> statements
     </div>
 </div>
-
 
 <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
     <div class="overflow-x-auto">
@@ -188,6 +212,107 @@ foreach ($statements as $s) {
     </div>
 </div>
 
+<div id="newStatementModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div class="absolute inset-0 bg-slate-900/60" data-close-new-statement></div>
+
+    <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col">
+
+        <div class="flex items-center justify-between px-6 py-5 border-b border-slate-200">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="text-base font-semibold text-slate-900">New Billing Statement</h3>
+                    <p class="text-xs text-slate-500">Select a ready-for-discharge admission to bill.</p>
+                </div>
+            </div>
+            <button type="button" data-close-new-statement
+                    class="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+
+        <form id="newStatementForm" class="flex-1 overflow-y-auto p-6 space-y-4">
+
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1.5">
+                    Admission <span class="text-rose-500">*</span>
+                </label>
+                <select id="new_admission_id" required
+                        class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm bg-white
+                               focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <option value="">— Select a patient —</option>
+                    <?php foreach ($admissionsOpen as $a): ?>
+                        <option value="<?= (int)$a['admission_id'] ?>">
+                            #<?= (int)$a['admission_id'] ?> —
+                            <?= htmlspecialchars($a['first_name'] . ' ' . $a['last_name']) ?>
+                            (<?= htmlspecialchars(date('M j, Y', strtotime($a['admission_datetime']))) ?>)
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+                <p id="newAdmissionEmpty" class="mt-1.5 text-xs text-amber-600 <?= empty($admissionsOpen) ? '' : 'hidden' ?>">
+                    No ready-for-discharge patients without a statement right now.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Due Date</label>
+                    <input type="date" id="new_due_date"
+                           class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm
+                                  focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">
+                        Insurance (₱)
+                    </label>
+                    <input type="number" id="new_insurance_coverage_amount" min="0" step="0.01" placeholder="0.00"
+                           class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm
+                                  focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1.5">
+                    Government Discount (₱)
+                </label>
+                <input type="number" id="new_government_discount" min="0" step="0.01" placeholder="0.00"
+                       class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm
+                              focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1.5">
+                    Notes <span class="text-slate-400 font-normal">(optional)</span>
+                </label>
+                <textarea id="new_notes" rows="2"
+                          class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm
+                                 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></textarea>
+            </div>
+
+            <p class="text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded-lg p-3">
+                Charges from room assignments, service requests, and doctor consultations will be
+                <strong>pulled in automatically</strong> when you save.
+            </p>
+        </form>
+
+        <div class="px-6 py-4 border-t border-slate-200 bg-slate-50 rounded-b-2xl flex items-center justify-end gap-3">
+            <button type="button" data-close-new-statement
+                    class="rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50">
+                Cancel
+            </button>
+            <button type="button" id="saveNewStatementBtn"
+                    class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60">
+                <span id="saveNewStatementLabel">Create Statement</span>
+            </button>
+        </div>
+    </div>
+</div>
 
 <div id="manageModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
     <div class="absolute inset-0 bg-slate-900/60" data-close-manage></div>
@@ -215,7 +340,6 @@ foreach ($statements as $s) {
 
         <div class="flex-1 overflow-y-auto p-6">
 
-            
             <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-5">
                 <div class="bg-slate-50 border border-slate-200 rounded-lg p-3">
                     <p class="text-xs text-slate-500">Subtotal</p>
@@ -239,7 +363,6 @@ foreach ($statements as $s) {
                 </div>
             </div>
 
-            
             <div class="manage-tab-panel" data-mpanel="charges">
                 <div class="flex items-center justify-between mb-3">
                     <h4 class="text-sm font-semibold text-slate-900">Charges</h4>
@@ -279,7 +402,6 @@ foreach ($statements as $s) {
                 </div>
             </div>
 
-            
             <div class="manage-tab-panel hidden" data-mpanel="payments">
                 <div class="flex items-center justify-between mb-3">
                     <h4 class="text-sm font-semibold text-slate-900">Payments</h4>
@@ -308,7 +430,6 @@ foreach ($statements as $s) {
                 </div>
             </div>
 
-            
             <div class="manage-tab-panel hidden" data-mpanel="rooms">
                 <h4 class="text-sm font-semibold text-slate-900 mb-3">Room History</h4>
                 <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
@@ -337,7 +458,6 @@ foreach ($statements as $s) {
         </div>
     </div>
 </div>
-
 
 <div id="chargeModal" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4">
     <div class="absolute inset-0 bg-slate-900/60" data-close-charge></div>
@@ -382,7 +502,6 @@ foreach ($statements as $s) {
         </div>
     </div>
 </div>
-
 
 <div id="paymentModal" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4">
     <div class="absolute inset-0 bg-slate-900/60" data-close-payment></div>

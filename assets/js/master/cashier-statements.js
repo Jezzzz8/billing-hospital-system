@@ -1,18 +1,14 @@
-
 (function () {
     const baseUrl = document.body.dataset.baseUrl;
     const alertEl = document.getElementById('alert');
 
-    
     const dataEl = document.getElementById('cashierData');
     const chargeItems  = dataEl ? JSON.parse(dataEl.dataset.chargeItems  || '[]') : [];
     const paymentTypes = dataEl ? JSON.parse(dataEl.dataset.paymentTypes || '[]') : [];
 
-    
     let currentStatementId = null;
     let currentStatement   = null;
 
-    
     function peso(n) {
         return '₱' + Number(n || 0).toLocaleString('en-PH', {
             minimumFractionDigits: 2,
@@ -22,11 +18,12 @@
 
     function fmtDate(v) {
         if (!v) return '—';
-        const d = new Date(v.replace(' ', 'T'));   
+        const d = new Date(v.replace(' ', 'T'));
         return isNaN(d.getTime()) ? v : d.toLocaleString();
     }
 
     function showAlert(type, msg) {
+        if (!alertEl) return;
         alertEl.className = 'mb-5 rounded-lg px-4 py-3 text-sm border ' +
             (type === 'success'
                 ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
@@ -36,7 +33,6 @@
         setTimeout(() => alertEl.classList.add('hidden'), 4000);
     }
 
-    
     const searchInput  = document.getElementById('filterSearch');
     const statusFilter = document.getElementById('filterStatus');
     const clearBtn     = document.getElementById('filterClear');
@@ -87,16 +83,72 @@
         applyFilters();
     });
 
-    
-    
-    
+    const newStatementModal = document.getElementById('newStatementModal');
+    const newStatementForm  = document.getElementById('newStatementForm');
+    const saveNewStatementBtn = document.getElementById('saveNewStatementBtn');
+    const saveNewStatementLbl = document.getElementById('saveNewStatementLabel');
+
+    function openNewStatementModal() {
+        if (!newStatementModal) {
+            showAlert('error', 'Statement modal not found on this page.');
+            return;
+        }
+        if (newStatementForm) newStatementForm.reset();
+        newStatementModal.classList.remove('hidden');
+    }
+
+    function closeNewStatementModal() {
+        if (newStatementModal) newStatementModal.classList.add('hidden');
+    }
+
+    const openBtn       = document.getElementById('openCreateBtn');
+    const openBtnBanner = document.getElementById('openCreateBtnBanner');
+
+    if (openBtn)       openBtn.addEventListener('click', openNewStatementModal);
+    if (openBtnBanner) openBtnBanner.addEventListener('click', openNewStatementModal);
+
+    newStatementModal?.querySelectorAll('[data-close-new-statement]').forEach(el => {
+        el.addEventListener('click', closeNewStatementModal);
+    });
+
+    saveNewStatementBtn?.addEventListener('click', async function () {
+        const admissionId = document.getElementById('new_admission_id')?.value;
+        if (!admissionId) {
+            showAlert('error', 'Please select an admission.');
+            return;
+        }
+
+        saveNewStatementBtn.disabled = true;
+        if (saveNewStatementLbl) saveNewStatementLbl.textContent = 'Creating…';
+
+        try {
+            const res = await axios.post(`${baseUrl}/api/cashier/create-statement.php`, {
+                admission_id:               parseInt(admissionId, 10),
+                due_date:                   document.getElementById('new_due_date')?.value || null,
+                insurance_coverage_amount:  document.getElementById('new_insurance_coverage_amount')?.value || 0,
+                government_discount:        document.getElementById('new_government_discount')?.value || 0,
+                notes:                      document.getElementById('new_notes')?.value.trim() || '',
+            }, { headers: { 'Content-Type': 'application/json' } });
+
+            if (res.data.success) {
+                showAlert('success', res.data.message || 'Statement created.');
+                closeNewStatementModal();
+                setTimeout(() => location.reload(), 800);
+            }
+        } catch (err) {
+            showAlert('error', err.response?.data?.message || 'Could not create statement.');
+            saveNewStatementBtn.disabled = false;
+            if (saveNewStatementLbl) saveNewStatementLbl.textContent = 'Create Statement';
+        }
+    });
+
     const manageModal = document.getElementById('manageModal');
 
     function openManageModal() {
-        manageModal.classList.remove('hidden');
+        if (manageModal) manageModal.classList.remove('hidden');
     }
     function closeManageModal() {
-        manageModal.classList.add('hidden');
+        if (manageModal) manageModal.classList.add('hidden');
         currentStatementId = null;
         currentStatement   = null;
     }
@@ -105,7 +157,6 @@
         el.addEventListener('click', closeManageModal);
     });
 
-    
     document.querySelectorAll('.manage-tab-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             const tab = btn.dataset.mtab;
@@ -121,7 +172,6 @@
         });
     });
 
-    
     document.querySelectorAll('.manage-btn').forEach(btn => {
         btn.addEventListener('click', async () => {
             const id = btn.dataset.statementId;
@@ -144,33 +194,41 @@
     }
 
     function renderStatement(s) {
-        document.getElementById('manageTitle').textContent = `Statement #${s.statement_id}`;
-        document.getElementById('manageSubtitle').textContent =
+        const titleEl = document.getElementById('manageTitle');
+        const subEl   = document.getElementById('manageSubtitle');
+        if (titleEl) titleEl.textContent = `Statement #${s.statement_id}`;
+        if (subEl)   subEl.textContent =
             `${s.first_name} ${s.last_name} · Admission #${s.admission_id}`;
 
-        document.getElementById('sumSubtotal').textContent = peso(s.subtotal_amount);
-        document.getElementById('sumTax').textContent      = peso(s.tax_amount);
-        document.getElementById('sumTotal').textContent    = peso(s.total_amount);
-        document.getElementById('sumPaid').textContent     = peso(s.amount_paid);
-        document.getElementById('sumBalance').textContent  = peso(s.balance_amount);
+        const elSubtotal = document.getElementById('sumSubtotal');
+        const elTax      = document.getElementById('sumTax');
+        const elTotal    = document.getElementById('sumTotal');
+        const elPaid     = document.getElementById('sumPaid');
+        const elBalance  = document.getElementById('sumBalance');
+
+        if (elSubtotal) elSubtotal.textContent = peso(s.subtotal_amount);
+        if (elTax)      elTax.textContent      = peso(s.tax_amount);
+        if (elTotal)    elTotal.textContent    = peso(s.total_amount);
+        if (elPaid)     elPaid.textContent     = peso(s.amount_paid);
+        if (elBalance)  elBalance.textContent  = peso(s.balance_amount);
 
         renderCharges(s);
         renderPayments(s);
         renderRooms(s);
     }
 
-    
     function renderCharges(s) {
         const body = document.getElementById('chargesBody');
         const none = document.getElementById('noCharges');
+        if (!body) return;
         body.innerHTML = '';
 
         const charges = Array.isArray(s.charges) ? s.charges : [];
         if (!charges.length) {
-            none.classList.remove('hidden');
+            none?.classList.remove('hidden');
             return;
         }
-        none.classList.add('hidden');
+        none?.classList.add('hidden');
 
         charges.forEach(c => {
             const isLocked = (c.notes || '').toLowerCase().includes('source=');
@@ -213,19 +271,19 @@
         });
     }
 
-    
     function renderPayments(s) {
         const body = document.getElementById('paymentsBody');
         const none = document.getElementById('noPayments');
+        if (!body) return;
         body.innerHTML = '';
 
         const payments = Array.isArray(s.payments) ? s.payments : [];
 
         if (!payments.length) {
-            none.classList.remove('hidden');
+            none?.classList.remove('hidden');
             return;
         }
-        none.classList.add('hidden');
+        none?.classList.add('hidden');
 
         payments.forEach(p => {
             const typeName = p.type_name || p.payment_type_name || '—';
@@ -258,18 +316,18 @@
         });
     }
 
-    
     function renderRooms(s) {
         const body = document.getElementById('roomsBody');
         const none = document.getElementById('noRooms');
+        if (!body) return;
         body.innerHTML = '';
 
         const rooms = Array.isArray(s.room_history) ? s.room_history : [];
         if (!rooms.length) {
-            none.classList.remove('hidden');
+            none?.classList.remove('hidden');
             return;
         }
-        none.classList.add('hidden');
+        none?.classList.add('hidden');
 
         rooms.forEach(r => {
             const end = r.end_datetime ? fmtDate(r.end_datetime) : 'Present';
@@ -284,7 +342,6 @@
         });
     }
 
-    
     async function removeCharge(chargeId) {
         if (!confirm('Remove this charge?')) return;
         try {
@@ -315,9 +372,6 @@
         }
     }
 
-    
-    
-    
     document.getElementById('syncChargesBtn')?.addEventListener('click', async function () {
         const btn = this;
         btn.disabled = true;
@@ -338,22 +392,21 @@
         }
     });
 
-    
-    
-    
     const chargeModal = document.getElementById('chargeModal');
     const chargeItemSelect = document.getElementById('charge_item_id');
-    chargeItems.forEach(c => {
-        const opt = document.createElement('option');
-        opt.value = c.charge_item_id;
-        opt.textContent = `[${c.category}] ${c.item_name} — ₱${Number(c.default_price).toFixed(2)}`;
-        opt.dataset.price = c.default_price;
-        opt.dataset.taxable = c.is_taxable;
-        chargeItemSelect.appendChild(opt);
-    });
+    if (chargeItemSelect) {
+        chargeItems.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c.charge_item_id;
+            opt.textContent = `[${c.category}] ${c.item_name} — ₱${Number(c.default_price).toFixed(2)}`;
+            opt.dataset.price = c.default_price;
+            opt.dataset.taxable = c.is_taxable;
+            chargeItemSelect.appendChild(opt);
+        });
+    }
 
     document.getElementById('addChargeBtn')?.addEventListener('click', () => {
-        chargeModal.classList.remove('hidden');
+        if (chargeModal) chargeModal.classList.remove('hidden');
     });
     chargeModal?.querySelectorAll('[data-close-charge]').forEach(el => {
         el.addEventListener('click', () => chargeModal.classList.add('hidden'));
@@ -361,13 +414,14 @@
 
     chargeItemSelect?.addEventListener('change', function () {
         const opt = this.options[this.selectedIndex];
-        document.getElementById('charge_price').value = opt.dataset.price || '';
+        const priceEl = document.getElementById('charge_price');
+        if (priceEl) priceEl.value = opt.dataset.price || '';
     });
 
     document.getElementById('saveChargeBtn')?.addEventListener('click', async function () {
-        const itemId = chargeItemSelect.value;
-        const qty = parseInt(document.getElementById('charge_quantity').value, 10);
-        const notes = document.getElementById('charge_notes').value;
+        const itemId = chargeItemSelect?.value;
+        const qty = parseInt(document.getElementById('charge_quantity')?.value, 10);
+        const notes = document.getElementById('charge_notes')?.value;
         if (!itemId || qty <= 0) {
             showAlert('error', 'Please select an item and quantity.');
             return;
@@ -376,7 +430,7 @@
         const btn = this;
         const label = document.getElementById('saveChargeLabel');
         btn.disabled = true;
-        label.textContent = 'Saving…';
+        if (label) label.textContent = 'Saving…';
 
         try {
             const res = await axios.post(`${baseUrl}/api/cashier/add-charge.php?id=${currentStatementId}`, {
@@ -387,48 +441,52 @@
 
             if (res.data.success) {
                 showAlert('success', res.data.message);
-                chargeModal.classList.add('hidden');
-                chargeItemSelect.value = '';
-                document.getElementById('charge_quantity').value = 1;
-                document.getElementById('charge_price').value = '';
-                document.getElementById('charge_notes').value = '';
+                chargeModal?.classList.add('hidden');
+                if (chargeItemSelect) chargeItemSelect.value = '';
+                const qEl = document.getElementById('charge_quantity');
+                const pEl = document.getElementById('charge_price');
+                const nEl = document.getElementById('charge_notes');
+                if (qEl) qEl.value = 1;
+                if (pEl) pEl.value = '';
+                if (nEl) nEl.value = '';
                 await loadStatement(currentStatementId);
             }
         } catch (err) {
             showAlert('error', err.response?.data?.message || 'Could not add charge.');
         } finally {
             btn.disabled = false;
-            label.textContent = 'Add Charge';
+            if (label) label.textContent = 'Add Charge';
         }
     });
 
-    
-    
-    
     const paymentModal = document.getElementById('paymentModal');
     const paymentTypeSelect = document.getElementById('payment_type_id');
-    paymentTypes.forEach(p => {
-        const opt = document.createElement('option');
-        opt.value = p.payment_type_id;
-        opt.textContent = p.type_name;
-        paymentTypeSelect.appendChild(opt);
-    });
+    if (paymentTypeSelect) {
+        paymentTypes.forEach(p => {
+            const opt = document.createElement('option');
+            opt.value = p.payment_type_id;
+            opt.textContent = p.type_name;
+            paymentTypeSelect.appendChild(opt);
+        });
+    }
 
     document.getElementById('addPaymentBtn')?.addEventListener('click', () => {
         if (currentStatement) {
-            document.getElementById('paymentCurrentBalance').textContent = peso(currentStatement.balance_amount);
-            document.getElementById('payment_amount').value = Number(currentStatement.balance_amount).toFixed(2);
+            const balEl = document.getElementById('paymentCurrentBalance');
+            const amtEl = document.getElementById('payment_amount');
+            if (balEl) balEl.textContent = peso(currentStatement.balance_amount);
+            if (amtEl) amtEl.value = Number(currentStatement.balance_amount).toFixed(2);
         }
-        paymentModal.classList.remove('hidden');
+        if (paymentModal) paymentModal.classList.remove('hidden');
     });
     paymentModal?.querySelectorAll('[data-close-payment]').forEach(el => {
         el.addEventListener('click', () => paymentModal.classList.add('hidden'));
     });
 
     document.getElementById('savePaymentBtn')?.addEventListener('click', async function () {
-        const typeId = paymentTypeSelect.value;
-        const amount = parseFloat(document.getElementById('payment_amount').value);
-        const notes = document.getElementById('payment_notes').value;
+        const typeId = paymentTypeSelect?.value;
+        const amount = parseFloat(document.getElementById('payment_amount')?.value);
+        const notes = document.getElementById('payment_notes')?.value;
 
         if (!typeId || amount <= 0) {
             showAlert('error', 'Please select a payment type and enter a positive amount.');
@@ -438,7 +496,7 @@
         const btn = this;
         const label = document.getElementById('savePaymentLabel');
         btn.disabled = true;
-        label.textContent = 'Recording…';
+        if (label) label.textContent = 'Recording…';
 
         try {
             const res = await axios.post(`${baseUrl}/api/cashier/add-payment.php?id=${currentStatementId}`, {
@@ -449,18 +507,21 @@
 
             if (res.data.success) {
                 showAlert('success', res.data.message);
-                paymentModal.classList.add('hidden');
-                paymentTypeSelect.value = '';
-                document.getElementById('payment_amount').value = '';
-                document.getElementById('payment_notes').value = '';
+                paymentModal?.classList.add('hidden');
+                if (paymentTypeSelect) paymentTypeSelect.value = '';
+                const amtEl = document.getElementById('payment_amount');
+                const nEl   = document.getElementById('payment_notes');
+                if (amtEl) amtEl.value = '';
+                if (nEl)   nEl.value = '';
                 await loadStatement(currentStatementId);
             }
         } catch (err) {
             showAlert('error', err.response?.data?.message || 'Could not record payment.');
         } finally {
             btn.disabled = false;
-            label.textContent = 'Record Payment';
+            if (label) label.textContent = 'Record Payment';
         }
     });
 
-})();   
+    applyFilters();
+})();

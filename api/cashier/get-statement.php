@@ -1,6 +1,5 @@
 <?php
 
-
 require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../config/connection.php';
 require_once __DIR__ . '/../../controllers/CashierController.php';
@@ -19,7 +18,6 @@ if ($id <= 0) {
     echo json_encode(['success' => false, 'message' => 'Missing statement id.']);
     exit;
 }
-
 
 try {
     (new ChargeSyncService($pdo))->syncStatement($id);

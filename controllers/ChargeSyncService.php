@@ -1,13 +1,11 @@
 <?php
 
-
 class ChargeSyncService
 {
     private PDO $pdo;
 
     public function __construct(PDO $pdo) { $this->pdo = $pdo; }
 
-    
     public function syncStatement(int $statementId): void
     {
         $stmt = $this->pdo->prepare(
@@ -18,22 +16,20 @@ class ChargeSyncService
         $admissionId = (int)$stmt->fetchColumn();
         if ($admissionId <= 0) return;
 
-        $this->pdo->beginTransaction();
+        $ownTransaction = !$this->pdo->inTransaction();
+        if ($ownTransaction) $this->pdo->beginTransaction();
+
         try {
             $this->syncLiveRooms($statementId, $admissionId);
             $this->syncLiveServices($statementId, $admissionId);
             $this->syncLiveDoctors($statementId, $admissionId);
             $this->recomputeStatement($statementId);
-            $this->pdo->commit();
+            if ($ownTransaction) $this->pdo->commit();
         } catch (Throwable $e) {
-            $this->pdo->rollBack();
+            if ($ownTransaction && $this->pdo->inTransaction()) $this->pdo->rollBack();
             throw $e;
         }
     }
-
-    
-    
-    
 
     private function syncLiveRooms(int $statementId, int $admissionId): void
     {
@@ -53,11 +49,9 @@ class ChargeSyncService
         foreach ($assignments as $a) {
             $marker = 'source=room:' . $a['room_assignment_id'];
 
-            
             $itemId = $this->findRoomChargeItem($a['room_type_name']);
             if ($itemId <= 0) continue;
 
-            
             $chk = $this->pdo->prepare(
                 'SELECT charge_id FROM `charge`
                  WHERE statement_id = ? AND notes LIKE ? LIMIT 1'
@@ -65,13 +59,11 @@ class ChargeSyncService
             $chk->execute([$statementId, '%' . $marker . '%']);
             $existing = $chk->fetch();
 
-            
             $start = new DateTime($a['start_datetime']);
             $end   = $a['end_datetime'] ? new DateTime($a['end_datetime']) : new DateTime();
             $days  = max(1, (int)$start->diff($end)->days);
 
             if ($existing) {
-                
                 $upd = $this->pdo->prepare(
                     'UPDATE `charge`
                      SET quantity = ?, service_end_date = ?
@@ -103,10 +95,6 @@ class ChargeSyncService
             }
         }
     }
-
-    
-    
-    
 
     private function syncLiveServices(int $statementId, int $admissionId): void
     {
@@ -156,10 +144,6 @@ class ChargeSyncService
         }
     }
 
-    
-    
-    
-
     private function syncLiveDoctors(int $statementId, int $admissionId): void
     {
         $stmt = $this->pdo->prepare(
@@ -207,10 +191,6 @@ class ChargeSyncService
         }
     }
 
-    
-    
-    
-
     public function recomputeStatement(int $statementId): void
     {
         $stmt = $this->pdo->prepare(
@@ -249,7 +229,6 @@ class ChargeSyncService
         $total   = max(0, $subtotal + $tax - $insurance - $discount);
         $balance = max(0, $total - $paid);
 
-        
         $stmtStatus = $this->pdo->query(
             'SELECT status_id, is_paid_status, status_name FROM `billing_status`'
         );
@@ -276,10 +255,6 @@ class ChargeSyncService
         ]);
     }
 
-    
-    
-    
-
     private function findRoomChargeItem(string $roomTypeName): int
     {
         $stmt = $this->pdo->prepare(
@@ -294,7 +269,6 @@ class ChargeSyncService
         $id = (int)$stmt->fetchColumn();
         if ($id > 0) return $id;
 
-        
         $stmt = $this->pdo->prepare(
             'SELECT ci.charge_item_id
              FROM `charge_item` ci

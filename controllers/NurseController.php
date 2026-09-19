@@ -1,5 +1,5 @@
 <?php
-
+// controllers/NurseController.php
 
 require_once __DIR__ . '/BillingHook.php';
 
@@ -9,14 +9,15 @@ class NurseController
 
     public function __construct(PDO $pdo) { $this->pdo = $pdo; }
 
-    
-    
-    
+    // =========================================================
+    // DASHBOARD
+    // =========================================================
 
     public function getDashboardStats(): array
     {
+        // Active = any status that is NOT "Discharged" (2)
         $activeAdmissions = (int)$this->pdo->query(
-            'SELECT COUNT(*) FROM `admission` WHERE status_id IN (1, 3)'
+            'SELECT COUNT(*) FROM `admission` WHERE status_id IN (1, 3, 4)'
         )->fetchColumn();
 
         $availableRooms = (int)$this->pdo->query(
@@ -32,7 +33,7 @@ class NurseController
         )->fetchColumn();
 
         $readyForDischarge = (int)$this->pdo->query(
-            'SELECT COUNT(*) FROM `admission` WHERE status_id = 1'
+            'SELECT COUNT(*) FROM `admission` WHERE status_id = 4'
         )->fetchColumn();
 
         return [
@@ -59,7 +60,7 @@ class NurseController
              LEFT JOIN `room` r ON r.room_id = ra.room_id
              LEFT JOIN `room_type` rt ON rt.room_type_id = r.room_type_id
              LEFT JOIN `room_status` rs ON rs.status_id = r.status_id
-             WHERE a.status_id IN (1, 3)
+             WHERE a.status_id IN (1, 3, 4)
              ORDER BY a.admission_datetime DESC
              LIMIT 10'
         )->fetchAll();
@@ -77,9 +78,9 @@ class NurseController
         )->fetchAll();
     }
 
-    
-    
-    
+    // =========================================================
+    // PATIENT SEARCH
+    // =========================================================
 
     public function searchPatients(string $query): array
     {
@@ -91,7 +92,7 @@ class NurseController
                     ast.status_name AS admission_status_name, ast.color_code AS admission_status_color
              FROM `patient` p
              INNER JOIN `gender` g ON g.gender_id = p.gender_id
-             LEFT JOIN `admission` a ON a.patient_id = p.patient_id AND a.status_id IN (1, 3)
+             LEFT JOIN `admission` a ON a.patient_id = p.patient_id AND a.status_id IN (1, 3, 4)
              LEFT JOIN `admission_status` ast ON ast.status_id = a.status_id
              WHERE p.is_active = 1
                AND (p.first_name LIKE ? OR p.last_name LIKE ? OR p.contact_number LIKE ? OR p.email LIKE ?)
@@ -119,7 +120,7 @@ class NurseController
             'SELECT a.*, ast.status_name, ast.color_code
              FROM `admission` a
              INNER JOIN `admission_status` ast ON ast.status_id = a.status_id
-             WHERE a.patient_id = ? AND a.status_id IN (1, 3)
+             WHERE a.patient_id = ? AND a.status_id IN (1, 3, 4)
              ORDER BY a.admission_datetime DESC LIMIT 1'
         );
         $stmt->execute([$patientId]);
@@ -147,9 +148,9 @@ class NurseController
         return $stmt->fetch() ?: null;
     }
 
-    
-    
-    
+    // =========================================================
+    // PATIENT REGISTRATION
+    // =========================================================
 
     public function registerPatient(): void
     {
@@ -192,9 +193,9 @@ class NurseController
         }
     }
 
-    
-    
-    
+    // =========================================================
+    // ADMISSION
+    // =========================================================
 
     public function createAdmission(): void
     {
@@ -211,7 +212,7 @@ class NurseController
 
             $stmt = $this->pdo->prepare(
                 'SELECT admission_id FROM `admission`
-                 WHERE patient_id = ? AND status_id IN (1, 3) LIMIT 1'
+                 WHERE patient_id = ? AND status_id IN (1, 3, 4) LIMIT 1'
             );
             $stmt->execute([$patientId]);
             if ($stmt->fetch()) {
@@ -236,25 +237,20 @@ class NurseController
 
             $admissionId = (int)$this->pdo->lastInsertId();
 
-            
             if (!empty($data['room_id'])) {
                 $this->assignRoom($admissionId, (int)$data['room_id'], $data);
             }
 
-            
             $doctorIds   = $data['doctor_ids']   ?? [];
             $doctorRoles = $data['doctor_roles'] ?? [];
 
             if (is_array($doctorIds) && $doctorIds) {
                 $this->saveAdmissionDoctors($admissionId, $doctorIds, $doctorRoles);
-
-                
                 BillingHook::emit($this->pdo, $admissionId);
             }
 
             $this->pdo->commit();
 
-            
             try { BillingHook::flushDeferred(); } catch (Throwable $e) {
                 error_log('[NurseController::createAdmission::flushDeferred] ' . $e->getMessage());
             }
@@ -292,9 +288,9 @@ class NurseController
         )->fetchAll();
     }
 
-    
-    
-    
+    // =========================================================
+    // ROOM MANAGEMENT
+    // =========================================================
 
     public function getAvailableRooms(?int $roomTypeId = null): array
     {
@@ -455,7 +451,7 @@ class NurseController
 
             $stmt = $this->pdo->prepare(
                 'SELECT admission_id FROM `admission`
-                 WHERE admission_id = ? AND status_id IN (1, 3) LIMIT 1'
+                 WHERE admission_id = ? AND status_id IN (1, 3, 4) LIMIT 1'
             );
             $stmt->execute([$admissionId]);
             if (!$stmt->fetch()) {
@@ -518,7 +514,7 @@ class NurseController
 
             $stmt = $this->pdo->prepare(
                 'SELECT admission_id FROM `admission`
-                 WHERE admission_id = ? AND status_id IN (1, 3) LIMIT 1'
+                 WHERE admission_id = ? AND status_id IN (1, 3, 4) LIMIT 1'
             );
             $stmt->execute([$admissionId]);
             if (!$stmt->fetch()) {
@@ -576,9 +572,9 @@ class NurseController
         }
     }
 
-    
-    
-    
+    // =========================================================
+    // DOCTORS
+    // =========================================================
 
     public function getDoctors(): array
     {
@@ -608,7 +604,6 @@ class NurseController
         return $stmt->fetchAll();
     }
 
-    
     private function saveAdmissionDoctors(int $admissionId, array $doctorIds, array $doctorRoles): void
     {
         $insert = $this->pdo->prepare(
@@ -644,7 +639,6 @@ class NurseController
         }
     }
 
-    
     public function assignDoctorApi(): void
     {
         $this->guard();
@@ -661,10 +655,9 @@ class NurseController
         try {
             $this->pdo->beginTransaction();
 
-            
             $stmt = $this->pdo->prepare(
                 'SELECT admission_id FROM `admission`
-                 WHERE admission_id = ? AND status_id IN (1, 3) LIMIT 1'
+                 WHERE admission_id = ? AND status_id IN (1, 3, 4) LIMIT 1'
             );
             $stmt->execute([$admissionId]);
             if (!$stmt->fetch()) {
@@ -672,7 +665,6 @@ class NurseController
                 $this->json(404, ['success' => false, 'message' => 'Active admission not found.']);
             }
 
-            
             $stmt = $this->pdo->prepare(
                 'SELECT d.doctor_id, d.consultation_fee
                  FROM `doctor` d
@@ -687,7 +679,6 @@ class NurseController
                 $this->json(404, ['success' => false, 'message' => 'Doctor not found or inactive.']);
             }
 
-            
             $dup = $this->pdo->prepare(
                 'SELECT admission_doctor_id FROM `admission_doctor`
                  WHERE admission_id = ? AND doctor_id = ? AND ended_datetime IS NULL
@@ -699,15 +690,11 @@ class NurseController
                 $this->json(409, ['success' => false, 'message' => 'This doctor is already assigned to this admission.']);
             }
 
-            
             $this->saveAdmissionDoctors($admissionId, [$doctorId], [$doctorId => $role]);
 
-            
             BillingHook::emit($this->pdo, $admissionId);
 
             $this->pdo->commit();
-
-            
             try { BillingHook::flushDeferred(); } catch (Throwable $e) {
                 error_log('[NurseController::assignDoctorApi::flushDeferred] ' . $e->getMessage());
             }
@@ -720,7 +707,6 @@ class NurseController
         }
     }
 
-    
     public function removeDoctorApi(): void
     {
         $this->guard();
@@ -745,10 +731,16 @@ class NurseController
         }
     }
 
-    
-    
-    
+    // =========================================================
+    // DISCHARGE
+    // =========================================================
 
+    /**
+     * Returns admissions with status 4 (Ready for Discharge), joined with the
+     * latest billing statement (if any) so the view can show the billing
+     * status and disable the Discharge button when it's neither Paid nor
+     * Partially Paid.
+     */
     public function getReadyForDischarge(): array
     {
         return $this->pdo->query(
@@ -756,18 +748,34 @@ class NurseController
                     a.discharge_datetime,
                     p.patient_id, p.first_name, p.last_name,
                     r.room_number, rt.room_type_name,
-                    ast.status_name, ast.color_code
+                    ast.status_name AS admission_status_name,
+                    ast.color_code  AS admission_status_color,
+                    bs.statement_id,
+                    bs.total_amount,
+                    bs.amount_paid,
+                    bs.balance_amount,
+                    bst.status_name AS billing_status_name,
+                    bst.color_code  AS billing_status_color
              FROM `admission` a
              INNER JOIN `patient` p ON p.patient_id = a.patient_id
              INNER JOIN `admission_status` ast ON ast.status_id = a.status_id
              LEFT JOIN `room_assignment` ra ON ra.admission_id = a.admission_id AND ra.is_active = 1
              LEFT JOIN `room` r ON r.room_id = ra.room_id
              LEFT JOIN `room_type` rt ON rt.room_type_id = r.room_type_id
-             WHERE a.status_id = 1
+             LEFT JOIN `billing_statement` bs ON bs.admission_id = a.admission_id
+             LEFT JOIN `billing_status` bst ON bst.status_id = bs.status_id
+             WHERE a.status_id = 4
              ORDER BY a.admission_datetime ASC'
         )->fetchAll();
     }
 
+    /**
+     * Discharge is allowed only when:
+     *   1. Doctor cleared the patient (status_id = 4), AND
+     *   2. Billing statement exists AND its status is "Paid" or "Partially Paid".
+     *
+     * Anything else is rejected with a clear message.
+     */
     public function dischargePatient(): void
     {
         $this->guard();
@@ -782,19 +790,66 @@ class NurseController
         try {
             $this->pdo->beginTransaction();
 
+            // 1. Admission must exist and be in status 4 (Ready for Discharge)
             $stmt = $this->pdo->prepare(
-                'SELECT a.admission_id, a.patient_id
+                'SELECT a.admission_id, a.patient_id, a.status_id, ast.status_name
                  FROM `admission` a
-                 WHERE a.admission_id = ? AND a.status_id IN (1, 3) LIMIT 1'
+                 INNER JOIN `admission_status` ast ON ast.status_id = a.status_id
+                 WHERE a.admission_id = ? LIMIT 1'
             );
             $stmt->execute([$admissionId]);
             $admission = $stmt->fetch();
 
             if (!$admission) {
                 $this->pdo->rollBack();
-                $this->json(404, ['success' => false, 'message' => 'Active admission not found.']);
+                $this->json(404, ['success' => false, 'message' => 'Admission not found.']);
             }
 
+            if ((int)$admission['status_id'] !== 4) {
+                $this->pdo->rollBack();
+                $this->json(409, [
+                    'success' => false,
+                    'message' => 'This patient must be marked Ready for Discharge by the attending doctor first. '
+                        . 'Current status: ' . $admission['status_name'] . '.',
+                ]);
+            }
+
+            // 2. Billing gate: a statement must exist AND be Paid or Partially Paid
+            $stmt = $this->pdo->prepare(
+                'SELECT bs.statement_id, bs.balance_amount, bs.total_amount,
+                        bs.amount_paid, bst.status_name, bst.color_code
+                 FROM `billing_statement` bs
+                 INNER JOIN `billing_status` bst ON bst.status_id = bs.status_id
+                 WHERE bs.admission_id = ?
+                 ORDER BY bs.statement_id DESC
+                 LIMIT 1'
+            );
+            $stmt->execute([$admissionId]);
+            $statement = $stmt->fetch();
+
+            if (!$statement) {
+                $this->pdo->rollBack();
+                $this->json(409, [
+                    'success' => false,
+                    'message' => 'No billing statement exists for this admission yet. '
+                        . 'The cashier must create a statement before the patient can be discharged.',
+                ]);
+            }
+
+            $allowedStatuses = ['paid', 'partially paid'];
+            $currentBillingStatus = strtolower($statement['status_name']);
+
+            if (!in_array($currentBillingStatus, $allowedStatuses, true)) {
+                $this->pdo->rollBack();
+                $this->json(409, [
+                    'success' => false,
+                    'message' => 'Patient cannot be discharged — the billing statement is still "'
+                        . $statement['status_name']
+                        . '". Only Paid or Partially Paid patients can be discharged.',
+                ]);
+            }
+
+            // 3. Free the room
             $stmt = $this->pdo->prepare(
                 'SELECT room_assignment_id, room_id
                  FROM `room_assignment`
@@ -819,6 +874,7 @@ class NurseController
                 $stmt->execute([$currentAssignment['room_id']]);
             }
 
+            // 4. Final discharge: status 2
             $stmt = $this->pdo->prepare(
                 'UPDATE `admission`
                  SET status_id = 2, discharge_datetime = NOW(),
@@ -834,9 +890,11 @@ class NurseController
             BillingHook::emit($this->pdo, $admissionId);
 
             $this->pdo->commit();
+
             try { BillingHook::flushDeferred(); } catch (Throwable $e) {
                 error_log('[NurseController::dischargePatient::flushDeferred] ' . $e->getMessage());
             }
+
             $this->json(200, ['success' => true, 'message' => 'Patient discharged successfully.']);
         } catch (Throwable $e) {
             if ($this->pdo->inTransaction()) $this->pdo->rollBack();
@@ -865,9 +923,9 @@ class NurseController
         )->fetchAll();
     }
 
-    
-    
-    
+    // =========================================================
+    // DROPDOWN DATA
+    // =========================================================
 
     public function getGenders(): array
     {
@@ -884,9 +942,9 @@ class NurseController
         return $this->pdo->query('SELECT room_type_id, room_type_name, rate_per_day FROM `room_type` ORDER BY room_type_name')->fetchAll();
     }
 
-    
-    
-    
+    // =========================================================
+    // HELPERS
+    // =========================================================
 
     private function guard(): void
     {

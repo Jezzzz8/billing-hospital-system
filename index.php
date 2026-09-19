@@ -1,6 +1,5 @@
 <?php
 
-
 session_start();
 require_once __DIR__ . '/config/config.php';
 
@@ -9,11 +8,9 @@ if (empty($_SESSION['user'])) {
     exit;
 }
 
-
 $currentUser = $_SESSION['user'];
 $fullName    = trim($currentUser['first_name'] . ' ' . $currentUser['last_name']);
 $roleId      = (int)$currentUser['role_id'];
-
 
 $defaultPage = match ($roleId) {
     1 => 'dashboard',
@@ -25,20 +22,12 @@ $defaultPage = match ($roleId) {
 
 $page = $_GET['page'] ?? $defaultPage;
 
-
 $allowed = [
     1 => [
-        
         'dashboard',
-
-        
         'users', 'users-create',
         'doctors', 'patients',
-
-        
         'billing', 'reports',
-
-        
         'gender',
         'role',
         'room-status',
@@ -87,7 +76,6 @@ if (!in_array($page, $allowed[$roleId] ?? [], true)) {
     exit;
 }
 
-
 $layout = match ($roleId) {
     1 => 'admin',
     2 => 'doctor',
@@ -95,10 +83,6 @@ $layout = match ($roleId) {
     4 => 'cashier',
     default => 'admin',
 };
-
-
-
-
 
 $contentFile = null;
 
@@ -122,11 +106,10 @@ if ($roleId === 1) {
     }
 
 } elseif ($roleId === 4) {
-    
     if ($page === 'cashier') {
         $contentFile = __DIR__ . '/views/cashier.php';
     } elseif (str_starts_with($page, 'cashier-')) {
-        $viewName = substr($page, 8); 
+        $viewName = substr($page, 8);
         $contentFile = __DIR__ . '/views/cashier/' . $viewName . '.php';
     }
 
@@ -140,10 +123,16 @@ if (!$contentFile || !file_exists($contentFile)) {
     exit;
 }
 
-
 $pageTitle = ucwords(str_replace(['-', '/'], [' ', ' · '], $page));
 
-
+$pageTitle = match ($page) {
+    'cashier-statements'      => 'Billing Statements',
+    'cashier-payment-counter' => 'Payment Counter',
+    'cashier-payments'        => 'Payments',
+    'cashier-reports'         => 'Reports',
+    'cashier-receipt'         => 'Statement',
+    default                   => $pageTitle,
+};
 
 $jsCandidates = [
     '/assets/js/master/' . $page . '.js',
@@ -158,11 +147,8 @@ foreach ($jsCandidates as $relPath) {
     }
 }
 
-
 $currentPage = $page;
 
-
 require_once __DIR__ . '/config/connection.php';
-
 
 require __DIR__ . '/views/layouts/' . $layout . '.php';

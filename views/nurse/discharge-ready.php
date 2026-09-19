@@ -1,5 +1,5 @@
 <?php
-
+// views/nurse/discharge-ready.php
 
 require_once __DIR__ . '/../../controllers/NurseController.php';
 
@@ -12,6 +12,21 @@ $readyPatients = $controller->getReadyForDischarge();
     <p class="mt-1 text-sm text-slate-500">Patients who are ready to be discharged.</p>
 </div>
 
+<!-- Workflow notice -->
+<div class="mb-5 rounded-lg px-4 py-3 text-sm border border-blue-200 bg-blue-50 text-blue-800 flex items-start gap-3">
+    <svg class="w-5 h-5 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+    </svg>
+    <div>
+        <p class="font-semibold">Discharge requires doctor clearance and a settled bill</p>
+        <p class="text-xs mt-0.5">
+            Patients appear here only after the attending doctor marks them
+            <strong>Ready for Discharge</strong>. You can only discharge when the billing statement
+            is <strong>Paid</strong> or <strong>Partially Paid</strong>.
+        </p>
+    </div>
+</div>
+
 <div id="alert" class="hidden mb-5 rounded-lg px-4 py-3 text-sm border"></div>
 
 <?php if (empty($readyPatients)): ?>
@@ -22,7 +37,7 @@ $readyPatients = $controller->getReadyForDischarge();
             </svg>
         </div>
         <p class="text-lg font-medium text-slate-700">No patients ready for discharge</p>
-        <p class="text-sm text-slate-500 mt-1">All admitted patients are still under care.</p>
+        <p class="text-sm text-slate-500 mt-1">No patient has been cleared for discharge by their doctor yet.</p>
     </div>
 <?php else: ?>
     <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
@@ -34,14 +49,26 @@ $readyPatients = $controller->getReadyForDischarge();
                         <th class="text-left px-6 py-3.5 font-semibold text-slate-700 text-xs uppercase tracking-wide">Room</th>
                         <th class="text-left px-6 py-3.5 font-semibold text-slate-700 text-xs uppercase tracking-wide">Admitted</th>
                         <th class="text-left px-6 py-3.5 font-semibold text-slate-700 text-xs uppercase tracking-wide">Length of Stay</th>
+                        <th class="text-left px-6 py-3.5 font-semibold text-slate-700 text-xs uppercase tracking-wide">Billing</th>
                         <th class="text-right px-6 py-3.5 font-semibold text-slate-700 text-xs uppercase tracking-wide">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
-                    <?php foreach ($readyPatients as $p): 
+                    <?php foreach ($readyPatients as $p):
                         $admitted = new DateTime($p['admission_datetime']);
                         $now = new DateTime();
                         $los = $admitted->diff($now);
+
+                        $billingStatusLower = strtolower($p['billing_status_name'] ?? '');
+                        $canDischarge = !empty($p['statement_id'])
+                            && in_array($billingStatusLower, ['paid', 'partially paid'], true);
+
+                        $reasonBlocked = '';
+                        if (empty($p['statement_id'])) {
+                            $reasonBlocked = 'Cashier has not created a billing statement yet.';
+                        } elseif (!$canDischarge) {
+                            $reasonBlocked = 'Billing status is "' . $p['billing_status_name'] . '". Only Paid or Partially Paid patients can be discharged.';
+                        }
                     ?>
                         <tr class="hover:bg-slate-50">
                             <td class="px-6 py-4">
@@ -64,16 +91,46 @@ $readyPatients = $controller->getReadyForDischarge();
                                     <?= $los->days ?> day<?= $los->days !== 1 ? 's' : '' ?>
                                 </span>
                             </td>
-                            <td class="px-6 py-4 text-right">
-                                <button type="button"
-                                        class="discharge-btn inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700"
-                                        data-admission-id="<?= (int)$p['admission_id'] ?>"
-                                        data-patient-name="<?= htmlspecialchars($p['first_name'] . ' ' . $p['last_name']) ?>">
-                                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                    </svg>
-                                    Discharge
-                                </button>
+                            <td class="px-6 py-4">
+                                <?php if (!empty($p['statement_id'])): ?>
+                                    <span class="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium"
+                                          style="background-color: <?= htmlspecialchars($p['billing_status_color'] ?? '#6b7280') ?>1A;
+                                                 color: <?= htmlspecialchars($p['billing_status_color'] ?? '#6b7280') ?>;
+                                                 border-color: <?= htmlspecialchars($p['billing_status_color'] ?? '#6b7280') ?>40;">
+                                        <?= htmlspecialchars($p['billing_status_name']) ?>
+                                    </span>
+                                    <p class="text-xs text-slate-500 mt-1">
+                                        Balance: ₱<?= number_format((float)$p['balance_amount'], 2) ?>
+                                    </p>
+                                <?php else: ?>
+                                    <span class="text-xs text-amber-600">No statement yet</span>
+                                <?php endif; ?>
+                            </td>
+                            <td class="px-6 py-4 text-right whitespace-nowrap">
+                                <?php if ($canDischarge): ?>
+                                    <button type="button"
+                                            class="discharge-btn inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700"
+                                            data-admission-id="<?= (int)$p['admission_id'] ?>"
+                                            data-patient-name="<?= htmlspecialchars($p['first_name'] . ' ' . $p['last_name']) ?>">
+                                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                        </svg>
+                                        Discharge
+                                    </button>
+                                <?php else: ?>
+                                    <button type="button"
+                                            class="inline-flex items-center gap-1.5 rounded-lg bg-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-500 cursor-not-allowed"
+                                            disabled
+                                            title="<?= htmlspecialchars($reasonBlocked) ?>">
+                                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                                        </svg>
+                                        Discharge
+                                    </button>
+                                    <p class="text-xs text-slate-500 mt-1 max-w-[16rem] ml-auto text-right">
+                                        <?= htmlspecialchars($reasonBlocked) ?>
+                                    </p>
+                                <?php endif; ?>
                             </td>
                         </tr>
                     <?php endforeach; ?>
@@ -83,7 +140,7 @@ $readyPatients = $controller->getReadyForDischarge();
     </div>
 <?php endif; ?>
 
-
+<!-- Discharge Confirmation Modal -->
 <div id="dischargeModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
     <div class="absolute inset-0 bg-slate-900/50" data-close-modal></div>
 

@@ -8,10 +8,6 @@ class CashierController
 
     public function __construct(PDO $pdo) { $this->pdo = $pdo; }
 
-    
-    
-    
-
     public function getDashboardStats(): array
     {
         $totalStatements = (int)$this->pdo->query(
@@ -71,10 +67,6 @@ class CashierController
         $stmt->execute();
         return $stmt->fetchAll();
     }
-
-    
-    
-    
 
     public function getAllStatements(): array
     {
@@ -148,7 +140,6 @@ class CashierController
         $statement = $stmt->fetch();
         if (!$statement) return null;
 
-        
         $stmt = $this->pdo->prepare(
             'SELECT c.charge_id, c.charge_item_id, c.quantity, c.actual_price,
                     c.charge_datetime, c.notes, c.service_start_date, c.service_end_date,
@@ -164,7 +155,6 @@ class CashierController
         $stmt->execute([$statementId]);
         $statement['charges'] = $stmt->fetchAll();
 
-        
         $stmt = $this->pdo->prepare(
             'SELECT p.payment_id, p.payment_type_id, p.amount,
                     DATE_FORMAT(p.payment_datetime, "%Y-%m-%d %H:%i:%s") AS payment_datetime,
@@ -178,7 +168,6 @@ class CashierController
         $stmt->execute([$statementId]);
         $statement['payments'] = $stmt->fetchAll();
 
-        
         $stmt = $this->pdo->prepare(
             'SELECT ra.room_assignment_id, ra.start_datetime, ra.end_datetime,
                     ra.daily_rate_at_assignment, ra.transfer_reason, ra.is_active,
@@ -194,10 +183,6 @@ class CashierController
 
         return $statement;
     }
-
-    
-    
-    
 
     public function getBillingStatuses(): array
     {
@@ -232,223 +217,23 @@ class CashierController
     {
         return $this->pdo->query(
             'SELECT a.admission_id, a.admission_datetime, a.chief_complaint,
-                    p.first_name, p.last_name, p.patient_id
+                    p.first_name, p.last_name, p.patient_id,
+                    ast.status_name AS admission_status_name,
+                    ast.color_code  AS admission_status_color
              FROM `admission` a
              INNER JOIN `patient` p ON p.patient_id = a.patient_id
+             INNER JOIN `admission_status` ast ON ast.status_id = a.status_id
              LEFT JOIN `billing_statement` bs ON bs.admission_id = a.admission_id
              WHERE bs.statement_id IS NULL
+               AND a.status_id = 4
              ORDER BY a.admission_datetime DESC'
         )->fetchAll();
     }
 
-    
-    
-    
-
     public function syncChargesFromAdmission(int $statementId): void
     {
-        $stmt = $this->pdo->prepare(
-            'SELECT admission_id FROM `billing_statement` WHERE statement_id = ? LIMIT 1'
-        );
-        $stmt->execute([$statementId]);
-        $admissionId = (int)$stmt->fetchColumn();
-        if ($admissionId <= 0) return;
-
-        $userId = (int)($_SESSION['user']['user_id'] ?? 0);
-
-        $this->pdo->beginTransaction();
-
-        try {
-            
-            $stmt = $this->pdo->prepare(
-                'SELECT ra.room_assignment_id, ra.room_id, ra.start_datetime, ra.end_datetime,
-                        ra.daily_rate_at_assignment,
-                        r.room_number, rt.room_type_id, rt.room_type_name
-                 FROM `room_assignment` ra
-                 INNER JOIN `room` r ON r.room_id = ra.room_id
-                 INNER JOIN `room_type` rt ON rt.room_type_id = r.room_type_id
-                 WHERE ra.admission_id = ?
-                 ORDER BY ra.start_datetime ASC'
-            );
-            $stmt->execute([$admissionId]);
-            $assignments = $stmt->fetchAll();
-
-            foreach ($assignments as $a) {
-                $itemId = $this->findRoomChargeItem((int)$a['room_type_id'], $a['room_type_name']);
-                if ($itemId <= 0) continue;
-
-                $stmtChk = $this->pdo->prepare(
-                    'SELECT COUNT(*) FROM `charge`
-                     WHERE statement_id = ? AND notes LIKE ?'
-                );
-                $stmtChk->execute([
-                    $statementId,
-                    '%room_assignment_id=' . $a['room_assignment_id'] . '%'
-                ]);
-                if ((int)$stmtChk->fetchColumn() > 0) continue;
-
-                $start = new DateTime($a['start_datetime']);
-                $end   = $a['end_datetime'] ? new DateTime($a['end_datetime']) : new DateTime();
-                $days  = max(1, (int)$start->diff($end)->days);
-
-                $stmtIns = $this->pdo->prepare(
-                    'INSERT INTO `charge`
-                        (statement_id, charge_item_id, quantity, actual_price,
-                         charge_datetime, processed_by_user_id, notes,
-                         service_start_date, service_end_date)
-                     VALUES (?, ?, ?, ?, NOW(), ?, ?, ?, ?)'
-                );
-                $stmtIns->execute([
-                    $statementId,
-                    $itemId,
-                    $days,
-                    (float)$a['daily_rate_at_assignment'],
-                    $userId,
-                    'Room ' . $a['room_number'] . ' (' . $a['room_type_name'] . ') — room_assignment_id=' . $a['room_assignment_id'],
-                    $start->format('Y-m-d'),
-                    $end->format('Y-m-d'),
-                ]);
-            }
-
-            
-            $stmt = $this->pdo->prepare(
-                'SELECT sr.request_id, sr.charge_item_id, sr.quantity,
-                        ci.default_price, ci.item_name
-                 FROM `service_request` sr
-                 INNER JOIN `charge_item` ci ON ci.charge_item_id = sr.charge_item_id
-                 WHERE sr.admission_id = ? AND sr.status = "Pending"'
-            );
-            $stmt->execute([$admissionId]);
-            $requests = $stmt->fetchAll();
-
-            foreach ($requests as $r) {
-                $stmtChk = $this->pdo->prepare(
-                    'SELECT COUNT(*) FROM `charge`
-                     WHERE statement_id = ? AND notes LIKE ?'
-                );
-                $stmtChk->execute([
-                    $statementId,
-                    '%service_request_id=' . $r['request_id'] . '%'
-                ]);
-                if ((int)$stmtChk->fetchColumn() > 0) {
-                    $stmtUpd = $this->pdo->prepare(
-                        'UPDATE `service_request` SET status = "Completed" WHERE request_id = ?'
-                    );
-                    $stmtUpd->execute([(int)$r['request_id']]);
-                    continue;
-                }
-
-                $stmtIns = $this->pdo->prepare(
-                    'INSERT INTO `charge`
-                        (statement_id, charge_item_id, quantity, actual_price,
-                         charge_datetime, processed_by_user_id, notes)
-                     VALUES (?, ?, ?, ?, NOW(), ?, ?)'
-                );
-                $stmtIns->execute([
-                    $statementId,
-                    (int)$r['charge_item_id'],
-                    (int)$r['quantity'],
-                    (float)$r['default_price'],
-                    $userId,
-                    'Service request — service_request_id=' . $r['request_id'] . ' (' . $r['item_name'] . ')',
-                ]);
-
-                $stmtUpd = $this->pdo->prepare(
-                    'UPDATE `service_request` SET status = "Completed" WHERE request_id = ?'
-                );
-                $stmtUpd->execute([(int)$r['request_id']]);
-            }
-
-            
-            $stmt = $this->pdo->prepare(
-                'SELECT ad.admission_doctor_id, ad.consultation_fee_charged, ad.doctor_id,
-                        u.first_name, u.last_name
-                 FROM `admission_doctor` ad
-                 INNER JOIN `doctor` d ON d.doctor_id = ad.doctor_id
-                 INNER JOIN `user` u ON u.user_id = d.user_id
-                 WHERE ad.admission_id = ?
-                   AND ad.consultation_fee_charged > 0
-                   AND ad.ended_datetime IS NULL'
-            );
-            $stmt->execute([$admissionId]);
-            $doctors = $stmt->fetchAll();
-
-            $stmtCI = $this->pdo->prepare(
-                'SELECT charge_item_id FROM `charge_item`
-                 WHERE item_code = "PROF-CONSULT" AND is_active = 1 LIMIT 1'
-            );
-            $stmtCI->execute();
-            $consultItemId = (int)$stmtCI->fetchColumn();
-
-            if ($consultItemId > 0) {
-                foreach ($doctors as $d) {
-                    $stmtChk = $this->pdo->prepare(
-                        'SELECT COUNT(*) FROM `charge`
-                         WHERE statement_id = ? AND charge_item_id = ? AND notes LIKE ?'
-                    );
-                    $stmtChk->execute([
-                        $statementId,
-                        $consultItemId,
-                        '%admission_doctor_id=' . $d['admission_doctor_id'] . '%'
-                    ]);
-                    if ((int)$stmtChk->fetchColumn() > 0) continue;
-
-                    $stmtIns = $this->pdo->prepare(
-                        'INSERT INTO `charge`
-                            (statement_id, charge_item_id, quantity, actual_price,
-                             charge_datetime, processed_by_user_id, notes)
-                         VALUES (?, ?, 1, ?, NOW(), ?, ?)'
-                    );
-                    $stmtIns->execute([
-                        $statementId,
-                        $consultItemId,
-                        (float)$d['consultation_fee_charged'],
-                        $userId,
-                        'Doctor consultation — admission_doctor_id=' . $d['admission_doctor_id']
-                            . ' (Dr. ' . $d['first_name'] . ' ' . $d['last_name'] . ')',
-                    ]);
-                }
-            }
-
-            $this->recomputeStatement($statementId);
-
-            $this->pdo->commit();
-        } catch (Throwable $e) {
-            $this->pdo->rollBack();
-            error_log('[CashierController::syncChargesFromAdmission] ' . $e->getMessage());
-            throw $e;
-        }
+        (new ChargeSyncService($this->pdo))->syncStatement($statementId);
     }
-
-    private function findRoomChargeItem(int $roomTypeId, string $roomTypeName): int
-    {
-        $stmt = $this->pdo->prepare(
-            'SELECT ci.charge_item_id
-             FROM `charge_item` ci
-             INNER JOIN `charge_category` cc ON cc.category_id = ci.category_id
-             WHERE cc.category_name = "Room Charges"
-               AND ci.is_active = 1
-               AND ci.item_name LIKE ?
-             LIMIT 1'
-        );
-        $stmt->execute(['%' . $roomTypeName . '%']);
-        $id = (int)$stmt->fetchColumn();
-        if ($id > 0) return $id;
-
-        $stmt = $this->pdo->prepare(
-            'SELECT ci.charge_item_id
-             FROM `charge_item` ci
-             INNER JOIN `charge_category` cc ON cc.category_id = ci.category_id
-             WHERE cc.category_name = "Room Charges" AND ci.is_active = 1
-             LIMIT 1'
-        );
-        $stmt->execute();
-        return (int)$stmt->fetchColumn();
-    }
-
-    
-    
-    
 
     public function addCharge(int $statementId, array $data): void
     {
@@ -521,11 +306,6 @@ class CashierController
         $this->recomputeStatement($statementId);
     }
 
-    
-    
-    
-
-    
     public function addPayment(int $statementId, array $data): string
     {
         $typeId = (int)($data['payment_type_id'] ?? 0);
@@ -574,13 +354,11 @@ class CashierController
         $this->recomputeStatement($statementId);
     }
 
-    
     private function generatePaymentReference(): string
     {
         $date   = date('Ymd');
         $prefix = 'PAY-' . $date . '-';
 
-        
         $stmt = $this->pdo->prepare(
             'SELECT transaction_reference
              FROM `payment`
@@ -600,86 +378,10 @@ class CashierController
         return $prefix . str_pad((string)$next, 4, '0', STR_PAD_LEFT);
     }
 
-    
-    
-    
-
     public function recomputeStatement(int $statementId): void
     {
-        $stmt = $this->pdo->prepare(
-            'SELECT
-                COALESCE(SUM(c.quantity * c.actual_price), 0) AS subtotal,
-                COALESCE(SUM(CASE WHEN ci.is_taxable = 1 THEN c.quantity * c.actual_price ELSE 0 END), 0) AS taxable
-             FROM `charge` c
-             INNER JOIN `charge_item` ci ON ci.charge_item_id = c.charge_item_id
-             WHERE c.statement_id = ?'
-        );
-        $stmt->execute([$statementId]);
-        $row = $stmt->fetch();
-
-        $subtotal = (float)$row['subtotal'];
-        $taxable  = (float)$row['taxable'];
-        $tax      = round($taxable * 0.12, 2);
-
-        $stmt = $this->pdo->prepare(
-            'SELECT COALESCE(SUM(amount), 0) FROM `payment` WHERE statement_id = ?'
-        );
-        $stmt->execute([$statementId]);
-        $paid = (float)$stmt->fetchColumn();
-
-        $stmt = $this->pdo->prepare(
-            'SELECT insurance_coverage_amount, government_discount, status_id
-             FROM `billing_statement` WHERE statement_id = ? LIMIT 1'
-        );
-        $stmt->execute([$statementId]);
-        $current = $stmt->fetch();
-        if (!$current) return;
-
-        $insurance = (float)$current['insurance_coverage_amount'];
-        $discount  = (float)$current['government_discount'];
-        $statusId  = (int)$current['status_id'];
-
-        $total   = max(0, $subtotal + $tax - $insurance - $discount);
-        $balance = max(0, $total - $paid);
-
-        $stmtStatus = $this->pdo->prepare(
-            'SELECT status_id, is_paid_status, status_name FROM `billing_status`'
-        );
-        $stmtStatus->execute();
-        $statuses = $stmtStatus->fetchAll();
-
-        $paidId = null; $partialId = null;
-        foreach ($statuses as $s) {
-            if ((int)$s['is_paid_status'] === 1) $paidId = (int)$s['status_id'];
-            if (strtolower($s['status_name']) === 'partially paid') $partialId = (int)$s['status_id'];
-        }
-
-        if ($paid > 0 && $balance <= 0 && $paidId) {
-            $statusId = $paidId;
-        } elseif ($paid > 0 && $partialId && $statusId !== 4) {
-            $statusId = $partialId;
-        }
-
-        $stmt = $this->pdo->prepare(
-            'UPDATE `billing_statement`
-             SET subtotal_amount = ?, tax_amount = ?, total_amount = ?,
-                 amount_paid = ?, balance_amount = ?, status_id = ?
-             WHERE statement_id = ?'
-        );
-        $stmt->execute([
-            $subtotal,
-            $tax,
-            $total,
-            $paid,
-            $balance,
-            $statusId,
-            $statementId,
-        ]);
+        (new ChargeSyncService($this->pdo))->recomputeStatement($statementId);
     }
-
-    
-    
-    
 
     public function getReportsData(): array
     {
@@ -772,9 +474,9 @@ class CashierController
 
             $statementId = (int)$this->pdo->lastInsertId();
 
-            $this->pdo->commit();
-
             (new ChargeSyncService($this->pdo))->syncStatement($statementId);
+
+            $this->pdo->commit();
 
             $this->json(201, [
                 'success'      => true,
@@ -787,10 +489,6 @@ class CashierController
             $this->json(500, ['success' => false, 'message' => 'Could not create statement.']);
         }
     }
-
-    
-    
-    
 
     public function guard(): void
     {

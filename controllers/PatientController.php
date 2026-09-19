@@ -29,8 +29,8 @@ class PatientController
              FROM `patient` p
              INNER JOIN `gender` g ON g.gender_id = p.gender_id
              LEFT JOIN `admission` a
-                    ON a.patient_id = p.patient_id
-                   AND a.status_id IN (1, 3)
+                ON a.patient_id = p.patient_id
+                AND a.status_id IN (1, 3, 4)
              LEFT JOIN `admission_status` ast ON ast.status_id = a.status_id
              LEFT JOIN `room_assignment` ra
                     ON ra.admission_id = a.admission_id
