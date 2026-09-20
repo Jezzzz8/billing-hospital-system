@@ -151,4 +151,4 @@ document.getElementById('registerForm').addEventListener('submit', async functio
         label.textContent = 'Register Patient';
     }
 });
-</script>  
+</script>

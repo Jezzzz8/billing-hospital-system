@@ -65,8 +65,11 @@ foreach ($rooms as $r) {
                         <?= htmlspecialchars($r['status_name']) ?>
                     </p>
                     <p class="text-xs text-slate-500 mt-1">
-                        Floor <?= (int)($r['floor_level'] ?? 0) ?>
-                        <?= $r['building'] ? ' · ' . htmlspecialchars($r['building']) : '' ?>
+                        <?php if (!empty($r['floor_level_name'])): ?>
+                            Floor <?= htmlspecialchars($r['floor_level_name']) ?>
+                        <?php endif; ?>
+                        <?php if (!empty($r['floor_level_name']) && !empty($r['building_name'])): ?> · <?php endif; ?>
+                        <?= htmlspecialchars($r['building_name'] ?? '') ?>
                     </p>
                     <p class="text-xs text-slate-600 mt-2 font-medium">₱<?= number_format((float)$r['rate_per_day'], 2) ?>/day</p>
                 </div>

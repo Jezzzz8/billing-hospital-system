@@ -1,9 +1,7 @@
 <?php
 
-
 class DoctorHelper
 {
-    
     public static function getCurrentDoctorId(PDO $pdo): ?int
     {
         if (session_status() === PHP_SESSION_NONE) session_start();

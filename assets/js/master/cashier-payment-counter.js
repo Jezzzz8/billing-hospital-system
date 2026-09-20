@@ -1,11 +1,11 @@
 (function () {
-    const baseUrl = document.body.dataset.baseUrl;
+    const baseUrl = document.body.dataset.baseUrl || "";
     const alertEl = document.getElementById('counterAlert');
 
     function peso(n) {
         return '₱' + Number(n || 0).toLocaleString('en-PH', {
             minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
+            maximumFractionDigits: 2
         });
     }
 
@@ -17,37 +17,28 @@
                 : 'border-rose-200 bg-rose-50 text-rose-800');
         alertEl.textContent = msg;
         alertEl.classList.remove('hidden');
-        setTimeout(() => alertEl.classList.add('hidden'), 4000);
+        setTimeout(() => alertEl.classList.add('hidden'), 5000);
     }
 
-    const searchInput  = document.getElementById('counterSearch');
-    const statusFilter = document.getElementById('counterStatus');
-    const clearBtn     = document.getElementById('counterClear');
-    const rows         = document.querySelectorAll('.counter-row');
-    const summary      = document.getElementById('counterSummary');
-    const filteredCount= document.getElementById('counterFilteredCount');
-    const totalCount   = document.getElementById('counterTotalCount');
-    const emptyState   = document.getElementById('counterEmpty');
+    const searchInput   = document.getElementById('counterSearch');
+    const statusFilter  = document.getElementById('counterStatus');
+    const clearBtn      = document.getElementById('counterClear');
+    const rows          = document.querySelectorAll('.counter-row');
+    const summary       = document.getElementById('counterSummary');
+    const filteredCount = document.getElementById('counterFilteredCount');
+    const totalCount    = document.getElementById('counterTotalCount');
+    const emptyState    = document.getElementById('counterEmpty');
 
     function applyFilters() {
         const q = (searchInput?.value || '').toLowerCase().trim();
-        const rawStatus = statusFilter?.value ?? '__pending__';
+        const status = statusFilter?.value || '';
         let visible = 0;
 
         rows.forEach(row => {
             const search    = row.dataset.search || '';
             const rowStatus = (row.dataset.status || '').toLowerCase();
-
-            let matchS;
-            if (rawStatus === '__pending__') {
-                matchS = rowStatus === 'pending';
-            } else if (rawStatus === '') {
-                matchS = true;
-            } else {
-                matchS = rowStatus === rawStatus.toLowerCase();
-            }
-
             const matchQ = !q || search.includes(q);
+            const matchS = !status || rowStatus === status.toLowerCase();
 
             if (matchQ && matchS) {
                 row.style.display = '';
@@ -57,7 +48,7 @@
             }
         });
 
-        const filtering = q || rawStatus !== '__pending__';
+        const filtering = q || status;
         if (filtering) {
             summary?.classList.remove('hidden');
             clearBtn?.classList.remove('hidden');
@@ -76,7 +67,7 @@
     statusFilter?.addEventListener('change', applyFilters);
     clearBtn?.addEventListener('click', () => {
         if (searchInput)  searchInput.value  = '';
-        if (statusFilter) statusFilter.value = '__pending__';
+        if (statusFilter) statusFilter.value = '';
         applyFilters();
     });
 
@@ -85,11 +76,9 @@
 
     let currentStatement = null;
 
-    function openCollectModal() {
-        if (modal) modal.classList.remove('hidden');
-    }
+    function openCollectModal()  { modal?.classList.remove('hidden'); }
     function closeCollectModal() {
-        if (modal) modal.classList.add('hidden');
+        modal?.classList.add('hidden');
         currentStatement = null;
     }
 
@@ -122,18 +111,22 @@
     function renderStatement(s) {
         if (!s) return;
 
-        const elSubtitle = document.getElementById('collectSubtitle');
-        const elStatement= document.getElementById('colStatement');
-        const elPatient  = document.getElementById('colPatient');
-        const elContact  = document.getElementById('colContact');
-        const elTotal    = document.getElementById('colTotal');
-        const elPaid     = document.getElementById('colPaid');
-        const elBalance  = document.getElementById('colBalance');
+        const elSubtitle  = document.getElementById('collectSubtitle');
+        const elStatement = document.getElementById('colStatement');
+        const elPatient   = document.getElementById('colPatient');
+        const elContact   = document.getElementById('colContact');
+        const elSubtotal  = document.getElementById('colSubtotal');
+        const elTax       = document.getElementById('colTax');
+        const elTotal     = document.getElementById('colTotal');
+        const elPaid      = document.getElementById('colPaid');
+        const elBalance   = document.getElementById('colBalance');
 
-        if (elSubtitle) elSubtitle.textContent = `${s.first_name} ${s.last_name} — Statement #${s.statement_id}`;
+        if (elSubtitle)  elSubtitle.textContent  = `${s.first_name} ${s.last_name} — Statement #${s.statement_id}`;
         if (elStatement) elStatement.textContent = '#' + s.statement_id;
         if (elPatient)   elPatient.textContent   = `${s.first_name} ${s.last_name}`;
         if (elContact)   elContact.textContent   = s.contact_number || '—';
+        if (elSubtotal)  elSubtotal.textContent  = peso(s.subtotal_amount);
+        if (elTax)       elTax.textContent       = peso(s.tax_amount);
         if (elTotal)     elTotal.textContent     = peso(s.total_amount);
         if (elPaid)      elPaid.textContent      = peso(s.amount_paid);
         if (elBalance)   elBalance.textContent   = peso(s.balance_amount);
@@ -154,9 +147,10 @@
 
     function updatePaymentPreview() {
         if (!currentStatement) return;
-        const amount = parseFloat(document.getElementById('col_amount')?.value) || 0;
+
+        const amount  = parseFloat(document.getElementById('col_amount')?.value) || 0;
         const balance = parseFloat(currentStatement.balance_amount) || 0;
-        const after = Math.max(0, balance - amount);
+        const after   = Math.max(0, balance - amount);
 
         const beforeEl = document.getElementById('colBalanceBefore');
         const thisEl   = document.getElementById('colThisPayment');
@@ -170,6 +164,7 @@
         if (!hint) return;
         if (amount <= 0) {
             hint.textContent = '';
+            hint.className = 'mt-1 text-xs text-slate-500';
         } else if (amount >= balance) {
             hint.textContent = 'Full payment — the statement will be marked as Paid.';
             hint.className = 'mt-1 text-xs text-emerald-600';
@@ -180,6 +175,7 @@
     }
 
     document.getElementById('col_amount')?.addEventListener('input', updatePaymentPreview);
+
     document.getElementById('colFullBtn')?.addEventListener('click', () => {
         if (!currentStatement) return;
         const amt = document.getElementById('col_amount');
@@ -192,14 +188,14 @@
         if (this.dataset.busy === '1') return;
         this.dataset.busy = '1';
 
-        const btn = this;
+        const btn   = this;
         const label = document.getElementById('confirmCollectLabel');
         const paymentTypeId = document.getElementById('col_payment_type_id')?.value;
         const amount = parseFloat(document.getElementById('col_amount')?.value) || 0;
-        const notes = document.getElementById('col_notes')?.value.trim() || '';
+        const notes  = document.getElementById('col_notes')?.value.trim() || '';
 
         if (!paymentTypeId) { showAlert('error', 'Please select a payment type.'); btn.dataset.busy = '0'; return; }
-        if (amount <= 0)   { showAlert('error', 'Enter a positive amount.');     btn.dataset.busy = '0'; return; }
+        if (amount <= 0)    { showAlert('error', 'Enter a positive amount.');     btn.dataset.busy = '0'; return; }
 
         const balance = parseFloat(currentStatement.balance_amount) || 0;
         if (amount > balance + 0.001) {
@@ -208,10 +204,10 @@
             return;
         }
 
-        const statementId = currentStatement.statement_id;
-        const patientName = `${currentStatement.first_name} ${currentStatement.last_name}`;
+        const statementId     = currentStatement.statement_id;
+        const patientName     = `${currentStatement.first_name} ${currentStatement.last_name}`;
         const previousBalance = balance;
-        const newBalance = Math.max(0, previousBalance - amount);
+        const newBalance      = Math.max(0, previousBalance - amount);
 
         btn.disabled = true;
         if (label) label.textContent = 'Recording…';
@@ -222,7 +218,7 @@
                 {
                     payment_type_id: parseInt(paymentTypeId, 10),
                     amount: amount,
-                    notes: notes,
+                    notes: notes
                 },
                 { headers: { 'Content-Type': 'application/json' } }
             );

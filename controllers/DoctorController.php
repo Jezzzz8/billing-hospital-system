@@ -1,15 +1,10 @@
 <?php
 
-
 class DoctorController
 {
     private PDO $pdo;
 
     public function __construct(PDO $pdo) { $this->pdo = $pdo; }
-
-    
-    
-    
 
     public function getAll(): array
     {
@@ -23,7 +18,6 @@ class DoctorController
              ORDER BY d.doctor_id'
         )->fetchAll();
 
-        
         if ($doctors) {
             $ids = array_column($doctors, 'doctor_id');
             $placeholders = implode(',', array_fill(0, count($ids), '?'));
@@ -61,14 +55,8 @@ class DoctorController
         )->fetchAll();
     }
 
-    
-    
-    
-
     public function create(): void
     {
-        $this->guard();
-
         $data   = $this->input();
         $errors = $this->validate($data, null, true);
         if ($errors) $this->json(422, ['success' => false, 'message' => 'Please fix the highlighted fields.', 'errors' => $errors]);
@@ -80,7 +68,6 @@ class DoctorController
         try {
             $this->pdo->beginTransaction();
 
-            
             $hash = password_hash((string)$data['password'], PASSWORD_BCRYPT);
             $stmt = $this->pdo->prepare(
                 'INSERT INTO `user`
@@ -97,7 +84,6 @@ class DoctorController
             ]);
             $userId = (int)$this->pdo->lastInsertId();
 
-            
             $stmt = $this->pdo->prepare(
                 'INSERT INTO `doctor` (user_id, license_number, consultation_fee, is_active)
                  VALUES (?, ?, ?, 1)'
@@ -109,7 +95,6 @@ class DoctorController
             ]);
             $doctorId = (int)$this->pdo->lastInsertId();
 
-            
             $this->saveSpecializations($doctorId, $data['specializations'] ?? [], (int)($data['primary_specialization_id'] ?? 0));
 
             $this->pdo->commit();
@@ -127,14 +112,8 @@ class DoctorController
         }
     }
 
-    
-    
-    
-
     public function update(): void
     {
-        $this->guard();
-
         $doctorId = (int)($_GET['id'] ?? 0);
         if ($doctorId <= 0) $this->json(400, ['success' => false, 'message' => 'Missing doctor id.']);
 
@@ -155,7 +134,6 @@ class DoctorController
         try {
             $this->pdo->beginTransaction();
 
-            
             $stmt = $this->pdo->prepare(
                 'UPDATE `user`
                  SET username = ?, first_name = ?, last_name = ?, email = ?, contact_number = ?
@@ -170,7 +148,6 @@ class DoctorController
                 $userId,
             ]);
 
-            
             $stmt = $this->pdo->prepare(
                 'UPDATE `doctor` SET license_number = ?, consultation_fee = ? WHERE doctor_id = ?'
             );
@@ -180,7 +157,6 @@ class DoctorController
                 $doctorId,
             ]);
 
-            
             $stmt = $this->pdo->prepare('DELETE FROM `doctor_specialization` WHERE doctor_id = ?');
             $stmt->execute([$doctorId]);
             $this->saveSpecializations($doctorId, $data['specializations'] ?? [], (int)($data['primary_specialization_id'] ?? 0));
@@ -194,14 +170,8 @@ class DoctorController
         }
     }
 
-    
-    
-    
-
     public function changePassword(): void
     {
-        $this->guard();
-
         $doctorId = (int)($_GET['id'] ?? 0);
         if ($doctorId <= 0) $this->json(400, ['success' => false, 'message' => 'Missing doctor id.']);
 
@@ -230,14 +200,8 @@ class DoctorController
         $this->json(200, ['success' => true, 'message' => 'Password updated successfully.']);
     }
 
-    
-    
-    
-
     public function toggleActive(): void
     {
-        $this->guard();
-
         $doctorId = (int)($_GET['id'] ?? 0);
         if ($doctorId <= 0) $this->json(400, ['success' => false, 'message' => 'Missing doctor id.']);
 
@@ -279,17 +243,12 @@ class DoctorController
         ]);
     }
 
-    
-    
-    
-
     private function saveSpecializations(int $doctorId, array $specIds, int $primaryId): void
     {
         $specIds = array_values(array_unique(array_filter(array_map('intval', $specIds), fn($v) => $v > 0)));
 
         if (!$specIds) return;
 
-        
         $placeholders = implode(',', array_fill(0, count($specIds), '?'));
         $stmt = $this->pdo->prepare("SELECT specialization_id FROM `specialization` WHERE specialization_id IN ($placeholders)");
         $stmt->execute($specIds);
@@ -303,21 +262,6 @@ class DoctorController
         foreach ($valid as $sid) {
             $isPrimary = ((int)$sid === $primaryId) ? 'Yes' : 'No';
             $stmt->execute([$doctorId, (int)$sid, $isPrimary]);
-        }
-    }
-
-    private function guard(): void
-    {
-        header('Content-Type: application/json; charset=utf-8');
-
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->json(405, ['success' => false, 'message' => 'Method not allowed.']);
-        }
-
-        if (session_status() === PHP_SESSION_NONE) session_start();
-
-        if (empty($_SESSION['user']) || (int)$_SESSION['user']['role_id'] !== 1) {
-            $this->json(403, ['success' => false, 'message' => 'Access denied.']);
         }
     }
 
@@ -347,7 +291,6 @@ class DoctorController
         $fee = $data['consultation_fee'] ?? '';
         if ($fee === '' || !is_numeric($fee) || (float)$fee < 0) $errors['consultation_fee'] = 'Enter a valid consultation fee.';
 
-        
         $primaryId = (int)($data['primary_specialization_id'] ?? 0);
         $specIds   = array_map('intval', $data['specializations'] ?? []);
         if ($primaryId > 0 && !in_array($primaryId, $specIds, true)) {

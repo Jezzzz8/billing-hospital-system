@@ -1,3 +1,5 @@
 <?php
 
-define('BASE_URL', '/billing_hospital');
+if (!defined('BASE_URL')) {
+    define('BASE_URL', '/billing_hospital');
+}

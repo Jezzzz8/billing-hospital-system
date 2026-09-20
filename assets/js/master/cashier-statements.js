@@ -1,6 +1,5 @@
 (function () {
-    const baseUrl = document.body.dataset.baseUrl;
-    const alertEl = document.getElementById('alert');
+    const baseUrl = document.body.dataset.baseUrl || "";
 
     const dataEl = document.getElementById('cashierData');
     const chargeItems  = dataEl ? JSON.parse(dataEl.dataset.chargeItems  || '[]') : [];
@@ -12,25 +11,26 @@
     function peso(n) {
         return '₱' + Number(n || 0).toLocaleString('en-PH', {
             minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
+            maximumFractionDigits: 2
         });
     }
 
     function fmtDate(v) {
         if (!v) return '—';
-        const d = new Date(v.replace(' ', 'T'));
+        const d = new Date(String(v).replace(' ', 'T'));
         return isNaN(d.getTime()) ? v : d.toLocaleString();
     }
 
     function showAlert(type, msg) {
-        if (!alertEl) return;
-        alertEl.className = 'mb-5 rounded-lg px-4 py-3 text-sm border ' +
+        const el = document.getElementById('alert');
+        if (!el) return;
+        el.className = 'mb-5 rounded-lg px-4 py-3 text-sm border ' +
             (type === 'success'
                 ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
                 : 'border-rose-200 bg-rose-50 text-rose-800');
-        alertEl.textContent = msg;
-        alertEl.classList.remove('hidden');
-        setTimeout(() => alertEl.classList.add('hidden'), 4000);
+        el.textContent = msg;
+        el.classList.remove('hidden');
+        setTimeout(() => el.classList.add('hidden'), 5000);
     }
 
     const searchInput  = document.getElementById('filterSearch');
@@ -83,51 +83,40 @@
         applyFilters();
     });
 
-    const newStatementModal = document.getElementById('newStatementModal');
-    const newStatementForm  = document.getElementById('newStatementForm');
+    const newStatementModal   = document.getElementById('newStatementModal');
+    const newStatementForm    = document.getElementById('newStatementForm');
     const saveNewStatementBtn = document.getElementById('saveNewStatementBtn');
     const saveNewStatementLbl = document.getElementById('saveNewStatementLabel');
 
     function openNewStatementModal() {
-        if (!newStatementModal) {
-            showAlert('error', 'Statement modal not found on this page.');
-            return;
-        }
-        if (newStatementForm) newStatementForm.reset();
+        if (!newStatementModal) return;
+        newStatementForm?.reset();
         newStatementModal.classList.remove('hidden');
     }
-
     function closeNewStatementModal() {
-        if (newStatementModal) newStatementModal.classList.add('hidden');
+        newStatementModal?.classList.add('hidden');
     }
 
-    const openBtn       = document.getElementById('openCreateBtn');
-    const openBtnBanner = document.getElementById('openCreateBtnBanner');
-
-    if (openBtn)       openBtn.addEventListener('click', openNewStatementModal);
-    if (openBtnBanner) openBtnBanner.addEventListener('click', openNewStatementModal);
-
+    document.getElementById('openCreateBtn')?.addEventListener('click', openNewStatementModal);
+    document.getElementById('openCreateBtnBanner')?.addEventListener('click', openNewStatementModal);
     newStatementModal?.querySelectorAll('[data-close-new-statement]').forEach(el => {
         el.addEventListener('click', closeNewStatementModal);
     });
 
     saveNewStatementBtn?.addEventListener('click', async function () {
         const admissionId = document.getElementById('new_admission_id')?.value;
-        if (!admissionId) {
-            showAlert('error', 'Please select an admission.');
-            return;
-        }
+        if (!admissionId) { showAlert('error', 'Please select an admission.'); return; }
 
         saveNewStatementBtn.disabled = true;
         if (saveNewStatementLbl) saveNewStatementLbl.textContent = 'Creating…';
 
         try {
             const res = await axios.post(`${baseUrl}/api/cashier/create-statement.php`, {
-                admission_id:               parseInt(admissionId, 10),
-                due_date:                   document.getElementById('new_due_date')?.value || null,
-                insurance_coverage_amount:  document.getElementById('new_insurance_coverage_amount')?.value || 0,
-                government_discount:        document.getElementById('new_government_discount')?.value || 0,
-                notes:                      document.getElementById('new_notes')?.value.trim() || '',
+                admission_id:              parseInt(admissionId, 10),
+                due_date:                  document.getElementById('new_due_date')?.value || null,
+                insurance_coverage_amount: document.getElementById('new_insurance_coverage_amount')?.value || 0,
+                government_discount:       document.getElementById('new_government_discount')?.value || 0,
+                notes:                     document.getElementById('new_notes')?.value.trim() || ''
             }, { headers: { 'Content-Type': 'application/json' } });
 
             if (res.data.success) {
@@ -144,11 +133,9 @@
 
     const manageModal = document.getElementById('manageModal');
 
-    function openManageModal() {
-        if (manageModal) manageModal.classList.remove('hidden');
-    }
+    function openManageModal()  { manageModal?.classList.remove('hidden'); }
     function closeManageModal() {
-        if (manageModal) manageModal.classList.add('hidden');
+        manageModal?.classList.add('hidden');
         currentStatementId = null;
         currentStatement   = null;
     }
@@ -176,8 +163,8 @@
         btn.addEventListener('click', async () => {
             const id = btn.dataset.statementId;
             currentStatementId = parseInt(id, 10);
-            await loadStatement(id);
             openManageModal();
+            await loadStatement(id);
         });
     });
 
@@ -185,7 +172,6 @@
         try {
             const res = await axios.get(`${baseUrl}/api/cashier/get-statement.php?id=${id}`);
             if (!res.data.success) throw new Error(res.data.message || 'Failed to load');
-
             currentStatement = res.data.statement;
             renderStatement(currentStatement);
         } catch (err) {
@@ -197,8 +183,7 @@
         const titleEl = document.getElementById('manageTitle');
         const subEl   = document.getElementById('manageSubtitle');
         if (titleEl) titleEl.textContent = `Statement #${s.statement_id}`;
-        if (subEl)   subEl.textContent =
-            `${s.first_name} ${s.last_name} · Admission #${s.admission_id}`;
+        if (subEl)   subEl.textContent   = `${s.first_name} ${s.last_name} · Admission #${s.admission_id}`;
 
         const elSubtotal = document.getElementById('sumSubtotal');
         const elTax      = document.getElementById('sumTax');
@@ -224,32 +209,19 @@
         body.innerHTML = '';
 
         const charges = Array.isArray(s.charges) ? s.charges : [];
-        if (!charges.length) {
-            none?.classList.remove('hidden');
-            return;
-        }
+        if (!charges.length) { none?.classList.remove('hidden'); return; }
         none?.classList.add('hidden');
 
         charges.forEach(c => {
             const isLocked = (c.notes || '').toLowerCase().includes('source=');
-
             const removeCell = isLocked
                 ? `<td class="px-4 py-3 text-right">
-                       <span class="inline-flex items-center gap-1 text-xs text-slate-400"
-                             title="System-generated — cannot be removed">
-                           Locked
-                       </span>
+                       <span class="inline-flex items-center text-xs text-slate-400">Locked</span>
                    </td>`
                 : `<td class="px-4 py-3 text-right">
                        <button type="button"
                                class="remove-charge-btn text-rose-500 hover:text-rose-700"
-                               data-charge-id="${c.charge_id}">
-                           <svg class="w-4 h-4 inline" fill="none" viewBox="0 0 24 24"
-                                stroke="currentColor" stroke-width="2">
-                               <path stroke-linecap="round" stroke-linejoin="round"
-                                     d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                           </svg>
-                       </button>
+                               data-charge-id="${c.charge_id}">Remove</button>
                    </td>`;
 
             const tr = document.createElement('tr');
@@ -278,35 +250,24 @@
         body.innerHTML = '';
 
         const payments = Array.isArray(s.payments) ? s.payments : [];
-
-        if (!payments.length) {
-            none?.classList.remove('hidden');
-            return;
-        }
+        if (!payments.length) { none?.classList.remove('hidden'); return; }
         none?.classList.add('hidden');
 
         payments.forEach(p => {
             const typeName = p.type_name || p.payment_type_name || '—';
             const ref      = p.transaction_reference || p.reference || '—';
             const when     = fmtDate(p.payment_datetime || p.payment_date);
-            const amount   = peso(p.amount);
 
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td class="px-4 py-3 text-slate-700">${typeName}</td>
                 <td class="px-4 py-3 text-slate-600 text-xs">${ref}</td>
                 <td class="px-4 py-3 text-slate-600 text-xs">${when}</td>
-                <td class="px-4 py-3 text-right font-medium text-emerald-700">${amount}</td>
+                <td class="px-4 py-3 text-right font-medium text-emerald-700">${peso(p.amount)}</td>
                 <td class="px-4 py-3 text-right">
                     <button type="button"
                             class="remove-payment-btn text-rose-500 hover:text-rose-700"
-                            data-payment-id="${p.payment_id}">
-                        <svg class="w-4 h-4 inline" fill="none" viewBox="0 0 24 24"
-                             stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                        </svg>
-                    </button>
+                            data-payment-id="${p.payment_id}">Remove</button>
                 </td>`;
             body.appendChild(tr);
         });
@@ -323,10 +284,7 @@
         body.innerHTML = '';
 
         const rooms = Array.isArray(s.room_history) ? s.room_history : [];
-        if (!rooms.length) {
-            none?.classList.remove('hidden');
-            return;
-        }
+        if (!rooms.length) { none?.classList.remove('hidden'); return; }
         none?.classList.add('hidden');
 
         rooms.forEach(r => {
@@ -373,11 +331,11 @@
     }
 
     document.getElementById('syncChargesBtn')?.addEventListener('click', async function () {
+        if (!currentStatementId) return;
         const btn = this;
         btn.disabled = true;
         const original = btn.innerHTML;
         btn.innerHTML = 'Syncing…';
-
         try {
             const res = await axios.post(`${baseUrl}/api/cashier/sync-charges.php?id=${currentStatementId}`);
             if (res.data.success) {
@@ -392,21 +350,22 @@
         }
     });
 
-    const chargeModal = document.getElementById('chargeModal');
+    const chargeModal      = document.getElementById('chargeModal');
     const chargeItemSelect = document.getElementById('charge_item_id');
+
     if (chargeItemSelect) {
+        chargeItemSelect.innerHTML = '<option value="">— Select item —</option>';
         chargeItems.forEach(c => {
             const opt = document.createElement('option');
             opt.value = c.charge_item_id;
             opt.textContent = `[${c.category}] ${c.item_name} — ₱${Number(c.default_price).toFixed(2)}`;
             opt.dataset.price = c.default_price;
-            opt.dataset.taxable = c.is_taxable;
             chargeItemSelect.appendChild(opt);
         });
     }
 
     document.getElementById('addChargeBtn')?.addEventListener('click', () => {
-        if (chargeModal) chargeModal.classList.remove('hidden');
+        chargeModal?.classList.remove('hidden');
     });
     chargeModal?.querySelectorAll('[data-close-charge]').forEach(el => {
         el.addEventListener('click', () => chargeModal.classList.add('hidden'));
@@ -415,14 +374,15 @@
     chargeItemSelect?.addEventListener('change', function () {
         const opt = this.options[this.selectedIndex];
         const priceEl = document.getElementById('charge_price');
-        if (priceEl) priceEl.value = opt.dataset.price || '';
+        if (priceEl) priceEl.value = opt?.dataset?.price || '';
     });
 
     document.getElementById('saveChargeBtn')?.addEventListener('click', async function () {
         const itemId = chargeItemSelect?.value;
-        const qty = parseInt(document.getElementById('charge_quantity')?.value, 10);
-        const notes = document.getElementById('charge_notes')?.value;
-        if (!itemId || qty <= 0) {
+        const qty    = parseInt(document.getElementById('charge_quantity')?.value, 10);
+        const notes  = document.getElementById('charge_notes')?.value;
+
+        if (!itemId || !qty || qty <= 0) {
             showAlert('error', 'Please select an item and quantity.');
             return;
         }
@@ -459,9 +419,11 @@
         }
     });
 
-    const paymentModal = document.getElementById('paymentModal');
+    const paymentModal      = document.getElementById('paymentModal');
     const paymentTypeSelect = document.getElementById('payment_type_id');
+
     if (paymentTypeSelect) {
+        paymentTypeSelect.innerHTML = '<option value="">— Select type —</option>';
         paymentTypes.forEach(p => {
             const opt = document.createElement('option');
             opt.value = p.payment_type_id;
@@ -477,7 +439,7 @@
             if (balEl) balEl.textContent = peso(currentStatement.balance_amount);
             if (amtEl) amtEl.value = Number(currentStatement.balance_amount).toFixed(2);
         }
-        if (paymentModal) paymentModal.classList.remove('hidden');
+        paymentModal?.classList.remove('hidden');
     });
     paymentModal?.querySelectorAll('[data-close-payment]').forEach(el => {
         el.addEventListener('click', () => paymentModal.classList.add('hidden'));
@@ -486,9 +448,9 @@
     document.getElementById('savePaymentBtn')?.addEventListener('click', async function () {
         const typeId = paymentTypeSelect?.value;
         const amount = parseFloat(document.getElementById('payment_amount')?.value);
-        const notes = document.getElementById('payment_notes')?.value;
+        const notes  = document.getElementById('payment_notes')?.value;
 
-        if (!typeId || amount <= 0) {
+        if (!typeId || !amount || amount <= 0) {
             showAlert('error', 'Please select a payment type and enter a positive amount.');
             return;
         }
@@ -506,7 +468,7 @@
             }, { headers: { 'Content-Type': 'application/json' } });
 
             if (res.data.success) {
-                showAlert('success', res.data.message);
+                showAlert('success', res.data.message + (res.data.reference ? ` Ref: ${res.data.reference}` : ''));
                 paymentModal?.classList.add('hidden');
                 if (paymentTypeSelect) paymentTypeSelect.value = '';
                 const amtEl = document.getElementById('payment_amount');

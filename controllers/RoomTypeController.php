@@ -1,34 +1,24 @@
 <?php
 
-
 class RoomTypeController
 {
     private PDO $pdo;
 
     public function __construct(PDO $pdo) { $this->pdo = $pdo; }
 
-    
-    
-    
-
     public function getAll(): array
     {
         return $this->pdo->query(
             'SELECT room_type_id, room_type_name, description, rate_per_day,
-                    capacity, includes_meals, created_at
-             FROM `room_type`
+                    capacity, created_at,
+                    (SELECT COUNT(*) FROM `room` r WHERE r.room_type_id = rt.room_type_id AND r.is_active = 1) AS room_count
+             FROM `room_type` rt
              ORDER BY room_type_id'
         )->fetchAll();
     }
 
-    
-    
-    
-
     public function create(): void
     {
-        $this->guard();
-
         $data   = $this->input();
         $errors = $this->validate($data);
         if ($errors) $this->json(422, ['success' => false, 'message' => 'Please fix the highlighted fields.', 'errors' => $errors]);
@@ -39,15 +29,14 @@ class RoomTypeController
 
         $stmt = $this->pdo->prepare(
             'INSERT INTO `room_type`
-                (room_type_name, description, rate_per_day, capacity, includes_meals)
-             VALUES (?, ?, ?, ?, ?)'
+                (room_type_name, description, rate_per_day, capacity)
+             VALUES (?, ?, ?, ?)'
         );
         $stmt->execute([
             $data['room_type_name'],
             !empty($data['description']) ? $data['description'] : null,
             (float)$data['rate_per_day'],
             (int)$data['capacity'],
-            (int)(!empty($data['includes_meals']) ? 1 : 0),
         ]);
 
         $this->json(201, [
@@ -57,14 +46,8 @@ class RoomTypeController
         ]);
     }
 
-    
-    
-    
-
     public function update(): void
     {
-        $this->guard();
-
         $id = (int)($_GET['id'] ?? 0);
         if ($id <= 0) $this->json(400, ['success' => false, 'message' => 'Missing room type id.']);
 
@@ -78,7 +61,7 @@ class RoomTypeController
 
         $stmt = $this->pdo->prepare(
             'UPDATE `room_type`
-             SET room_type_name = ?, description = ?, rate_per_day = ?, capacity = ?, includes_meals = ?
+             SET room_type_name = ?, description = ?, rate_per_day = ?, capacity = ?
              WHERE room_type_id = ?'
         );
         $stmt->execute([
@@ -86,32 +69,35 @@ class RoomTypeController
             !empty($data['description']) ? $data['description'] : null,
             (float)$data['rate_per_day'],
             (int)$data['capacity'],
-            (int)(!empty($data['includes_meals']) ? 1 : 0),
             $id,
         ]);
 
         $this->json(200, ['success' => true, 'message' => 'Room type updated successfully.']);
     }
 
-    
-    
-    
-
-    public function delete(): void
+    public function toggleActive(): void
     {
-        $this->guard();
-
         $id = (int)($_GET['id'] ?? 0);
         if ($id <= 0) $this->json(400, ['success' => false, 'message' => 'Missing room type id.']);
 
-        
+        $stmt = $this->pdo->prepare('SELECT room_type_id FROM `room_type` WHERE room_type_id = ? LIMIT 1');
+        $stmt->execute([$id]);
+        if (!$stmt->fetch()) $this->json(404, ['success' => false, 'message' => 'Room type not found.']);
+
+        $this->json(200, ['success' => true, 'message' => 'Room type unchanged.']);
+    }
+
+    public function delete(): void
+    {
+        $id = (int)($_GET['id'] ?? 0);
+        if ($id <= 0) $this->json(400, ['success' => false, 'message' => 'Missing room type id.']);
+
         $stmt = $this->pdo->prepare('SELECT room_type_id FROM `room_type` WHERE room_type_id = ? LIMIT 1');
         $stmt->execute([$id]);
         if (!$stmt->fetch()) {
             $this->json(404, ['success' => false, 'message' => 'Room type not found.']);
         }
 
-        
         $stmt = $this->pdo->prepare('SELECT COUNT(*) FROM `room` WHERE room_type_id = ?');
         $stmt->execute([$id]);
         $refCount = (int)$stmt->fetchColumn();
@@ -124,33 +110,10 @@ class RoomTypeController
             ]);
         }
 
-        
         $stmt = $this->pdo->prepare('DELETE FROM `room_type` WHERE room_type_id = ?');
         $stmt->execute([$id]);
 
-        $this->json(200, [
-            'success' => true,
-            'message' => 'Room type deleted.',
-        ]);
-    }
-
-    
-    
-    
-
-    private function guard(): void
-    {
-        header('Content-Type: application/json; charset=utf-8');
-
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->json(405, ['success' => false, 'message' => 'Method not allowed.']);
-        }
-
-        if (session_status() === PHP_SESSION_NONE) session_start();
-
-        if (empty($_SESSION['user']) || (int)$_SESSION['user']['role_id'] !== 1) {
-            $this->json(403, ['success' => false, 'message' => 'Access denied.']);
-        }
+        $this->json(200, ['success' => true, 'message' => 'Room type deleted.']);
     }
 
     private function input(): array
@@ -199,6 +162,9 @@ class RoomTypeController
 
     private function json(int $status, array $payload): void
     {
+        if (!headers_sent()) {
+            header('Content-Type: application/json; charset=utf-8');
+        }
         http_response_code($status);
         echo json_encode($payload);
         exit;

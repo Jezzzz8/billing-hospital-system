@@ -1,6 +1,5 @@
 <?php
 
-
 require_once __DIR__ . '/../../controllers/DoctorPortalController.php';
 require_once __DIR__ . '/../../controllers/DoctorHelper.php';
 
@@ -11,7 +10,6 @@ $admissionId = (int)($_GET['admission_id'] ?? 0);
 $admission = $admissionId ? $controller->getAdmissionDetails($admissionId) : null;
 $chargeItems = $controller->getChargeItems();
 $assigned = $controller->getAssignedPatients();
-
 
 $itemsByCategory = [];
 foreach ($chargeItems as $ci) {
@@ -72,7 +70,6 @@ if (!$admission) {
     </a>
 </div>
 
-
 <div class="bg-white rounded-xl border border-slate-200 p-6 mb-6">
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -95,7 +92,6 @@ if (!$admission) {
 
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-    
     <div class="lg:col-span-1">
         <div class="bg-white rounded-xl border border-slate-200 p-6">
             <h3 class="text-base font-semibold text-slate-900 mb-4">New Service Request</h3>
@@ -138,7 +134,6 @@ if (!$admission) {
         </div>
     </div>
 
-    
     <div class="lg:col-span-2">
         <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
             <div class="px-6 py-4 border-b border-slate-200">
@@ -189,10 +184,15 @@ if (!$admission) {
                                             <?= htmlspecialchars($r['status']) ?>
                                         </span>
                                     </td>
-                                    <td class="px-6 py-3 text-right">
+                                    <td class="px-6 py-3 text-right whitespace-nowrap">
                                         <?php if (strtolower($r['status']) === 'pending' && (int)$r['doctor_id'] === $doctorId): ?>
                                             <button type="button"
-                                                    class="cancel-request-btn text-xs font-medium text-rose-600 hover:text-rose-700"
+                                                    class="complete-request-btn text-xs font-medium text-emerald-600 hover:text-emerald-700"
+                                                    data-id="<?= (int)$r['request_id'] ?>">
+                                                Mark Completed
+                                            </button>
+                                            <button type="button"
+                                                    class="cancel-request-btn text-xs font-medium text-rose-600 hover:text-rose-700 ml-2"
                                                     data-id="<?= (int)$r['request_id'] ?>">
                                                 Cancel
                                             </button>
@@ -244,6 +244,22 @@ if (!$admission) {
             btn.disabled = false;
             label.textContent = 'Submit Request';
         }
+    });
+
+    document.querySelectorAll('.complete-request-btn').forEach(btn => {
+        btn.addEventListener('click', async function() {
+            if (!confirm('Mark this service request as completed?')) return;
+            const id = this.dataset.id;
+            try {
+                const res = await axios.post(`${baseUrl}/api/doctors/complete-service-request.php?id=${id}`);
+                if (res.data.success) {
+                    showAlert('success', res.data.message);
+                    setTimeout(() => location.reload(), 600);
+                }
+            } catch (err) {
+                showAlert('error', err.response?.data?.message || 'Could not complete request.');
+            }
+        });
     });
 
     document.querySelectorAll('.cancel-request-btn').forEach(btn => {

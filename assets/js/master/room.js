@@ -1,10 +1,7 @@
-
-
 document.addEventListener("DOMContentLoaded", () => {
   const baseUrl = document.body.dataset.baseUrl || "";
   const alertBox = document.getElementById("alert");
 
-  
   const modal = document.getElementById("roomModal");
   const form = document.getElementById("roomForm");
   const modalTitle = document.getElementById("roomModalTitle");
@@ -12,21 +9,49 @@ document.addEventListener("DOMContentLoaded", () => {
   const submitLbl = document.getElementById("roomSubmitLabel");
   const openCreate = document.getElementById("openCreateBtn");
 
-  
   const confirmModal = document.getElementById("confirmModal");
   const confirmRoomNumber = document.getElementById("confirmRoomNumber");
   const confirmDeactivateBtn = document.getElementById("confirmDeactivateBtn");
-  const confirmDeactivateLbl = document.getElementById(
-    "confirmDeactivateLabel",
-  );
+  const confirmDeactivateLbl = document.getElementById("confirmDeactivateLabel");
 
-  
   const deleteModal = document.getElementById("deleteModal");
   const deleteRoomNumber = document.getElementById("deleteRoomNumber");
   const confirmDeleteBtn = document.getElementById("confirmDeleteBtn");
   const confirmDeleteLbl = document.getElementById("confirmDeleteLabel");
 
-  
+  const buildingSelect = document.getElementById("building_id");
+  const floorLevelSelect = document.getElementById("floor_level_id");
+
+  const holder = document.getElementById("roomsData");
+  let FLOOR_LEVELS = [];
+  if (holder) {
+    try {
+      FLOOR_LEVELS = JSON.parse(holder.dataset.floorLevels || "[]");
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  function populateFloorLevels(buildingId, selectedFloorId = null) {
+    if (!floorLevelSelect) return;
+    floorLevelSelect.innerHTML = '<option value="">— Select floor level —</option>';
+    if (!buildingId) return;
+
+    FLOOR_LEVELS.filter((fl) => fl.building_id == buildingId).forEach((fl) => {
+      const opt = document.createElement("option");
+      opt.value = fl.floor_level_id;
+      opt.textContent = "Floor " + fl.floor_level_name;
+      if (selectedFloorId && fl.floor_level_id == selectedFloorId) opt.selected = true;
+      floorLevelSelect.appendChild(opt);
+    });
+  }
+
+  if (buildingSelect) {
+    buildingSelect.addEventListener("change", function () {
+      populateFloorLevels(this.value);
+    });
+  }
+
   const showAlert = (msg, type = "error") => {
     const styles = {
       error: "bg-red-50 border-red-200 text-red-700",
@@ -55,20 +80,15 @@ document.addEventListener("DOMContentLoaded", () => {
   const openModal = (el) => el.classList.remove("hidden");
   const closeModal = (el) => el.classList.add("hidden");
 
-  
-  document
-    .querySelectorAll("[data-close-modal]")
-    .forEach((el) => el.addEventListener("click", () => closeModal(modal)));
-  document
-    .querySelectorAll("[data-close-confirm]")
-    .forEach((el) =>
-      el.addEventListener("click", () => closeModal(confirmModal)),
-    );
-  document
-    .querySelectorAll("[data-close-delete]")
-    .forEach((el) =>
-      el.addEventListener("click", () => closeModal(deleteModal)),
-    );
+  document.querySelectorAll("[data-close-modal]").forEach((el) => {
+    el.addEventListener("click", () => closeModal(modal));
+  });
+  document.querySelectorAll("[data-close-confirm]").forEach((el) => {
+    el.addEventListener("click", () => closeModal(confirmModal));
+  });
+  document.querySelectorAll("[data-close-delete]").forEach((el) => {
+    el.addEventListener("click", () => closeModal(deleteModal));
+  });
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
       closeModal(modal);
@@ -77,23 +97,18 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  
-  
-  
   if (openCreate) {
     openCreate.addEventListener("click", () => {
       form.reset();
       clearErrors(form);
       document.getElementById("room_id").value = "";
+      populateFloorLevels("");
       modalTitle.textContent = "New Room";
       submitLbl.textContent = "Create Room";
       openModal(modal);
     });
   }
 
-  
-  
-  
   document.querySelectorAll(".edit-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       const r = JSON.parse(btn.dataset.room);
@@ -108,14 +123,13 @@ document.addEventListener("DOMContentLoaded", () => {
       document.getElementById("room_number").value = r.room_number;
       document.getElementById("room_type_id").value = r.room_type_id;
       document.getElementById("status_id").value = r.status_id;
-      document.getElementById("floor_level").value = r.floor_level ?? "";
-      document.getElementById("building").value = r.building ?? "";
+      document.getElementById("building_id").value = r.building_id || "";
+      populateFloorLevels(r.building_id, r.floor_level_id);
 
       openModal(modal);
     });
   });
 
-  
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     hideAlert();
@@ -128,8 +142,7 @@ document.addEventListener("DOMContentLoaded", () => {
       room_type_id: document.getElementById("room_type_id").value,
       status_id: document.getElementById("status_id").value,
       room_number: document.getElementById("room_number").value.trim(),
-      floor_level: document.getElementById("floor_level").value,
-      building: document.getElementById("building").value.trim(),
+      floor_level_id: document.getElementById("floor_level_id").value,
     };
 
     const url = isEdit
@@ -165,9 +178,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  
-  
-  
   document.querySelectorAll(".deactivate-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       confirmRoomNumber.textContent = btn.dataset.roomNumber || "this room";
@@ -196,10 +206,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (data.success) {
           closeModal(confirmModal);
-          sessionStorage.setItem(
-            "room_flash",
-            data.message || "Room archived.",
-          );
+          sessionStorage.setItem("room_flash", data.message || "Room archived.");
           window.location.reload();
         } else {
           closeModal(confirmModal);
@@ -215,9 +222,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  
-  
-  
   document.querySelectorAll(".reactivate-btn").forEach((btn) => {
     btn.addEventListener("click", async () => {
       const id = btn.dataset.roomId;
@@ -236,10 +240,7 @@ document.addEventListener("DOMContentLoaded", () => {
         );
 
         if (data.success) {
-          sessionStorage.setItem(
-            "room_flash",
-            data.message || "Room reactivated.",
-          );
+          sessionStorage.setItem("room_flash", data.message || "Room reactivated.");
           window.location.reload();
         } else {
           showAlert(data.message || "Action failed.", "error");
@@ -252,9 +253,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  
-  
-  
   let pendingDeleteId = null;
 
   document.querySelectorAll(".delete-btn").forEach((btn) => {
@@ -301,9 +299,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  
-  
-  
   const searchInput = document.getElementById("filterSearch");
   const showArchived = document.getElementById("showArchived");
   const filterClear = document.getElementById("filterClear");
@@ -323,7 +318,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     rows.forEach((row) => {
       const matchesSearch = q === "" || (row.dataset.search || "").includes(q);
-
       const isArchived = row.dataset.status === "0";
       const matchesArchiveFilter = showInactiveOnly ? isArchived : !isArchived;
 
@@ -356,9 +350,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   applyFilters();
 
-  
-  
-  
   const flash = sessionStorage.getItem("room_flash");
   if (flash) {
     sessionStorage.removeItem("room_flash");

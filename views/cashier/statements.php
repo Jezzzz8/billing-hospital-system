@@ -1,12 +1,23 @@
 <?php
 
 require_once __DIR__ . '/../../controllers/CashierController.php';
+require_once __DIR__ . '/../../controllers/ChargeSyncService.php';
 
 $controller   = new CashierController($pdo);
-$statements   = $controller->getAllStatements();
-$statuses     = $controller->getBillingStatuses();
-$paymentTypes = $controller->getPaymentTypes();
-$chargeItems  = $controller->getChargeItems();
+
+$allStatements = $controller->getAllStatements();
+foreach ($allStatements as $s) {
+    try {
+        (new ChargeSyncService($pdo))->recomputeStatement((int)$s['statement_id']);
+    } catch (Throwable $e) {
+        error_log('[statements] recompute failed for #' . $s['statement_id'] . ': ' . $e->getMessage());
+    }
+}
+
+$statements     = $controller->getAllStatements();
+$statuses       = $controller->getBillingStatuses();
+$paymentTypes   = $controller->getPaymentTypes();
+$chargeItems    = $controller->getChargeItems();
 $admissionsOpen = $controller->getAdmissionsWithoutStatement();
 
 $totalBilled = 0; $totalPaid = 0; $totalBalance = 0;
@@ -48,21 +59,17 @@ foreach ($statements as $s) {
 </div>
 
 <?php if (!empty($admissionsOpen)): ?>
-    <div class="mb-5 rounded-lg px-4 py-3 text-sm border border-amber-200 bg-amber-50 text-amber-800 flex items-start gap-3">
+    <div class="mb-5 rounded-lg px-4 py-3 text-sm border border-blue-200 bg-blue-50 text-blue-800 flex items-start gap-3">
         <svg class="w-5 h-5 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M5 19h14a2 2 0 001.84-2.75L13.74 4a2 2 0 00-3.48 0L3.16 16.25A2 2 0 005 19z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
         </svg>
         <div>
             <p class="font-semibold">
                 <?= count($admissionsOpen) ?> patient<?= count($admissionsOpen) === 1 ? '' : 's' ?>
-                ready for discharge need<?= count($admissionsOpen) === 1 ? 's' : '' ?> a billing statement
+                cleared by the doctor and waiting for a billing statement
             </p>
             <p class="text-xs mt-0.5">
-                The attending doctor has cleared these patients. Create their statements so the nurse
-                can complete the discharge.
-                <button type="button" id="openCreateBtnBanner" class="font-medium underline hover:no-underline">
-                    Create statement now →
-                </button>
+                These patients have been marked <strong>Ready for Discharge</strong>. Create their statements now so the nurse can complete the discharge.
             </p>
         </div>
     </div>
@@ -187,6 +194,18 @@ foreach ($statements as $s) {
                                     </svg>
                                     Manage
                                 </button>
+
+                                <?php if ((float)$s['balance_amount'] > 0 && (int)$s['is_paid_status'] === 0): ?>
+                                    <button type="button"
+                                            class="collect-btn inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700"
+                                            data-statement-id="<?= (int)$s['statement_id'] ?>">
+                                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1"/>
+                                        </svg>
+                                        Collect
+                                    </button>
+                                <?php endif; ?>
+
                                 <a href="<?= BASE_URL ?>/index.php?page=cashier-receipt&id=<?= (int)$s['statement_id'] ?>"
                                    target="_blank"
                                    class="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50">
@@ -410,8 +429,7 @@ foreach ($statements as $s) {
                         <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
                         </svg>
-                        Record Payment
-                    </button>
+                        Record Payment                    </button>
                 </div>
                 <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
                     <table class="min-w-full text-sm">
@@ -549,3 +567,421 @@ foreach ($statements as $s) {
         </div>
     </div>
 </div>
+
+<script>
+(function () {
+    const baseUrl    = document.body.dataset.baseUrl;
+    const alertEl    = document.getElementById('alert');
+    const dataEl     = document.getElementById('cashierData');
+    const chargeItems = JSON.parse(dataEl.dataset.chargeItems || '[]');
+    const paymentTypes = JSON.parse(dataEl.dataset.paymentTypes || '[]');
+
+    let currentStatementId = null;
+    let currentStatement = null;
+
+    function showAlert(type, msg) {
+        alertEl.className = 'mb-5 rounded-lg px-4 py-3 text-sm border ' +
+            (type === 'success'
+                ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                : 'border-rose-200 bg-rose-50 text-rose-800');
+        alertEl.textContent = msg;
+        alertEl.classList.remove('hidden');
+        alertEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    function money(n) {
+        return '₱' + Number(n || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    // -------- Filters --------
+    const rows = document.querySelectorAll('.statement-row');
+    const searchInput = document.getElementById('filterSearch');
+    const statusSelect = document.getElementById('filterStatus');
+    const clearBtn = document.getElementById('filterClear');
+    const summary = document.getElementById('filterSummary');
+    const filteredCount = document.getElementById('filteredCount');
+    const totalCount = document.getElementById('totalCount');
+    const emptyState = document.getElementById('emptyState');
+
+    function applyFilters() {
+        const q = (searchInput?.value || '').toLowerCase().trim();
+        const status = statusSelect?.value || '';
+        let visible = 0;
+
+        rows.forEach(r => {
+            const matchSearch = !q || (r.dataset.search || '').includes(q);
+            const matchStatus = !status || (r.dataset.status || '') === status;
+            if (matchSearch && matchStatus) {
+                r.style.display = '';
+                visible++;
+            } else {
+                r.style.display = 'none';
+            }
+        });
+
+        if (q || status) {
+            summary.classList.remove('hidden');
+            clearBtn.classList.remove('hidden');
+            clearBtn.classList.add('flex');
+            filteredCount.textContent = visible;
+            totalCount.textContent = rows.length;
+        } else {
+            summary.classList.add('hidden');
+            clearBtn.classList.add('hidden');
+            clearBtn.classList.remove('flex');
+        }
+        emptyState.classList.toggle('hidden', visible > 0);
+    }
+
+    searchInput?.addEventListener('input', applyFilters);
+    statusSelect?.addEventListener('change', applyFilters);
+    clearBtn?.addEventListener('click', () => {
+        searchInput.value = '';
+        statusSelect.value = '';
+        applyFilters();
+    });
+
+    // -------- New Statement --------
+    const newModal = document.getElementById('newStatementModal');
+    document.getElementById('openCreateBtn')?.addEventListener('click', () => newModal.classList.remove('hidden'));
+    newModal.querySelectorAll('[data-close-new-statement]').forEach(el =>
+        el.addEventListener('click', () => newModal.classList.add('hidden'))
+    );
+
+    document.getElementById('saveNewStatementBtn')?.addEventListener('click', async function () {
+        const btn = this;
+        const label = document.getElementById('saveNewStatementLabel');
+        const admissionId = document.getElementById('new_admission_id').value;
+
+        if (!admissionId) {
+            showAlert('error', 'Please select an admission.');
+            return;
+        }
+
+        btn.disabled = true;
+        label.textContent = 'Creating…';
+
+        try {
+            const res = await axios.post(`${baseUrl}/api/cashier/create-statement.php`, {
+                admission_id: admissionId,
+                due_date: document.getElementById('new_due_date').value || null,
+                insurance_coverage_amount: parseFloat(document.getElementById('new_insurance_coverage_amount').value) || 0,
+                government_discount: parseFloat(document.getElementById('new_government_discount').value) || 0,
+                notes: document.getElementById('new_notes').value
+            }, { headers: { 'Content-Type': 'application/json' } });
+
+            if (res.data.success) {
+                showAlert('success', res.data.message);
+                newModal.classList.add('hidden');
+                setTimeout(() => location.reload(), 900);
+            }
+        } catch (err) {
+            showAlert('error', err.response?.data?.message || 'Could not create statement.');
+        } finally {
+            btn.disabled = false;
+            label.textContent = 'Create Statement';
+        }
+    });
+
+    // -------- Manage Modal --------
+    const manageModal = document.getElementById('manageModal');
+    document.querySelectorAll('.manage-btn').forEach(btn => {
+        btn.addEventListener('click', () => openManage(btn.dataset.statementId));
+    });
+
+    manageModal.querySelectorAll('[data-close-manage]').forEach(el =>
+        el.addEventListener('click', () => manageModal.classList.add('hidden'))
+    );
+
+    manageModal.querySelectorAll('.manage-tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            manageModal.querySelectorAll('.manage-tab-btn').forEach(b => {
+                b.classList.remove('border-blue-600', 'text-blue-600');
+                b.classList.add('border-transparent', 'text-slate-500');
+            });
+            btn.classList.remove('border-transparent', 'text-slate-500');
+            btn.classList.add('border-blue-600', 'text-blue-600');
+
+            manageModal.querySelectorAll('.manage-tab-panel').forEach(p => p.classList.add('hidden'));
+            const target = manageModal.querySelector(`.manage-tab-panel[data-mpanel="${btn.dataset.mtab}"]`);
+            target?.classList.remove('hidden');
+        });
+    });
+
+    async function openManage(id) {
+        currentStatementId = id;
+        manageModal.classList.remove('hidden');
+        document.getElementById('manageTitle').textContent = 'Statement #' + id;
+
+        try {
+            const res = await axios.get(`${baseUrl}/api/cashier/get-statement.php?id=${id}`);
+            if (!res.data.success) {
+                showAlert('error', res.data.message || 'Could not load statement.');
+                return;
+            }
+            renderStatement(res.data.statement);
+        } catch (err) {
+            showAlert('error', err.response?.data?.message || 'Could not load statement.');
+        }
+    }
+
+    function renderStatement(s) {
+        currentStatement = s;
+        document.getElementById('manageSubtitle').textContent =
+            `${s.first_name} ${s.last_name} · Admission #${s.admission_id}`;
+
+        document.getElementById('sumSubtotal').textContent = money(s.subtotal_amount);
+        document.getElementById('sumTax').textContent = money(s.tax_amount);
+        document.getElementById('sumTotal').textContent = money(s.total_amount);
+        document.getElementById('sumPaid').textContent = money(s.amount_paid);
+        document.getElementById('sumBalance').textContent = money(s.balance_amount);
+
+        const chargesBody = document.getElementById('chargesBody');
+        const charges = s.charges || [];
+        if (charges.length === 0) {
+            chargesBody.innerHTML = '';
+            document.getElementById('noCharges').classList.remove('hidden');
+        } else {
+            document.getElementById('noCharges').classList.add('hidden');
+            chargesBody.innerHTML = charges.map(c => `
+                <tr>
+                    <td class="px-4 py-2.5">
+                        <p class="font-medium text-slate-900">${escapeHtml(c.item_name)}</p>
+                        <p class="text-xs text-slate-500">${escapeHtml(c.item_code)}</p>
+                    </td>
+                    <td class="px-4 py-2.5 text-slate-600 text-xs">${escapeHtml(c.category_name)}</td>
+                    <td class="px-4 py-2.5 text-center text-slate-700">${c.quantity}</td>
+                    <td class="px-4 py-2.5 text-right text-slate-700">${money(c.actual_price)}</td>
+                    <td class="px-4 py-2.5 text-right font-medium text-slate-900">${money(c.line_total)}</td>
+                    <td class="px-4 py-2.5 text-right">
+                        <button type="button" class="remove-charge-btn text-rose-500 hover:text-rose-700"
+                                data-charge-id="${c.charge_id}">
+                            <svg class="w-4 h-4 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                            </svg>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        const paymentsBody = document.getElementById('paymentsBody');
+        const payments = s.payments || [];
+        if (payments.length === 0) {
+            paymentsBody.innerHTML = '';
+            document.getElementById('noPayments').classList.remove('hidden');
+        } else {
+            document.getElementById('noPayments').classList.add('hidden');
+            paymentsBody.innerHTML = payments.map(p => `
+                <tr>
+                    <td class="px-4 py-2.5 text-slate-700">${escapeHtml(p.type_name)}</td>
+                    <td class="px-4 py-2.5 text-xs font-mono text-slate-600">${escapeHtml(p.transaction_reference || '—')}</td>
+                    <td class="px-4 py-2.5 text-xs text-slate-600">${formatDate(p.payment_datetime)}</td>
+                    <td class="px-4 py-2.5 text-right font-medium text-emerald-700">${money(p.amount)}</td>
+                    <td class="px-4 py-2.5 text-right">
+                        <button type="button" class="remove-payment-btn text-rose-500 hover:text-rose-700"
+                                data-payment-id="${p.payment_id}">
+                            <svg class="w-4 h-4 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                            </svg>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        const roomsBody = document.getElementById('roomsBody');
+        const rooms = s.room_history || [];
+        if (rooms.length === 0) {
+            roomsBody.innerHTML = '';
+            document.getElementById('noRooms').classList.remove('hidden');
+        } else {
+            document.getElementById('noRooms').classList.add('hidden');
+            roomsBody.innerHTML = rooms.map(r => `
+                <tr>
+                    <td class="px-4 py-2.5 text-slate-900 font-medium">${escapeHtml(r.room_number)}</td>
+                    <td class="px-4 py-2.5 text-slate-600 text-xs">${escapeHtml(r.room_type_name)}</td>
+                    <td class="px-4 py-2.5 text-slate-600 text-xs">${formatDate(r.start_datetime)}</td>
+                    <td class="px-4 py-2.5 text-slate-600 text-xs">${r.end_datetime ? formatDate(r.end_datetime) : 'Present'}</td>
+                    <td class="px-4 py-2.5 text-right text-slate-700">${money(r.daily_rate_at_assignment)}</td>
+                </tr>
+            `).join('');
+        }
+
+        document.querySelectorAll('.remove-charge-btn').forEach(b =>
+            b.addEventListener('click', () => removeCharge(b.dataset.chargeId))
+        );
+        document.querySelectorAll('.remove-payment-btn').forEach(b =>
+            b.addEventListener('click', () => removePayment(b.dataset.paymentId))
+        );
+    }
+
+    function escapeHtml(s) {
+        return String(s ?? '').replace(/[&<>"']/g, c => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        })[c]);
+    }
+
+    function formatDate(s) {
+        if (!s) return '—';
+        const d = new Date(s.replace(' ', 'T'));
+        if (isNaN(d)) return s;
+        return d.toLocaleString('en-PH', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+    }
+
+    async function removeCharge(chargeId) {
+        if (!confirm('Remove this charge from the statement?')) return;
+        try {
+            const res = await axios.post(`${baseUrl}/api/cashier/remove-charge.php?id=${currentStatementId}&charge_id=${chargeId}`);
+            if (res.data.success) {
+                showAlert('success', res.data.message);
+                openManage(currentStatementId);
+            }
+        } catch (err) {
+            showAlert('error', err.response?.data?.message || 'Could not remove charge.');
+        }
+    }
+
+    async function removePayment(paymentId) {
+        if (!confirm('Remove this payment?')) return;
+        try {
+            const res = await axios.post(`${baseUrl}/api/cashier/remove-payment.php?id=${currentStatementId}&payment_id=${paymentId}`);
+            if (res.data.success) {
+                showAlert('success', res.data.message);
+                openManage(currentStatementId);
+            }
+        } catch (err) {
+            showAlert('error', err.response?.data?.message || 'Could not remove payment.');
+        }
+    }
+
+    // -------- Sync --------
+    document.getElementById('syncChargesBtn')?.addEventListener('click', async function () {
+        if (!currentStatementId) return;
+        this.disabled = true;
+        try {
+            const res = await axios.post(`${baseUrl}/api/cashier/sync-charges.php?id=${currentStatementId}`);
+            if (res.data.success) {
+                showAlert('success', res.data.message);
+                openManage(currentStatementId);
+            }
+        } catch (err) {
+            showAlert('error', err.response?.data?.message || 'Sync failed.');
+        } finally {
+            this.disabled = false;
+        }
+    });
+
+    // -------- Add Charge --------
+    const chargeModal = document.getElementById('chargeModal');
+    const chargeSelect = document.getElementById('charge_item_id');
+
+    if (chargeSelect) {
+        chargeSelect.innerHTML = '<option value="">— Select item —</option>' +
+            chargeItems.map(c =>
+                `<option value="${c.charge_item_id}" data-price="${c.default_price}">${c.item_name} (${money(c.default_price)})</option>`
+            ).join('');
+
+        chargeSelect.addEventListener('change', function () {
+            const opt = this.selectedOptions[0];
+            document.getElementById('charge_price').value = opt?.dataset.price || '0.00';
+        });
+    }
+
+    document.getElementById('addChargeBtn')?.addEventListener('click', () => chargeModal.classList.remove('hidden'));
+    chargeModal.querySelectorAll('[data-close-charge]').forEach(el =>
+        el.addEventListener('click', () => chargeModal.classList.add('hidden'))
+    );
+
+    document.getElementById('saveChargeBtn')?.addEventListener('click', async function () {
+        const itemId = document.getElementById('charge_item_id').value;
+        const qty = parseInt(document.getElementById('charge_quantity').value) || 0;
+        if (!itemId || qty <= 0) {
+            showAlert('error', 'Please select a charge item and quantity.');
+            return;
+        }
+
+        this.disabled = true;
+        try {
+            const res = await axios.post(`${baseUrl}/api/cashier/add-charge.php?id=${currentStatementId}`, {
+                charge_item_id: itemId,
+                quantity: qty,
+                actual_price: parseFloat(document.getElementById('charge_price').value) || 0,
+                notes: document.getElementById('charge_notes').value
+            }, { headers: { 'Content-Type': 'application/json' } });
+
+            if (res.data.success) {
+                showAlert('success', res.data.message);
+                chargeModal.classList.add('hidden');
+                openManage(currentStatementId);
+            }
+        } catch (err) {
+            showAlert('error', err.response?.data?.message || 'Could not add charge.');
+        } finally {
+            this.disabled = false;
+        }
+    });
+
+    // -------- Add Payment (inside Manage) --------
+    const paymentModal = document.getElementById('paymentModal');
+    const payTypeSelect = document.getElementById('payment_type_id');
+
+    if (payTypeSelect) {
+        payTypeSelect.innerHTML = '<option value="">— Select type —</option>' +
+            paymentTypes.map(p => `<option value="${p.payment_type_id}">${p.type_name}</option>`).join('');
+    }
+
+    document.getElementById('addPaymentBtn')?.addEventListener('click', () => {
+        document.getElementById('paymentCurrentBalance').textContent = money(currentStatement?.balance_amount || 0);
+        document.getElementById('payment_amount').max = currentStatement?.balance_amount || 0;
+        document.getElementById('payment_amount').value = currentStatement?.balance_amount || '';
+        paymentModal.classList.remove('hidden');
+    });
+
+    paymentModal.querySelectorAll('[data-close-payment]').forEach(el =>
+        el.addEventListener('click', () => paymentModal.classList.add('hidden'))
+    );
+
+    document.getElementById('savePaymentBtn')?.addEventListener('click', async function () {
+        const typeId = document.getElementById('payment_type_id').value;
+        const amount = parseFloat(document.getElementById('payment_amount').value) || 0;
+
+        if (!typeId || amount <= 0) {
+            showAlert('error', 'Please select a payment type and enter an amount.');
+            return;
+        }
+
+        this.disabled = true;
+        const label = document.getElementById('savePaymentLabel');
+        label.textContent = 'Recording…';
+
+        try {
+            const res = await axios.post(`${baseUrl}/api/cashier/add-payment.php?id=${currentStatementId}`, {
+                payment_type_id: typeId,
+                amount: amount,
+                notes: document.getElementById('payment_notes').value
+            }, { headers: { 'Content-Type': 'application/json' } });
+
+            if (res.data.success) {
+                showAlert('success', res.data.message + ' Reference: ' + (res.data.reference || ''));
+                paymentModal.classList.add('hidden');
+                openManage(currentStatementId);
+            }
+        } catch (err) {
+            showAlert('error', err.response?.data?.message || 'Could not record payment.');
+        } finally {
+            this.disabled = false;
+            label.textContent = 'Record Payment';
+        }
+    });
+
+    // -------- Collect Payment (row button) --------
+    document.querySelectorAll('.collect-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const id = btn.dataset.statementId;
+            const printUrl = `${baseUrl}/index.php?page=cashier-receipt&id=${id}`;
+            window.open(printUrl, '_blank');
+        });
+    });
+})();
+</script>

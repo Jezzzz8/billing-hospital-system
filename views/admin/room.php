@@ -6,12 +6,21 @@ $controller = new RoomController($pdo);
 $rooms      = $controller->getAll();
 $roomTypes  = $controller->getRoomTypes();
 $statuses   = $controller->getStatuses();
+$buildings  = $controller->getBuildings();
+$floorLevels = $controller->getFloorLevels();
 
 $totalRooms    = count($rooms);
 $activeRooms   = count(array_filter($rooms, fn($r) => (int)$r['is_active'] === 1));
 $archivedRooms = $totalRooms - $activeRooms;
 ?>
 
+<div id="roomsData"
+     class="hidden"
+     data-floor-levels='<?= htmlspecialchars(json_encode(array_map(fn($fl) => [
+        'floor_level_id'   => (int)$fl['floor_level_id'],
+        'building_id'      => (int)$fl['building_id'],
+        'floor_level_name' => $fl['floor_level_name'],
+     ], $floorLevels)), ENT_QUOTES, "UTF-8") ?>'></div>
 
 <div class="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
     <div>
@@ -29,7 +38,6 @@ $archivedRooms = $totalRooms - $activeRooms;
 
 <div id="alert" class="hidden mb-5 rounded-lg px-4 py-3 text-sm border"></div>
 
-
 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
     <div class="bg-white rounded-xl border border-slate-200 p-5">
         <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Total Rooms</p>
@@ -44,7 +52,6 @@ $archivedRooms = $totalRooms - $activeRooms;
         <p class="mt-2 text-2xl font-bold text-slate-400"><?= $archivedRooms ?></p>
     </div>
 </div>
-
 
 <div class="bg-white rounded-xl border border-slate-200 p-4 mb-4">
     <div class="flex flex-col lg:flex-row lg:items-end gap-3">
@@ -85,7 +92,6 @@ $archivedRooms = $totalRooms - $activeRooms;
     </div>
 </div>
 
-
 <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
     <div class="overflow-x-auto">
         <table class="min-w-full text-sm">
@@ -103,11 +109,10 @@ $archivedRooms = $totalRooms - $activeRooms;
                 <?php foreach ($rooms as $r): ?>
                     <tr class="hover:bg-slate-50 room-row"
                         data-search="<?= htmlspecialchars(strtolower(
-                            $r['room_number'] . ' ' . $r['room_type_name'] . ' ' . $r['status_name'] . ' ' . ($r['building'] ?? '')
+                            $r['room_number'] . ' ' . $r['room_type_name'] . ' ' . $r['status_name'] . ' ' . ($r['building_name'] ?? '') . ' ' . ($r['floor_level_name'] ?? '')
                         )) ?>"
                         data-status="<?= (int)$r['is_active'] ?>">
 
-                        
                         <td class="px-6 py-4">
                             <div class="flex items-center gap-3">
                                 <div class="w-9 h-9 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
@@ -119,10 +124,8 @@ $archivedRooms = $totalRooms - $activeRooms;
                             </div>
                         </td>
 
-                        
                         <td class="px-6 py-4 text-slate-700"><?= htmlspecialchars($r['room_type_name']) ?></td>
 
-                        
                         <td class="px-6 py-4">
                             <span class="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium"
                                   style="background-color: <?= htmlspecialchars($r['color_code']) ?>1A;
@@ -133,18 +136,16 @@ $archivedRooms = $totalRooms - $activeRooms;
                             </span>
                         </td>
 
-                        
                         <td class="px-6 py-4 text-slate-600 text-xs">
-                            <?php if ($r['floor_level'] !== null || $r['building']): ?>
-                                <?php if ($r['floor_level'] !== null): ?>Floor <?= (int)$r['floor_level'] ?><?php endif; ?>
-                                <?php if ($r['floor_level'] !== null && $r['building']): ?> · <?php endif; ?>
-                                <?= htmlspecialchars($r['building'] ?? '') ?>
+                            <?php if (!empty($r['floor_level_name']) || !empty($r['building_name'])): ?>
+                                <?php if (!empty($r['floor_level_name'])): ?>Floor <?= htmlspecialchars($r['floor_level_name']) ?><?php endif; ?>
+                                <?php if (!empty($r['floor_level_name']) && !empty($r['building_name'])): ?> · <?php endif; ?>
+                                <?= htmlspecialchars($r['building_name'] ?? '') ?>
                             <?php else: ?>
                                 <span class="text-slate-400">—</span>
                             <?php endif; ?>
                         </td>
 
-                        
                         <td class="px-6 py-4">
                             <?php if ((int)$r['is_active'] === 1): ?>
                                 <span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-700">
@@ -159,10 +160,8 @@ $archivedRooms = $totalRooms - $activeRooms;
                             <?php endif; ?>
                         </td>
 
-                        
                         <td class="px-6 py-4 text-right whitespace-nowrap">
                             <div class="inline-flex items-center gap-1.5">
-
                                 <button type="button"
                                         class="edit-btn inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-400"
                                         data-room='<?= htmlspecialchars(json_encode($r), ENT_QUOTES, "UTF-8") ?>'>
@@ -211,7 +210,6 @@ $archivedRooms = $totalRooms - $activeRooms;
         </table>
     </div>
 
-    
     <div id="emptyState" class="hidden text-center py-16">
         <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-slate-100 text-slate-400 mb-3">
             <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
@@ -222,7 +220,6 @@ $archivedRooms = $totalRooms - $activeRooms;
         <p class="text-xs text-slate-500 mt-1">Try adjusting your search or clearing the filters.</p>
     </div>
 </div>
-
 
 <div id="roomModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
     <div class="absolute inset-0 bg-slate-900/50" data-close-modal></div>
@@ -290,19 +287,26 @@ $archivedRooms = $totalRooms - $activeRooms;
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1.5">
-                        Floor Level <span class="text-slate-400 font-normal">(optional)</span>
-                    </label>
-                    <input type="number" id="floor_level" min="0" step="1" placeholder="1"
-                           class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Building</label>
+                    <select id="building_id" required
+                            class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">— Select building —</option>
+                        <?php foreach ($buildings as $b): ?>
+                            <option value="<?= (int)$b['building_id'] ?>">
+                                <?= htmlspecialchars($b['building_name']) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                    <p class="mt-1.5 text-xs text-red-600 hidden" data-error-for="building_id"></p>
                 </div>
 
                 <div class="sm:col-span-2">
-                    <label class="block text-sm font-medium text-slate-700 mb-1.5">
-                        Building <span class="text-slate-400 font-normal">(optional)</span>
-                    </label>
-                    <input type="text" id="building" placeholder="e.g. Main Building"
-                           class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Floor Level</label>
+                    <select id="floor_level_id" required
+                            class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">— Select floor level —</option>
+                    </select>
+                    <p class="mt-1.5 text-xs text-red-600 hidden" data-error-for="floor_level_id"></p>
                 </div>
 
             </div>
@@ -320,7 +324,6 @@ $archivedRooms = $totalRooms - $activeRooms;
         </form>
     </div>
 </div>
-
 
 <div id="confirmModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
     <div class="absolute inset-0 bg-slate-900/50" data-close-confirm></div>
@@ -355,7 +358,6 @@ $archivedRooms = $totalRooms - $activeRooms;
         </div>
     </div>
 </div>
-
 
 <div id="deleteModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
     <div class="absolute inset-0 bg-slate-900/50" data-close-delete></div>

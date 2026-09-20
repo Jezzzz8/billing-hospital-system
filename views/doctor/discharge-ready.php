@@ -1,6 +1,5 @@
 <?php
 
-
 require_once __DIR__ . '/../../controllers/DoctorPortalController.php';
 require_once __DIR__ . '/../../controllers/DoctorHelper.php';
 
@@ -11,7 +10,7 @@ $patients = $controller->getReadyForDischarge();
 
 <div class="mb-8">
     <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Ready for Discharge</h1>
-    <p class="mt-1 text-sm text-slate-500">Confirm patient readiness so nursing staff can complete the discharge.</p>
+    <p class="mt-1 text-sm text-slate-500">Patients whose service requests are all done. Confirm readiness so nursing staff can discharge them.</p>
 </div>
 
 <div id="alert" class="hidden mb-5 rounded-lg px-4 py-3 text-sm border"></div>
@@ -24,7 +23,7 @@ $patients = $controller->getReadyForDischarge();
             </svg>
         </div>
         <p class="text-lg font-medium text-slate-700">No patients ready for discharge</p>
-        <p class="text-sm text-slate-500 mt-1">Your assigned patients are still under care.</p>
+                <p class="text-sm text-slate-500 mt-1">Patients appear here once they have at least one completed service request and no pending ones.</p>
     </div>
 <?php else: ?>
     <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
@@ -36,6 +35,7 @@ $patients = $controller->getReadyForDischarge();
                         <th class="text-left px-6 py-3 font-medium">Room</th>
                         <th class="text-left px-6 py-3 font-medium">Admitted</th>
                         <th class="text-left px-6 py-3 font-medium">Length of Stay</th>
+                        <th class="text-left px-6 py-3 font-medium">Requests</th>
                         <th class="text-right px-6 py-3 font-medium">Actions</th>
                     </tr>
                 </thead>
@@ -44,6 +44,7 @@ $patients = $controller->getReadyForDischarge();
                         $admitted = new DateTime($p['admission_datetime']);
                         $now = new DateTime();
                         $los = $admitted->diff($now);
+                        $alreadyReady = strtolower($p['status_name'] ?? '') === 'ready for discharge';
                     ?>
                         <tr class="hover:bg-slate-50">
                             <td class="px-6 py-4">
@@ -61,16 +62,30 @@ $patients = $controller->getReadyForDischarge();
                                     <?= $los->days ?> day<?= $los->days !== 1 ? 's' : '' ?>
                                 </span>
                             </td>
+                            <td class="px-6 py-4">
+                                <span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-700">
+                                    <?= (int)$p['completed_count'] ?> completed
+                                </span>
+                            </td>
                             <td class="px-6 py-4 text-right">
-                                <button type="button"
-                                        class="confirm-discharge-btn inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700"
-                                        data-admission-id="<?= (int)$p['admission_id'] ?>"
-                                        data-patient-name="<?= htmlspecialchars($p['first_name'] . ' ' . $p['last_name']) ?>">
-                                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                    </svg>
-                                    Confirm Ready
-                                </button>
+                                <?php if ($alreadyReady): ?>
+                                    <span class="inline-flex items-center gap-1.5 rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-1.5 text-xs font-semibold text-emerald-700">
+                                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                                        </svg>
+                                        Marked Ready
+                                    </span>
+                                <?php else: ?>
+                                    <button type="button"
+                                            class="confirm-discharge-btn inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700"
+                                            data-admission-id="<?= (int)$p['admission_id'] ?>"
+                                            data-patient-name="<?= htmlspecialchars($p['first_name'] . ' ' . $p['last_name']) ?>">
+                                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                        </svg>
+                                        Confirm Ready
+                                    </button>
+                                <?php endif; ?>
                             </td>
                         </tr>
                     <?php endforeach; ?>
@@ -79,7 +94,6 @@ $patients = $controller->getReadyForDischarge();
         </div>
     </div>
 <?php endif; ?>
-
 
 <div id="dischargeModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
     <div class="absolute inset-0 bg-slate-900/50" data-close-modal></div>

@@ -3,9 +3,9 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Sep 16, 2026 at 09:24 AM
+-- Generation Time: Sep 20, 2026 at 10:45 AM
 -- Server version: 10.4.32-MariaDB
--- PHP Version: 8.0.30
+-- PHP Version: 8.2.12
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -140,6 +140,26 @@ INSERT INTO `billing_status` (`status_id`, `status_name`, `color_code`, `is_paid
 (2, 'Partially Paid', '#17a2b8', 0),
 (3, 'Paid', '#28a745', 1),
 (4, 'Overdue', '#dc3545', 0);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `building`
+--
+
+CREATE TABLE `building` (
+  `building_id` int(11) NOT NULL,
+  `building_name` varchar(255) NOT NULL,
+  `description` varchar(255) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `building`
+--
+
+INSERT INTO `building` (`building_id`, `building_name`, `description`) VALUES
+(1, 'Main Building', 'Main hospital building'),
+(2, 'ambo', 'Additional hospital building');
 
 -- --------------------------------------------------------
 
@@ -288,7 +308,7 @@ CREATE TABLE `doctor_specialization` (
   `doctor_specialization_id` int(11) NOT NULL,
   `doctor_id` int(11) NOT NULL,
   `specialization_id` int(11) NOT NULL,
-  `is_primary` varchar(10) DEFAULT NULL
+  `is_primary` tinyint(1) NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -296,8 +316,31 @@ CREATE TABLE `doctor_specialization` (
 --
 
 INSERT INTO `doctor_specialization` (`doctor_specialization_id`, `doctor_id`, `specialization_id`, `is_primary`) VALUES
-(3, 1, 1, 'Yes'),
-(4, 1, 4, 'No');
+(3, 1, 1, 1),
+(4, 1, 4, 0);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `floor_level`
+--
+
+CREATE TABLE `floor_level` (
+  `floor_level_id` int(11) NOT NULL,
+  `building_id` int(11) NOT NULL,
+  `floor_level_name` varchar(255) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `floor_level`
+--
+
+INSERT INTO `floor_level` (`floor_level_id`, `building_id`, `floor_level_name`) VALUES
+(1, 1, '0'),
+(2, 1, '1'),
+(3, 1, '2'),
+(4, 1, '3'),
+(5, 2, '0');
 
 -- --------------------------------------------------------
 
@@ -412,9 +455,8 @@ CREATE TABLE `room` (
   `room_id` int(11) NOT NULL,
   `room_type_id` int(11) NOT NULL,
   `status_id` int(11) NOT NULL,
+  `floor_level_id` int(11) NOT NULL,
   `room_number` varchar(50) NOT NULL,
-  `floor_level` int(11) DEFAULT NULL,
-  `building` varchar(100) DEFAULT NULL,
   `is_active` tinyint(1) NOT NULL DEFAULT 1
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -422,13 +464,13 @@ CREATE TABLE `room` (
 -- Dumping data for table `room`
 --
 
-INSERT INTO `room` (`room_id`, `room_type_id`, `status_id`, `room_number`, `floor_level`, `building`, `is_active`) VALUES
-(1, 5, 1, '101', 0, 'Main Building', 1),
-(2, 2, 1, '201', 2, 'Main Building', 1),
-(3, 3, 1, 'ICU-1', 3, 'Main Building', 1),
-(4, 1, 1, '102', 1, 'Main Building', 1),
-(5, 2, 1, '202', 2, 'Main Building', 1),
-(6, 3, 1, 'asd', 0, 'ambo', 1);
+INSERT INTO `room` (`room_id`, `room_type_id`, `status_id`, `floor_level_id`, `room_number`, `is_active`) VALUES
+(1, 5, 1, 1, '101', 1),
+(2, 2, 1, 3, '201', 1),
+(3, 3, 1, 4, 'ICU-1', 1),
+(4, 1, 1, 2, '102', 1),
+(5, 2, 1, 3, '202', 1),
+(6, 3, 1, 5, 'asd', 1);
 
 -- --------------------------------------------------------
 
@@ -482,21 +524,19 @@ CREATE TABLE `room_type` (
   `description` varchar(255) DEFAULT NULL,
   `rate_per_day` decimal(10,2) NOT NULL DEFAULT 0.00,
   `capacity` int(11) NOT NULL,
-  `includes_meals` tinyint(1) NOT NULL DEFAULT 0,
-  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
-  `is_active` tinyint(1) NOT NULL DEFAULT 1
+  `created_at` datetime NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `room_type`
 --
 
-INSERT INTO `room_type` (`room_type_id`, `room_type_name`, `description`, `rate_per_day`, `capacity`, `includes_meals`, `created_at`, `is_active`) VALUES
-(1, 'Ward', 'Shared ward accommodation', 500.00, 4, 1, '2026-09-14 10:02:54', 1),
-(2, 'Private', 'Single-occupancy private room', 1500.00, 1, 1, '2026-09-14 10:02:54', 1),
-(3, 'ICU', 'Intensive care unit', 3000.00, 1, 0, '2026-09-14 10:02:54', 1),
-(4, 'ambot', 'ambot', 123.00, 1, 0, '2026-09-15 08:45:24', 1),
-(5, 'ambotnimo', 'nimo', 1500.00, 1, 1, '2026-09-15 09:06:15', 1);
+INSERT INTO `room_type` (`room_type_id`, `room_type_name`, `description`, `rate_per_day`, `capacity`, `created_at`) VALUES
+(1, 'Ward', 'Shared ward accommodation', 500.00, 4, '2026-09-14 10:02:54'),
+(2, 'Private', 'Single-occupancy private room', 1500.00, 1, '2026-09-14 10:02:54'),
+(3, 'ICU', 'Intensive care unit', 3000.00, 1, '2026-09-14 10:02:54'),
+(4, 'ambot', 'ambot', 123.00, 1, '2026-09-15 08:45:24'),
+(5, 'ambotnimo', 'nimo', 1500.00, 1, '2026-09-15 09:06:15');
 
 -- --------------------------------------------------------
 
@@ -623,6 +663,12 @@ ALTER TABLE `billing_status`
   ADD PRIMARY KEY (`status_id`);
 
 --
+-- Indexes for table `building`
+--
+ALTER TABLE `building`
+  ADD PRIMARY KEY (`building_id`);
+
+--
 -- Indexes for table `charge`
 --
 ALTER TABLE `charge`
@@ -642,7 +688,7 @@ ALTER TABLE `charge_category`
 --
 ALTER TABLE `charge_item`
   ADD PRIMARY KEY (`charge_item_id`),
-  ADD UNIQUE KEY `item_code` (`item_code`),
+  ADD UNIQUE KEY `uq_charge_item_code` (`item_code`),
   ADD KEY `fk_charge_item_category` (`category_id`);
 
 --
@@ -664,8 +710,8 @@ ALTER TABLE `diagnosis`
 --
 ALTER TABLE `doctor`
   ADD PRIMARY KEY (`doctor_id`),
-  ADD UNIQUE KEY `user_id` (`user_id`),
-  ADD UNIQUE KEY `license_number` (`license_number`);
+  ADD UNIQUE KEY `uq_doctor_user` (`user_id`),
+  ADD UNIQUE KEY `uq_doctor_license` (`license_number`);
 
 --
 -- Indexes for table `doctor_specialization`
@@ -674,6 +720,13 @@ ALTER TABLE `doctor_specialization`
   ADD PRIMARY KEY (`doctor_specialization_id`),
   ADD UNIQUE KEY `uq_doctor_specialization` (`doctor_id`,`specialization_id`),
   ADD KEY `fk_doctor_specialization_specialization` (`specialization_id`);
+
+--
+-- Indexes for table `floor_level`
+--
+ALTER TABLE `floor_level`
+  ADD PRIMARY KEY (`floor_level_id`),
+  ADD KEY `fk_floor_building` (`building_id`);
 
 --
 -- Indexes for table `gender`
@@ -715,7 +768,8 @@ ALTER TABLE `role`
 ALTER TABLE `room`
   ADD PRIMARY KEY (`room_id`),
   ADD KEY `fk_room_type` (`room_type_id`),
-  ADD KEY `fk_room_status` (`status_id`);
+  ADD KEY `fk_room_status` (`status_id`),
+  ADD KEY `fk_room_floor` (`floor_level_id`);
 
 --
 -- Indexes for table `room_assignment`
@@ -758,7 +812,7 @@ ALTER TABLE `specialization`
 --
 ALTER TABLE `user`
   ADD PRIMARY KEY (`user_id`),
-  ADD UNIQUE KEY `username` (`username`),
+  ADD UNIQUE KEY `uq_user_username` (`username`),
   ADD KEY `fk_user_role` (`role_id`);
 
 --
@@ -769,19 +823,19 @@ ALTER TABLE `user`
 -- AUTO_INCREMENT for table `admission`
 --
 ALTER TABLE `admission`
-  MODIFY `admission_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1;
+  MODIFY `admission_id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `admission_diagnosis`
 --
 ALTER TABLE `admission_diagnosis`
-  MODIFY `admission_diagnosis_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1;
+  MODIFY `admission_diagnosis_id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `admission_doctor`
 --
 ALTER TABLE `admission_doctor`
-  MODIFY `admission_doctor_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1;
+  MODIFY `admission_doctor_id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `admission_status`
@@ -793,7 +847,7 @@ ALTER TABLE `admission_status`
 -- AUTO_INCREMENT for table `billing_statement`
 --
 ALTER TABLE `billing_statement`
-  MODIFY `statement_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1;
+  MODIFY `statement_id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `billing_status`
@@ -802,10 +856,16 @@ ALTER TABLE `billing_status`
   MODIFY `status_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
+-- AUTO_INCREMENT for table `building`
+--
+ALTER TABLE `building`
+  MODIFY `building_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+
+--
 -- AUTO_INCREMENT for table `charge`
 --
 ALTER TABLE `charge`
-  MODIFY `charge_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1;
+  MODIFY `charge_id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `charge_category`
@@ -823,7 +883,7 @@ ALTER TABLE `charge_item`
 -- AUTO_INCREMENT for table `consultation`
 --
 ALTER TABLE `consultation`
-  MODIFY `consultation_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1;
+  MODIFY `consultation_id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `diagnosis`
@@ -844,6 +904,12 @@ ALTER TABLE `doctor_specialization`
   MODIFY `doctor_specialization_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
+-- AUTO_INCREMENT for table `floor_level`
+--
+ALTER TABLE `floor_level`
+  MODIFY `floor_level_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+
+--
 -- AUTO_INCREMENT for table `gender`
 --
 ALTER TABLE `gender`
@@ -853,13 +919,13 @@ ALTER TABLE `gender`
 -- AUTO_INCREMENT for table `patient`
 --
 ALTER TABLE `patient`
-  MODIFY `patient_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1;
+  MODIFY `patient_id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `payment`
 --
 ALTER TABLE `payment`
-  MODIFY `payment_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1;
+  MODIFY `payment_id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `payment_type`
@@ -883,7 +949,7 @@ ALTER TABLE `room`
 -- AUTO_INCREMENT for table `room_assignment`
 --
 ALTER TABLE `room_assignment`
-  MODIFY `room_assignment_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1;
+  MODIFY `room_assignment_id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `room_status`
@@ -901,7 +967,7 @@ ALTER TABLE `room_type`
 -- AUTO_INCREMENT for table `service_request`
 --
 ALTER TABLE `service_request`
-  MODIFY `request_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1;
+  MODIFY `request_id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `specialization`
@@ -986,6 +1052,12 @@ ALTER TABLE `doctor_specialization`
   ADD CONSTRAINT `fk_doctor_specialization_specialization` FOREIGN KEY (`specialization_id`) REFERENCES `specialization` (`specialization_id`);
 
 --
+-- Constraints for table `floor_level`
+--
+ALTER TABLE `floor_level`
+  ADD CONSTRAINT `fk_floor_building` FOREIGN KEY (`building_id`) REFERENCES `building` (`building_id`);
+
+--
 -- Constraints for table `patient`
 --
 ALTER TABLE `patient`
@@ -1003,6 +1075,7 @@ ALTER TABLE `payment`
 -- Constraints for table `room`
 --
 ALTER TABLE `room`
+  ADD CONSTRAINT `fk_room_floor` FOREIGN KEY (`floor_level_id`) REFERENCES `floor_level` (`floor_level_id`),
   ADD CONSTRAINT `fk_room_status` FOREIGN KEY (`status_id`) REFERENCES `room_status` (`status_id`),
   ADD CONSTRAINT `fk_room_type` FOREIGN KEY (`room_type_id`) REFERENCES `room_type` (`room_type_id`);
 

@@ -1,6 +1,5 @@
 <?php
 
-
 class UserController
 {
     private PDO $pdo;
@@ -10,13 +9,8 @@ class UserController
         $this->pdo = $pdo;
     }
 
-    
-    
-    
     public function create(): void
     {
-        $this->guard('POST');
-
         $data = $this->input();
         $errors = $this->validate($data, null);
 
@@ -55,18 +49,12 @@ class UserController
         ]);
     }
 
-    
-    
-    
     public function update(): void
     {
-        $this->guard('POST');
-
         $id = (int)($_GET['id'] ?? 0);
         if ($id <= 0) $this->json(400, ['success' => false, 'message' => 'Missing user id.']);
 
         $data = $this->input();
-        
         $errors = $this->validate($data, $id, false);
         if ($errors) {
             $this->json(422, ['success' => false, 'message' => 'Please fix the highlighted fields.', 'errors' => $errors]);
@@ -97,13 +85,8 @@ class UserController
         $this->json(200, ['success' => true, 'message' => 'User updated successfully.']);
     }
 
-    
-    
-    
     public function changePassword(): void
     {
-        $this->guard('POST');
-
         $id = (int)($_GET['id'] ?? 0);
         if ($id <= 0) $this->json(400, ['success' => false, 'message' => 'Missing user id.']);
 
@@ -134,17 +117,11 @@ class UserController
         $this->json(200, ['success' => true, 'message' => 'Password updated successfully.']);
     }
 
-    
-    
-    
     public function toggleActive(): void
     {
-        $this->guard('POST');
-
         $id = (int)($_GET['id'] ?? 0);
         if ($id <= 0) $this->json(400, ['success' => false, 'message' => 'Missing user id.']);
 
-        
         if ($id === (int)$_SESSION['user']['user_id']) {
             $this->json(409, ['success' => false, 'message' => 'You cannot deactivate your own account.']);
         }
@@ -164,24 +141,6 @@ class UserController
             'message' => $newState === 1 ? 'User reactivated.' : 'User deactivated.',
             'is_active' => $newState,
         ]);
-    }
-
-    
-    
-    
-    private function guard(string $method): void
-    {
-        header('Content-Type: application/json; charset=utf-8');
-
-        if ($_SERVER['REQUEST_METHOD'] !== $method) {
-            $this->json(405, ['success' => false, 'message' => 'Method not allowed.']);
-        }
-
-        if (session_status() === PHP_SESSION_NONE) session_start();
-
-        if (empty($_SESSION['user']) || (int)$_SESSION['user']['role_id'] !== 1) {
-            $this->json(403, ['success' => false, 'message' => 'Access denied.']);
-        }
     }
 
     private function input(): array

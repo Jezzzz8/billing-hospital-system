@@ -1,13 +1,11 @@
 <?php
 
-
 class SpecializationController
 {
     private PDO $pdo;
 
     public function __construct(PDO $pdo) { $this->pdo = $pdo; }
 
-    
     public function getAll(): array
     {
         return $this->pdo->query(
@@ -17,11 +15,8 @@ class SpecializationController
         )->fetchAll();
     }
 
-    
     public function create(): void
     {
-        $this->guard();
-
         $data   = $this->input();
         $errors = $this->validate($data);
         if ($errors) $this->json(422, ['success' => false, 'message' => 'Please fix the highlighted fields.', 'errors' => $errors]);
@@ -40,11 +35,8 @@ class SpecializationController
         ]);
     }
 
-    
     public function update(): void
     {
-        $this->guard();
-
         $id = (int)($_GET['id'] ?? 0);
         if ($id <= 0) $this->json(400, ['success' => false, 'message' => 'Missing specialization id.']);
 
@@ -64,11 +56,8 @@ class SpecializationController
         $this->json(200, ['success' => true, 'message' => 'Specialization updated successfully.']);
     }
 
-    
     public function delete(): void
     {
-        $this->guard();
-
         $id = (int)($_GET['id'] ?? 0);
         if ($id <= 0) $this->json(400, ['success' => false, 'message' => 'Missing specialization id.']);
 
@@ -78,7 +67,6 @@ class SpecializationController
             $this->json(404, ['success' => false, 'message' => 'Specialization not found.']);
         }
 
-        
         $stmt = $this->pdo->prepare('SELECT COUNT(*) FROM `doctor_specialization` WHERE specialization_id = ?');
         $stmt->execute([$id]);
         $refCount = (int)$stmt->fetchColumn();
@@ -95,22 +83,6 @@ class SpecializationController
         $stmt->execute([$id]);
 
         $this->json(200, ['success' => true, 'message' => 'Specialization deleted.']);
-    }
-
-    
-    private function guard(): void
-    {
-        header('Content-Type: application/json; charset=utf-8');
-
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->json(405, ['success' => false, 'message' => 'Method not allowed.']);
-        }
-
-        if (session_status() === PHP_SESSION_NONE) session_start();
-
-        if (empty($_SESSION['user']) || (int)$_SESSION['user']['role_id'] !== 1) {
-            $this->json(403, ['success' => false, 'message' => 'Access denied.']);
-        }
     }
 
     private function input(): array

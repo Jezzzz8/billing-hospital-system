@@ -1,13 +1,32 @@
 <?php
 
 require_once __DIR__ . '/../../controllers/CashierController.php';
+require_once __DIR__ . '/../../controllers/ChargeSyncService.php';
 
 $controller = new CashierController($pdo);
+
+$allStatements = $controller->getAllStatements();
+foreach ($allStatements as $s) {
+    try {
+        (new ChargeSyncService($pdo))->recomputeStatement((int)$s['statement_id']);
+    } catch (Throwable $e) {
+        error_log('[payment-counter] recompute failed for #' . $s['statement_id'] . ': ' . $e->getMessage());
+    }
+}
+
 $statements = $controller->getUnpaidStatements();
 $paymentTypes = $controller->getPaymentTypes();
 
 $totalUnpaid = 0;
 foreach ($statements as $s) $totalUnpaid += (float)$s['balance_amount'];
+
+$todayCollected = (float)$pdo->query(
+    'SELECT COALESCE(SUM(amount), 0) FROM `payment` WHERE DATE(payment_datetime) = CURDATE()'
+)->fetchColumn();
+
+$todayPaymentCount = (int)$pdo->query(
+    'SELECT COUNT(*) FROM `payment` WHERE DATE(payment_datetime) = CURDATE()'
+)->fetchColumn();
 ?>
 
 <div class="mb-8">
@@ -29,14 +48,9 @@ foreach ($statements as $s) $totalUnpaid += (float)$s['balance_amount'];
         <p class="mt-2 text-2xl font-bold text-rose-600">₱<?= number_format($totalUnpaid, 2) ?></p>
     </div>
     <div class="bg-white rounded-xl border border-slate-200 p-5">
-        <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Today</p>
-        <?php
-        $todayCount = 0;
-        foreach ($statements as $s) {
-            if (date('Y-m-d', strtotime($s['statement_date'])) === date('Y-m-d')) $todayCount++;
-        }
-        ?>
-        <p class="mt-2 text-3xl font-bold text-blue-600"><?= $todayCount ?></p>
+        <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Collected Today</p>
+        <p class="mt-2 text-2xl font-bold text-emerald-600">₱<?= number_format($todayCollected, 2) ?></p>
+        <p class="text-xs text-slate-500 mt-1"><?= $todayPaymentCount ?> payment<?= $todayPaymentCount === 1 ? '' : 's' ?></p>
     </div>
 </div>
 
@@ -226,6 +240,14 @@ foreach ($statements as $s) $totalUnpaid += (float)$s['balance_amount'];
                 </div>
                 <div class="border-t border-slate-200 my-2"></div>
                 <div class="flex items-center justify-between text-xs">
+                    <span class="text-slate-500">Subtotal</span>
+                    <span id="colSubtotal" class="text-slate-700">₱0.00</span>
+                </div>
+                <div class="flex items-center justify-between text-xs">
+                    <span class="text-slate-500">Tax (12%)</span>
+                    <span id="colTax" class="text-slate-700">₱0.00</span>
+                </div>
+                <div class="flex items-center justify-between text-xs">
                     <span class="text-slate-500">Total</span>
                     <span id="colTotal" class="text-slate-700">₱0.00</span>
                 </div>
@@ -357,3 +379,220 @@ foreach ($statements as $s) $totalUnpaid += (float)$s['balance_amount'];
         </div>
     </div>
 </div>
+
+<script>
+(function () {
+    const baseUrl = document.body.dataset.baseUrl;
+    const alertEl = document.getElementById('counterAlert');
+    const rows = document.querySelectorAll('.counter-row');
+    const searchInput = document.getElementById('counterSearch');
+    const statusFilter = document.getElementById('counterStatus');
+    const clearBtn = document.getElementById('counterClear');
+    const summaryEl = document.getElementById('counterSummary');
+    const filteredCount = document.getElementById('counterFilteredCount');
+    const totalCount = document.getElementById('counterTotalCount');
+    const emptyEl = document.getElementById('counterEmpty');
+
+    const collectModal = document.getElementById('collectModal');
+    const receiptModal = document.getElementById('receiptModal');
+    const collectForm = document.getElementById('collectForm');
+
+    let currentStatementId = null;
+
+    function showAlert(type, msg) {
+        if (!alertEl) return;
+        alertEl.className = 'mb-5 rounded-lg px-4 py-3 text-sm border ' +
+            (type === 'success'
+                ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                : 'border-rose-200 bg-rose-50 text-rose-800');
+        alertEl.textContent = msg;
+        alertEl.classList.remove('hidden');
+        alertEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    function filterRows() {
+        const q = (searchInput?.value || '').toLowerCase().trim();
+        const status = statusFilter?.value || '';
+        let visible = 0;
+
+        rows.forEach(row => {
+            const search = row.dataset.search || '';
+            const rowStatus = row.dataset.status || '';
+            const matchSearch = !q || search.includes(q);
+            const matchStatus = !status || rowStatus === status;
+
+            if (matchSearch && matchStatus) {
+                row.style.display = '';
+                visible++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+
+        if (q || status) {
+            summaryEl.classList.remove('hidden');
+            clearBtn.classList.remove('hidden');
+            clearBtn.classList.add('flex');
+            filteredCount.textContent = visible;
+            totalCount.textContent = rows.length;
+        } else {
+            summaryEl.classList.add('hidden');
+            clearBtn.classList.add('hidden');
+            clearBtn.classList.remove('flex');
+        }
+
+        emptyEl.classList.toggle('hidden', visible > 0);
+    }
+
+    searchInput?.addEventListener('input', filterRows);
+    statusFilter?.addEventListener('change', filterRows);
+    clearBtn?.addEventListener('click', () => {
+        searchInput.value = '';
+        statusFilter.value = '';
+        filterRows();
+    });
+
+    function openCollectModal(id) {
+        currentStatementId = id;
+        collectModal.classList.remove('hidden');
+        loadStatementSummary(id);
+    }
+
+    function closeCollectModal() {
+        collectModal.classList.add('hidden');
+        currentStatementId = null;
+        collectForm.reset();
+        document.getElementById('colAmountHint').textContent = '';
+        document.getElementById('colBalanceBefore').textContent = '₱0.00';
+        document.getElementById('colThisPayment').textContent = '₱0.00';
+        document.getElementById('colBalanceAfter').textContent = '₱0.00';
+    }
+
+    async function loadStatementSummary(id) {
+        try {
+            const res = await axios.get(`${baseUrl}/api/cashier/get-statement-summary.php?id=${id}`);
+            if (!res.data.success) {
+                showAlert('error', res.data.message || 'Could not load statement.');
+                closeCollectModal();
+                return;
+            }
+            const s = res.data.statement;
+            document.getElementById('collectSubtitle').textContent = 'Statement #' + s.statement_id;
+            document.getElementById('colStatement').textContent = '#' + s.statement_id;
+            document.getElementById('colPatient').textContent = `${s.first_name} ${s.last_name}`;
+            document.getElementById('colContact').textContent = s.contact_number || '—';
+            document.getElementById('colSubtotal').textContent = '₱' + Number(s.subtotal_amount).toFixed(2);
+            document.getElementById('colTax').textContent = '₱' + Number(s.tax_amount).toFixed(2);
+            document.getElementById('colTotal').textContent = '₱' + Number(s.total_amount).toFixed(2);
+            document.getElementById('colPaid').textContent = '₱' + Number(s.amount_paid).toFixed(2);
+            document.getElementById('colBalance').textContent = '₱' + Number(s.balance_amount).toFixed(2);
+            document.getElementById('colBalanceBefore').textContent = '₱' + Number(s.balance_amount).toFixed(2);
+            document.getElementById('col_amount').max = Number(s.balance_amount).toFixed(2);
+            document.getElementById('col_amount').value = Number(s.balance_amount).toFixed(2);
+            document.getElementById('colAmountHint').textContent =
+                'Maximum: ₱' + Number(s.balance_amount).toFixed(2);
+            updateBalancePreview();
+        } catch (err) {
+            showAlert('error', err.response?.data?.message || 'Could not load statement.');
+            closeCollectModal();
+        }
+    }
+
+    function updateBalancePreview() {
+        const before = parseFloat(
+            document.getElementById('colBalanceBefore').textContent.replace(/[^0-9.-]/g, '')
+        ) || 0;
+        const amount = parseFloat(document.getElementById('col_amount').value) || 0;
+        const after = Math.max(0, before - amount);
+
+        document.getElementById('colThisPayment').textContent = '₱' + amount.toFixed(2);
+        document.getElementById('colBalanceAfter').textContent = '₱' + after.toFixed(2);
+    }
+
+    document.getElementById('col_amount')?.addEventListener('input', updateBalancePreview);
+
+    document.getElementById('colFullBtn')?.addEventListener('click', () => {
+        const balance = parseFloat(
+            document.getElementById('colBalanceBefore').textContent.replace(/[^0-9.-]/g, '')
+        ) || 0;
+        document.getElementById('col_amount').value = balance.toFixed(2);
+        updateBalancePreview();
+    });
+
+    document.querySelectorAll('.collect-btn').forEach(btn => {
+        btn.addEventListener('click', function () {
+            openCollectModal(this.dataset.statementId);
+        });
+    });
+
+    collectModal.querySelectorAll('[data-close-collect]').forEach(el => {
+        el.addEventListener('click', closeCollectModal);
+    });
+
+    document.getElementById('confirmCollectBtn').addEventListener('click', async function () {
+        if (!currentStatementId) return;
+
+        const typeId = document.getElementById('col_payment_type_id').value;
+        const amount = parseFloat(document.getElementById('col_amount').value) || 0;
+
+        if (!typeId) {
+            showAlert('error', 'Please select a payment type.');
+            return;
+        }
+        if (amount <= 0) {
+            showAlert('error', 'Please enter a valid amount.');
+            return;
+        }
+
+        const btn = this;
+        const label = document.getElementById('confirmCollectLabel');
+        btn.disabled = true;
+        label.textContent = 'Recording…';
+
+        try {
+            const res = await axios.post(
+                `${baseUrl}/api/cashier/add-payment.php?id=${currentStatementId}`,
+                {
+                    payment_type_id: typeId,
+                    amount: amount,
+                    notes: document.getElementById('col_notes').value
+                },
+                { headers: { 'Content-Type': 'application/json' } }
+            );
+
+            if (res.data.success) {
+                closeCollectModal();
+                showReceipt(res.data);
+                setTimeout(() => location.reload(), 2200);
+            }
+        } catch (err) {
+            showAlert('error', err.response?.data?.message || 'Could not record payment.');
+        } finally {
+            btn.disabled = false;
+            label.textContent = 'Record Payment';
+        }
+    });
+
+    function showReceipt(data) {
+        const amount = parseFloat(document.getElementById('col_amount')?.value || 0);
+        const statementId = currentStatementId;
+
+        document.getElementById('receiptSubtitle').textContent =
+            'Statement #' + statementId + ' · ' + (data.reference || '');
+        document.getElementById('receiptReference').textContent = data.reference || '—';
+        document.getElementById('receiptAmount').textContent =
+            '₱' + Number(data.amount_paid ? (data.amount_paid) : 0).toFixed(2);
+        document.getElementById('receiptNewBalance').textContent =
+            '₱' + Number(data.new_balance || 0).toFixed(2);
+        document.getElementById('receiptPrintBtn').href =
+            `${baseUrl}/index.php?page=cashier-receipt&id=${statementId}`;
+        receiptModal.classList.remove('hidden');
+    }
+
+    receiptModal.querySelectorAll('[data-close-receipt]').forEach(el => {
+        el.addEventListener('click', () => receiptModal.classList.add('hidden'));
+    });
+
+    document.getElementById('col_payment_type_id')?.focus();
+})();
+</script>

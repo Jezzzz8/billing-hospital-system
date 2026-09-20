@@ -166,18 +166,31 @@ if ($selectedPatient && $selectedPatient['current_admission']) {
                         <p class="text-sm">No rooms available</p>
                     </div>
                 <?php else: ?>
-                    <?php foreach ($availableRooms as $r): ?>
-                        <label class="room-option flex items-center gap-3 p-3 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer transition"
+                    <?php foreach ($availableRooms as $r):
+                        $isOccupied = $r['status_name'] === 'Occupied';
+                    ?>
+                        <label class="room-option flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition
+                                      <?= $isOccupied
+                                            ? 'border-slate-200 bg-slate-50 opacity-60 pointer-events-none'
+                                            : 'border-slate-200 hover:bg-slate-50' ?>"
                                data-type-id="<?= (int)$r['room_type_id'] ?>">
-                            <input type="radio" name="room_id" value="<?= (int)$r['room_id'] ?>" class="text-blue-600 focus:ring-blue-500">
+                            <input type="radio" name="room_id" value="<?= (int)$r['room_id'] ?>"
+                                   class="text-blue-600 focus:ring-blue-500"
+                                   <?= $isOccupied ? 'disabled' : '' ?>>
                             <div class="flex-1 min-w-0">
                                 <p class="font-semibold text-slate-900">Room <?= htmlspecialchars($r['room_number']) ?></p>
                                 <p class="text-xs text-slate-500"><?= htmlspecialchars($r['room_type_name']) ?></p>
                                 <p class="text-xs text-slate-500">₱<?= number_format((float)$r['rate_per_day'], 2) ?>/day</p>
                             </div>
-                            <span class="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
-                                Available
-                            </span>
+                            <?php if ($isOccupied): ?>
+                                <span class="inline-flex items-center gap-1 rounded-full bg-rose-50 border border-rose-100 px-2 py-0.5 text-xs font-medium text-rose-700">
+                                    Occupied
+                                </span>
+                            <?php else: ?>
+                                <span class="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                                    Available
+                                </span>
+                            <?php endif; ?>
                         </label>
                     <?php endforeach; ?>
                 <?php endif; ?>

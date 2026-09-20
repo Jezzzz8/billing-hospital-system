@@ -1,15 +1,12 @@
 <?php
 
+require_once __DIR__ . '/ChargeSyncService.php';
 
 class BillingController
 {
     private PDO $pdo;
 
     public function __construct(PDO $pdo) { $this->pdo = $pdo; }
-
-    
-    
-    
 
     public function getAll(): array
     {
@@ -46,7 +43,6 @@ class BillingController
         $statement = $stmt->fetch();
         if (!$statement) return null;
 
-        
         $stmt = $this->pdo->prepare(
             'SELECT c.charge_id, c.charge_item_id, c.quantity, c.actual_price,
                     c.charge_datetime, c.notes,
@@ -60,7 +56,6 @@ class BillingController
         $stmt->execute([$statementId]);
         $statement['charges'] = $stmt->fetchAll();
 
-        
         $stmt = $this->pdo->prepare(
             'SELECT p.payment_id, p.payment_type_id, p.amount, p.payment_datetime,
                     p.transaction_reference, p.notes,
@@ -76,7 +71,6 @@ class BillingController
         return $statement;
     }
 
-    
     public function getBillingStatuses(): array
     {
         return $this->pdo->query('SELECT status_id, status_name, color_code FROM `billing_status` ORDER BY status_id')->fetchAll();
@@ -99,28 +93,23 @@ class BillingController
         )->fetchAll();
     }
 
-    
     public function getAdmissionsWithoutStatement(): array
     {
         return $this->pdo->query(
             'SELECT a.admission_id, a.admission_datetime, a.chief_complaint,
                     p.first_name, p.last_name
-             FROM `admission` a
-             INNER JOIN `patient` p ON p.patient_id = a.patient_id
-             LEFT JOIN `billing_statement` bs ON bs.admission_id = a.admission_id
-             WHERE bs.statement_id IS NULL
-             ORDER BY a.admission_datetime DESC'
+            FROM `admission` a
+            INNER JOIN `patient` p ON p.patient_id = a.patient_id
+            INNER JOIN `admission_status` ast ON ast.status_id = a.status_id
+            LEFT JOIN `billing_statement` bs ON bs.admission_id = a.admission_id
+            WHERE bs.statement_id IS NULL
+            AND ast.status_name = "Ready for Discharge"
+            ORDER BY a.admission_datetime DESC'
         )->fetchAll();
     }
 
-    
-    
-    
-
     public function create(): void
     {
-        $this->guard();
-
         $data   = $this->input();
         $errors = $this->validateStatement($data, null);
         if ($errors) $this->json(422, ['success' => false, 'message' => 'Please fix the highlighted fields.', 'errors' => $errors]);
@@ -128,15 +117,13 @@ class BillingController
         try {
             $this->pdo->beginTransaction();
 
-            $totals = $this->computeTotals($data);
-
             $stmt = $this->pdo->prepare(
                 'INSERT INTO `billing_statement`
                     (admission_id, status_id, statement_date, due_date,
                      subtotal_amount, insurance_coverage_amount, government_discount,
                      tax_amount, total_amount, amount_paid, balance_amount,
                      created_by_user_id, notes)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?)'
+                 VALUES (?, ?, ?, ?, 0, ?, ?, 0, 0, 0, 0, ?, ?)'
             );
 
             $stmt->execute([
@@ -144,17 +131,15 @@ class BillingController
                 (int)($data['status_id'] ?? 1),
                 !empty($data['statement_date']) ? $data['statement_date'] : date('Y-m-d H:i:s'),
                 !empty($data['due_date']) ? $data['due_date'] : null,
-                $totals['subtotal'],
                 (float)($data['insurance_coverage_amount'] ?? 0),
                 (float)($data['government_discount'] ?? 0),
-                $totals['tax'],
-                $totals['total'],
-                $totals['total'],   
                 (int)$_SESSION['user']['user_id'],
                 !empty($data['notes']) ? $data['notes'] : null,
             ]);
 
             $statementId = (int)$this->pdo->lastInsertId();
+
+            (new ChargeSyncService($this->pdo))->recomputeStatement($statementId);
 
             $this->pdo->commit();
 
@@ -170,14 +155,8 @@ class BillingController
         }
     }
 
-    
-    
-    
-
     public function update(): void
     {
-        $this->guard();
-
         $id = (int)($_GET['id'] ?? 0);
         if ($id <= 0) $this->json(400, ['success' => false, 'message' => 'Missing statement id.']);
 
@@ -191,13 +170,32 @@ class BillingController
 
         try {
             $this->pdo->beginTransaction();
-            $this->recomputeStatement($id, [
-                'insurance_coverage_amount' => (float)($data['insurance_coverage_amount'] ?? 0),
-                'government_discount'       => (float)($data['government_discount'] ?? 0),
-                'status_id'                 => (int)($data['status_id'] ?? 1),
-                'due_date'                  => !empty($data['due_date']) ? $data['due_date'] : null,
-                'notes'                     => !empty($data['notes']) ? $data['notes'] : null,
+
+            $stmt = $this->pdo->prepare(
+                'UPDATE `billing_statement`
+                 SET insurance_coverage_amount = ?,
+                     government_discount       = ?,
+                     due_date                  = ?,
+                     notes                     = ?
+                 WHERE statement_id = ?'
+            );
+            $stmt->execute([
+                (float)($data['insurance_coverage_amount'] ?? 0),
+                (float)($data['government_discount'] ?? 0),
+                !empty($data['due_date']) ? $data['due_date'] : null,
+                !empty($data['notes']) ? $data['notes'] : null,
+                $id,
             ]);
+
+            (new ChargeSyncService($this->pdo))->recomputeStatement($id);
+
+            if (isset($data['status_id']) && (int)$data['status_id'] > 0) {
+                $stmt = $this->pdo->prepare(
+                    'UPDATE `billing_statement` SET status_id = ? WHERE statement_id = ?'
+                );
+                $stmt->execute([(int)$data['status_id'], $id]);
+            }
+
             $this->pdo->commit();
 
             $this->json(200, ['success' => true, 'message' => 'Statement updated successfully.']);
@@ -208,18 +206,11 @@ class BillingController
         }
     }
 
-    
-    
-    
-
     public function delete(): void
     {
-        $this->guard();
-
         $id = (int)($_GET['id'] ?? 0);
         if ($id <= 0) $this->json(400, ['success' => false, 'message' => 'Missing statement id.']);
 
-        
         $stmt = $this->pdo->prepare('SELECT COUNT(*) FROM `payment` WHERE statement_id = ?');
         $stmt->execute([$id]);
         if ((int)$stmt->fetchColumn() > 0) {
@@ -232,11 +223,9 @@ class BillingController
         try {
             $this->pdo->beginTransaction();
 
-            
             $stmt = $this->pdo->prepare('DELETE FROM `charge` WHERE statement_id = ?');
             $stmt->execute([$id]);
 
-            
             $stmt = $this->pdo->prepare('DELETE FROM `billing_statement` WHERE statement_id = ?');
             $stmt->execute([$id]);
 
@@ -248,15 +237,9 @@ class BillingController
         }
     }
 
-    
-    
-    
-
     public function addCharge(): void
     {
-        $this->guard();
-
-        $id   = (int)($_GET['id'] ?? 0);   
+        $id   = (int)($_GET['id'] ?? 0);
         $data = $this->input();
 
         $itemId   = (int)($data['charge_item_id'] ?? 0);
@@ -266,7 +249,6 @@ class BillingController
             $this->json(422, ['success' => false, 'message' => 'Missing or invalid charge data.']);
         }
 
-        
         $stmt = $this->pdo->prepare(
             'SELECT ci.charge_item_id, ci.default_price, ci.item_name, ci.is_taxable,
                     cc.is_recurring
@@ -278,7 +260,6 @@ class BillingController
         $item = $stmt->fetch();
         if (!$item) $this->json(404, ['success' => false, 'message' => 'Charge item not found or inactive.']);
 
-        
         $price = isset($data['actual_price']) && is_numeric($data['actual_price'])
             ? (float)$data['actual_price']
             : (float)$item['default_price'];
@@ -304,8 +285,7 @@ class BillingController
                 !empty($data['service_end_date'])   ? $data['service_end_date']   : null,
             ]);
 
-            
-            $this->recomputeStatement($id);
+            (new ChargeSyncService($this->pdo))->recomputeStatement($id);
 
             $this->pdo->commit();
             $this->json(201, ['success' => true, 'message' => 'Charge added.']);
@@ -318,8 +298,6 @@ class BillingController
 
     public function removeCharge(): void
     {
-        $this->guard();
-
         $statementId = (int)($_GET['id'] ?? 0);
         $chargeId    = (int)($_GET['charge_id'] ?? 0);
         if ($statementId <= 0 || $chargeId <= 0) {
@@ -332,7 +310,7 @@ class BillingController
             $stmt = $this->pdo->prepare('DELETE FROM `charge` WHERE charge_id = ? AND statement_id = ?');
             $stmt->execute([$chargeId, $statementId]);
 
-            $this->recomputeStatement($statementId);
+            (new ChargeSyncService($this->pdo))->recomputeStatement($statementId);
 
             $this->pdo->commit();
             $this->json(200, ['success' => true, 'message' => 'Charge removed.']);
@@ -342,14 +320,8 @@ class BillingController
         }
     }
 
-    
-    
-    
-
     public function addPayment(): void
     {
-        $this->guard();
-
         $id   = (int)($_GET['id'] ?? 0);
         $data = $this->input();
 
@@ -380,8 +352,7 @@ class BillingController
                 !empty($data['notes']) ? $data['notes'] : null,
             ]);
 
-            $this->recomputeStatement($id);
-            $this->autoUpdatePaidStatus($id);
+            (new ChargeSyncService($this->pdo))->recomputeStatement($id);
 
             $this->pdo->commit();
 
@@ -423,8 +394,6 @@ class BillingController
 
     public function removePayment(): void
     {
-        $this->guard();
-
         $statementId = (int)($_GET['id'] ?? 0);
         $paymentId   = (int)($_GET['payment_id'] ?? 0);
         if ($statementId <= 0 || $paymentId <= 0) {
@@ -437,149 +406,13 @@ class BillingController
             $stmt = $this->pdo->prepare('DELETE FROM `payment` WHERE payment_id = ? AND statement_id = ?');
             $stmt->execute([$paymentId, $statementId]);
 
-            $this->recomputeStatement($statementId);
-            $this->autoUpdatePaidStatus($statementId);
+            (new ChargeSyncService($this->pdo))->recomputeStatement($statementId);
 
             $this->pdo->commit();
             $this->json(200, ['success' => true, 'message' => 'Payment removed.']);
         } catch (Throwable $e) {
             $this->pdo->rollBack();
             $this->json(500, ['success' => false, 'message' => 'Could not remove payment.']);
-        }
-    }
-
-    
-    
-    
-
-    private function computeTotals(array $data): array
-    {
-        $subtotal = (float)($data['subtotal_amount'] ?? 0);
-        $tax      = (float)($data['tax_amount'] ?? 0);
-
-        $insurance = (float)($data['insurance_coverage_amount'] ?? 0);
-        $discount  = (float)($data['government_discount'] ?? 0);
-
-        $total = $subtotal + $tax - $insurance - $discount;
-        if ($total < 0) $total = 0;
-
-        return ['subtotal' => $subtotal, 'tax' => $tax, 'total' => $total];
-    }
-
-    private function recomputeStatement(int $statementId, array $overrides = []): void
-    {
-        
-        $stmt = $this->pdo->prepare(
-            'SELECT
-                COALESCE(SUM(c.quantity * c.actual_price), 0) AS subtotal,
-                COALESCE(SUM(CASE WHEN ci.is_taxable = 1 THEN c.quantity * c.actual_price ELSE 0 END), 0) AS taxable
-             FROM `charge` c
-             INNER JOIN `charge_item` ci ON ci.charge_item_id = c.charge_item_id
-             WHERE c.statement_id = ?'
-        );
-        $stmt->execute([$statementId]);
-        $row = $stmt->fetch();
-
-        $subtotal = (float)$row['subtotal'];
-        $taxable  = (float)$row['taxable'];
-        $tax      = round($taxable * 0.12, 2);   
-
-        
-        $stmt = $this->pdo->prepare('SELECT COALESCE(SUM(amount), 0) FROM `payment` WHERE statement_id = ?');
-        $stmt->execute([$statementId]);
-        $paid = (float)$stmt->fetchColumn();
-
-        
-        $stmt = $this->pdo->prepare('SELECT insurance_coverage_amount, government_discount, status_id, due_date, notes FROM `billing_statement` WHERE statement_id = ? LIMIT 1');
-        $stmt->execute([$statementId]);
-        $current = $stmt->fetch();
-        if (!$current) return;
-
-        $insurance = $overrides['insurance_coverage_amount'] ?? (float)$current['insurance_coverage_amount'];
-        $discount  = $overrides['government_discount']       ?? (float)$current['government_discount'];
-        $statusId  = $overrides['status_id']                 ?? (int)$current['status_id'];
-        $dueDate   = $overrides['due_date']                  ?? $current['due_date'];
-        $notes     = $overrides['notes']                     ?? $current['notes'];
-
-        $total   = max(0, $subtotal + $tax - $insurance - $discount);
-        $balance = max(0, $total - $paid);
-
-        
-        
-        if (!isset($overrides['status_id'])) {
-            
-            $stmt = $this->pdo->prepare(
-                'SELECT status_id, is_paid_status, status_name FROM `billing_status` ORDER BY status_id'
-            );
-            $stmt->execute();
-            $statuses = $stmt->fetchAll();
-
-            $paidId   = null;
-            $partialId = null;
-            foreach ($statuses as $s) {
-                if ((int)$s['is_paid_status'] === 1) $paidId = (int)$s['status_id'];
-                if (strtolower($s['status_name']) === 'partially paid') $partialId = (int)$s['status_id'];
-            }
-
-            if ($paid > 0 && $balance <= 0 && $paidId) {
-                $statusId = $paidId;
-            } elseif ($paid > 0 && $partialId && $statusId !== 4) {
-                $statusId = $partialId;
-            }
-        }
-
-        $stmt = $this->pdo->prepare(
-            'UPDATE `billing_statement`
-             SET subtotal_amount = ?, tax_amount = ?, insurance_coverage_amount = ?,
-                 government_discount = ?, total_amount = ?, amount_paid = ?,
-                 balance_amount = ?, status_id = ?, due_date = ?, notes = ?
-             WHERE statement_id = ?'
-        );
-        $stmt->execute([
-            $subtotal,
-            $tax,
-            $insurance,
-            $discount,
-            $total,
-            $paid,
-            $balance,
-            $statusId,
-            $dueDate,
-            $notes,
-            $statementId,
-        ]);
-    }
-
-    private function autoUpdatePaidStatus(int $statementId): void
-    {
-        
-        $stmt = $this->pdo->prepare('SELECT balance_amount FROM `billing_statement` WHERE statement_id = ? LIMIT 1');
-        $stmt->execute([$statementId]);
-        $balance = (float)$stmt->fetchColumn();
-
-        if ($balance <= 0) {
-            
-            $stmt = $this->pdo->query('SELECT status_id FROM `billing_status` WHERE is_paid_status = 1 LIMIT 1');
-            $paidStatus = (int)$stmt->fetchColumn();
-            if ($paidStatus > 0) {
-                $stmt = $this->pdo->prepare('UPDATE `billing_statement` SET status_id = ? WHERE statement_id = ?');
-                $stmt->execute([$paidStatus, $statementId]);
-            }
-        }
-    }
-
-    private function guard(): void
-    {
-        header('Content-Type: application/json; charset=utf-8');
-
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->json(405, ['success' => false, 'message' => 'Method not allowed.']);
-        }
-
-        if (session_status() === PHP_SESSION_NONE) session_start();
-
-        if (empty($_SESSION['user']) || (int)$_SESSION['user']['role_id'] !== 1) {
-            $this->json(403, ['success' => false, 'message' => 'Access denied.']);
         }
     }
 
@@ -596,7 +429,6 @@ class BillingController
         if (empty($data['admission_id']) || (int)$data['admission_id'] <= 0) {
             $errors['admission_id'] = 'Please select an admission.';
         } else {
-            
             $sql = 'SELECT statement_id FROM `billing_statement` WHERE admission_id = ?';
             $args = [(int)$data['admission_id']];
             if ($ignoreId !== null) { $sql .= ' AND statement_id <> ?'; $args[] = $ignoreId; }

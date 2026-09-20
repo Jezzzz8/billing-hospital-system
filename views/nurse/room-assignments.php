@@ -7,13 +7,19 @@ $controller = new NurseController($pdo);
 $admissionId = (int)($_GET['admission_id'] ?? 0);
 
 $admission = $admissionId > 0 ? $controller->getPatientByAdmission($admissionId) : null;
+
+if ($admission && (int)($admission['status_id'] ?? 0) === 2) {
+    header('Location: ' . BASE_URL . '/index.php?page=nurse-admissions');
+    exit;
+}
+
 $currentAssignment = null;
 $transferHistory = [];
 
 if ($admission) {
     $assignments = $controller->getRoomAssignments($admissionId);
     foreach ($assignments as $a) {
-        if ((int)$a['is_active'] === 1 && empty($a['end_datetime'])) {
+        if ((int)$a['is_active'] === 1 || empty($a['end_datetime'])) {
             $currentAssignment = $a;
             break;
         }
@@ -315,9 +321,12 @@ if (!$admission) {
     
     <div class="lg:col-span-2">
         <div class="bg-white rounded-xl border border-slate-200 p-6">
+            <?php
+            $trulyAvailable = count(array_filter($availableRooms, fn($x) => $x['status_name'] === 'Available'));
+            ?>
             <div class="flex items-center justify-between mb-4">
                 <h3 class="text-base font-semibold text-slate-900">Available Rooms</h3>
-                <span class="text-xs text-slate-500"><?= count($availableRooms) ?> room(s) available</span>
+                <span class="text-xs text-slate-500"><?= $trulyAvailable ?> room(s) available</span>
             </div>
 
             <div class="flex flex-wrap gap-2 mb-4">
@@ -341,24 +350,51 @@ if (!$admission) {
                         <p class="text-xs mt-1">All rooms are currently occupied or unavailable.</p>
                     </div>
                 <?php else: ?>
-                    <?php foreach ($availableRooms as $r): ?>
-                        <div class="room-option flex items-center gap-3 p-4 rounded-lg border border-slate-200 hover:border-blue-300 hover:bg-blue-50 cursor-pointer transition"
+                    <?php foreach ($availableRooms as $r):
+                        $isOccupied  = $r['status_name'] === 'Occupied';
+                        $heldByThis  = $currentAssignment
+                            && (int)($r['occupied_by_admission_id'] ?? 0) === (int)$admissionId;
+                        $isBlocked   = $isOccupied && !$heldByThis;
+                    ?>
+                        <div class="room-option flex items-center gap-3 p-4 rounded-lg border transition
+                                    <?= $isBlocked
+                                          ? 'border-slate-200 bg-slate-50 opacity-60 pointer-events-none'
+                                          : 'border-slate-200 hover:border-blue-300 hover:bg-blue-50 cursor-pointer' ?>"
                              data-type-id="<?= (int)$r['room_type_id'] ?>"
                              data-room-id="<?= (int)$r['room_id'] ?>"
-                             data-room-number="<?= htmlspecialchars($r['room_number']) ?>">
-                            <div class="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                             data-room-number="<?= htmlspecialchars($r['room_number']) ?>"
+                             data-status="<?= htmlspecialchars($r['status_name']) ?>">
+                            <div class="w-10 h-10 rounded-lg flex items-center justify-center shrink-0
+                                        <?= $isBlocked
+                                              ? 'bg-slate-100 text-slate-400'
+                                              : 'bg-emerald-50 text-emerald-600' ?>">
                                 <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
                                 </svg>
                             </div>
                             <div class="flex-1 min-w-0">
-                                <p class="font-semibold text-slate-900">Room <?= htmlspecialchars($r['room_number']) ?></p>
-                                <p class="text-xs text-slate-500"><?= htmlspecialchars($r['room_type_name']) ?> · Floor <?= (int)$r['floor_level'] ?></p>
-                                <p class="text-sm font-medium text-blue-700 mt-1">₱<?= number_format((float)$r['rate_per_day'], 2) ?>/day</p>
+                                <p class="font-semibold text-slate-900">
+                                    Room <?= htmlspecialchars($r['room_number']) ?>
+                                    <?php if ($heldByThis): ?>
+                                        <span class="ml-1 text-xs font-normal text-emerald-600">(current)</span>
+                                    <?php endif; ?>
+                                </p>
+                                <p class="text-xs text-slate-500">
+                                    <?= htmlspecialchars($r['room_type_name']) ?> · Floor <?= (int)$r['floor_level'] ?>
+                                </p>
+                                <p class="text-sm font-medium <?= $isBlocked ? 'text-slate-400' : 'text-blue-700' ?> mt-1">
+                                    ₱<?= number_format((float)$r['rate_per_day'], 2) ?>/day
+                                </p>
                             </div>
-                            <svg class="w-5 h-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
-                            </svg>
+                            <?php if ($isBlocked): ?>
+                                <span class="inline-flex items-center gap-1 rounded-full bg-rose-50 border border-rose-100 px-2 py-0.5 text-xs font-medium text-rose-700">
+                                    Occupied
+                                </span>
+                            <?php else: ?>
+                                <svg class="w-5 h-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+                                </svg>
+                            <?php endif; ?>
                         </div>
                     <?php endforeach; ?>
                 <?php endif; ?>
@@ -399,7 +435,9 @@ if (!$admission) {
                 <select name="new_room_id" required
                         class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                     <option value="">— Select room —</option>
-                    <?php foreach ($availableRooms as $r): ?>
+                    <?php foreach ($availableRooms as $r):
+                        if ($r['status_name'] === 'Occupied') continue;
+                    ?>
                         <option value="<?= (int)$r['room_id'] ?>">
                             <?= htmlspecialchars($r['room_number']) ?> — <?= htmlspecialchars($r['room_type_name']) ?>
                             (₱<?= number_format((float)$r['rate_per_day'], 2) ?>/day)
@@ -539,6 +577,10 @@ if (!$admission) {
 
     document.querySelectorAll('.room-option').forEach(opt => {
         opt.addEventListener('click', async function() {
+            if (this.dataset.status === 'Occupied') {
+                return;
+            }
+
             if (!confirm(`Assign Room ${this.dataset.roomNumber} to this patient?`)) return;
 
             const roomId = this.dataset.roomId;

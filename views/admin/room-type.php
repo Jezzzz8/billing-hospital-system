@@ -6,7 +6,6 @@ $roomTypes = (new RoomTypeController($pdo))->getAll();
 $totalRoomTypes = count($roomTypes);
 ?>
 
-
 <div class="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
     <div>
         <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Room Types</h1>
@@ -23,12 +22,10 @@ $totalRoomTypes = count($roomTypes);
 
 <div id="alert" class="hidden mb-5 rounded-lg px-4 py-3 text-sm border"></div>
 
-
 <div class="bg-white rounded-xl border border-slate-200 p-5 mb-6 max-w-xs">
     <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Total Room Types</p>
     <p class="mt-2 text-2xl font-bold text-slate-900"><?= $totalRoomTypes ?></p>
 </div>
-
 
 <div class="bg-white rounded-xl border border-slate-200 p-4 mb-4">
     <div class="flex flex-col sm:flex-row sm:items-end gap-3">
@@ -60,7 +57,6 @@ $totalRoomTypes = count($roomTypes);
     </div>
 </div>
 
-
 <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
     <div class="overflow-x-auto">
         <table class="min-w-full text-sm">
@@ -70,7 +66,7 @@ $totalRoomTypes = count($roomTypes);
                     <th class="text-left px-6 py-3.5 font-semibold text-slate-700 text-xs uppercase tracking-wide">Description</th>
                     <th class="text-right px-6 py-3.5 font-semibold text-slate-700 text-xs uppercase tracking-wide">Rate / Day</th>
                     <th class="text-center px-6 py-3.5 font-semibold text-slate-700 text-xs uppercase tracking-wide">Capacity</th>
-                    <th class="text-center px-6 py-3.5 font-semibold text-slate-700 text-xs uppercase tracking-wide">Meals</th>
+                    <th class="text-center px-6 py-3.5 font-semibold text-slate-700 text-xs uppercase tracking-wide">Rooms</th>
                     <th class="text-right px-6 py-3.5 font-semibold text-slate-700 text-xs uppercase tracking-wide">Actions</th>
                 </tr>
             </thead>
@@ -79,7 +75,6 @@ $totalRoomTypes = count($roomTypes);
                     <tr class="hover:bg-slate-50 room-type-row"
                         data-search="<?= htmlspecialchars(strtolower($rt['room_type_name'] . ' ' . ($rt['description'] ?? ''))) ?>">
 
-                        
                         <td class="px-6 py-4">
                             <div class="flex items-center gap-3">
                                 <div class="w-9 h-9 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
@@ -93,39 +88,26 @@ $totalRoomTypes = count($roomTypes);
                             </div>
                         </td>
 
-                        
                         <td class="px-6 py-4 text-slate-600 max-w-xs">
                             <p class="truncate"><?= htmlspecialchars($rt['description'] ?? '—') ?></p>
                         </td>
 
-                        
                         <td class="px-6 py-4 text-right font-medium text-slate-900 whitespace-nowrap">
                             ₱<?= number_format((float)$rt['rate_per_day'], 2) ?>
                         </td>
 
-                        
                         <td class="px-6 py-4 text-center text-slate-700">
                             <?= (int)$rt['capacity'] ?> pax
                         </td>
 
-                        
                         <td class="px-6 py-4 text-center">
-                            <?php if ((int)$rt['includes_meals'] === 1): ?>
-                                <span class="inline-flex items-center gap-1 text-emerald-600 text-xs font-medium">
-                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
-                                    </svg>
-                                    Yes
-                                </span>
-                            <?php else: ?>
-                                <span class="text-xs font-medium text-slate-400">No</span>
-                            <?php endif; ?>
+                            <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-slate-100 text-slate-700 text-xs font-semibold">
+                                <?= (int)$rt['room_count'] ?>
+                            </span>
                         </td>
 
-                        
                         <td class="px-6 py-4 text-right whitespace-nowrap">
                             <div class="inline-flex items-center gap-1.5">
-
                                 <button type="button"
                                         class="edit-btn inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-400"
                                         data-room-type='<?= htmlspecialchars(json_encode($rt), ENT_QUOTES, "UTF-8") ?>'>
@@ -144,7 +126,6 @@ $totalRoomTypes = count($roomTypes);
                                     </svg>
                                     Delete
                                 </button>
-
                             </div>
                         </td>
                     </tr>
@@ -153,7 +134,6 @@ $totalRoomTypes = count($roomTypes);
         </table>
     </div>
 
-    
     <div id="emptyState" class="hidden text-center py-16">
         <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-slate-100 text-slate-400 mb-3">
             <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
@@ -165,13 +145,11 @@ $totalRoomTypes = count($roomTypes);
     </div>
 </div>
 
-
 <div id="roomTypeModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
     <div class="absolute inset-0 bg-slate-900/50" data-close-modal></div>
 
     <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col">
 
-        
         <div class="flex items-center justify-between px-6 py-5 border-b border-slate-200">
             <div class="flex items-center gap-3">
                 <div class="w-9 h-9 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
@@ -192,7 +170,6 @@ $totalRoomTypes = count($roomTypes);
             </button>
         </div>
 
-        
         <form id="roomTypeForm" method="POST" novalidate class="flex-1 overflow-y-auto">
             <input type="hidden" id="room_type_id" name="room_type_id">
 
@@ -229,17 +206,8 @@ $totalRoomTypes = count($roomTypes);
                         <p class="mt-1.5 text-xs text-red-600 hidden" data-error-for="capacity"></p>
                     </div>
                 </div>
-
-                <div>
-                    <label class="inline-flex items-center gap-3 cursor-pointer select-none">
-                        <input type="checkbox" id="includes_meals"
-                               class="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4">
-                        <span class="text-sm text-slate-700">Includes meals</span>
-                    </label>
-                </div>
             </div>
 
-            
             <div class="px-6 py-4 border-t border-slate-200 bg-slate-50 rounded-b-2xl flex items-center justify-end gap-3">
                 <button type="button" data-close-modal
                         class="rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50">
@@ -253,7 +221,6 @@ $totalRoomTypes = count($roomTypes);
         </form>
     </div>
 </div>
-
 
 <div id="deleteModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
     <div class="absolute inset-0 bg-slate-900/50" data-close-delete></div>

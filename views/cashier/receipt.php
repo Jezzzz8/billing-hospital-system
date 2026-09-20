@@ -1,10 +1,19 @@
 <?php
 
-
 require_once __DIR__ . '/../../controllers/CashierController.php';
+require_once __DIR__ . '/../../controllers/ChargeSyncService.php';
 
 $controller = new CashierController($pdo);
 $statementId = (int)($_GET['id'] ?? 0);
+
+if ($statementId > 0) {
+    try {
+        (new ChargeSyncService($pdo))->recomputeStatement($statementId);
+    } catch (Throwable $e) {
+        error_log('[receipt] recompute failed: ' . $e->getMessage());
+    }
+}
+
 $statement = $statementId ? $controller->getStatementDetails($statementId) : null;
 
 if (!$statement) {
@@ -29,21 +38,19 @@ if (!$statement) {
 
 <div class="bg-white rounded-xl border border-slate-200 p-8 max-w-3xl mx-auto">
 
-    
     <div class="text-center mb-8 pb-6 border-b border-slate-200">
         <h1 class="text-2xl font-bold text-slate-900">Billing Hospital</h1>
         <p class="text-sm text-slate-500 mt-1">Official Billing Statement</p>
     </div>
 
-    
     <div class="grid grid-cols-2 gap-6 mb-8">
         <div>
             <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Patient</p>
             <p class="font-semibold text-slate-900"><?= htmlspecialchars($statement['first_name'] . ' ' . $statement['last_name']) ?></p>
-            <?php if ($statement['contact_number']): ?>
+            <?php if (!empty($statement['contact_number'])): ?>
                 <p class="text-sm text-slate-600"><?= htmlspecialchars($statement['contact_number']) ?></p>
             <?php endif; ?>
-            <?php if ($statement['address']): ?>
+            <?php if (!empty($statement['address'])): ?>
                 <p class="text-sm text-slate-600"><?= htmlspecialchars($statement['address']) ?></p>
             <?php endif; ?>
         </div>
@@ -52,13 +59,12 @@ if (!$statement) {
             <p class="font-semibold text-slate-900">#<?= (int)$statement['statement_id'] ?></p>
             <p class="text-sm text-slate-600">Admission #<?= (int)$statement['admission_id'] ?></p>
             <p class="text-sm text-slate-600">Admitted: <?= htmlspecialchars(date('M j, Y', strtotime($statement['admission_datetime']))) ?></p>
-            <?php if ($statement['discharge_datetime']): ?>
+            <?php if (!empty($statement['discharge_datetime'])): ?>
                 <p class="text-sm text-slate-600">Discharged: <?= htmlspecialchars(date('M j, Y', strtotime($statement['discharge_datetime']))) ?></p>
             <?php endif; ?>
         </div>
     </div>
 
-    
     <div class="mb-8">
         <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Charges</p>
         <?php if (empty($statement['charges'])): ?>
@@ -82,7 +88,7 @@ if (!$statement) {
                                 <?php if (!empty($c['service_start_date'])): ?>
                                     <p class="text-xs text-slate-500">
                                         <?= htmlspecialchars($c['service_start_date']) ?>
-                                        <?= $c['service_end_date'] ? ' to ' . htmlspecialchars($c['service_end_date']) : '' ?>
+                                        <?= !empty($c['service_end_date']) ? ' to ' . htmlspecialchars($c['service_end_date']) : '' ?>
                                     </p>
                                 <?php endif; ?>
                             </td>
@@ -97,7 +103,6 @@ if (!$statement) {
         <?php endif; ?>
     </div>
 
-    
     <div class="border-t-2 border-slate-200 pt-4 mb-8">
         <div class="flex justify-end">
             <div class="w-full max-w-xs space-y-1.5">
@@ -111,6 +116,10 @@ if (!$statement) {
                         <span class="text-slate-900">₱<?= number_format((float)$statement['tax_amount'], 2) ?></span>
                     </div>
                 <?php endif; ?>
+                <div class="flex justify-between text-base font-bold border-t border-slate-200 pt-2">
+                    <span class="text-slate-900">Total</span>
+                    <span class="text-slate-900">₱<?= number_format((float)$statement['total_amount'], 2) ?></span>
+                </div>
                 <?php if ((float)$statement['insurance_coverage_amount'] > 0): ?>
                     <div class="flex justify-between text-sm">
                         <span class="text-slate-600">Insurance Coverage</span>
@@ -123,10 +132,6 @@ if (!$statement) {
                         <span class="text-emerald-700">- ₱<?= number_format((float)$statement['government_discount'], 2) ?></span>
                     </div>
                 <?php endif; ?>
-                <div class="flex justify-between text-base font-bold border-t border-slate-200 pt-2">
-                    <span class="text-slate-900">Total</span>
-                    <span class="text-slate-900">₱<?= number_format((float)$statement['total_amount'], 2) ?></span>
-                </div>
                 <div class="flex justify-between text-sm">
                     <span class="text-slate-600">Amount Paid</span>
                     <span class="text-emerald-700">₱<?= number_format((float)$statement['amount_paid'], 2) ?></span>
@@ -141,7 +146,6 @@ if (!$statement) {
         </div>
     </div>
 
-    
     <?php if (!empty($statement['payments'])): ?>
         <div class="mb-8">
             <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Payments</p>
@@ -168,7 +172,6 @@ if (!$statement) {
         </div>
     <?php endif; ?>
 
-    
     <div class="text-center pt-6 border-t border-slate-200 text-xs text-slate-500">
         <p>Thank you for choosing Billing Hospital.</p>
         <p class="mt-1">Statement generated <?= htmlspecialchars(date('M j, Y g:i A', strtotime($statement['statement_date']))) ?></p>

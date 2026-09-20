@@ -1,10 +1,7 @@
-
-
 document.addEventListener("DOMContentLoaded", () => {
   const baseUrl = document.body.dataset.baseUrl || "";
   const alertBox = document.getElementById("alert");
 
-  
   const modal = document.getElementById("roomTypeModal");
   const form = document.getElementById("roomTypeForm");
   const modalTitle = document.getElementById("roomTypeModalTitle");
@@ -12,14 +9,13 @@ document.addEventListener("DOMContentLoaded", () => {
   const submitLbl = document.getElementById("roomTypeSubmitLabel");
   const openCreate = document.getElementById("openCreateBtn");
 
-  
   const deleteModal = document.getElementById("deleteModal");
   const deleteRoomTypeName = document.getElementById("deleteRoomTypeName");
   const confirmDeleteBtn = document.getElementById("confirmDeleteBtn");
   const confirmDeleteLbl = document.getElementById("confirmDeleteLabel");
 
-  
   const showAlert = (msg, type = "error") => {
+    if (!alertBox) return;
     const styles = {
       error: "bg-red-50 border-red-200 text-red-700",
       success: "bg-emerald-50 border-emerald-200 text-emerald-700",
@@ -29,25 +25,26 @@ document.addEventListener("DOMContentLoaded", () => {
     alertBox.classList.remove("hidden");
     alertBox.scrollIntoView({ behavior: "smooth", block: "nearest" });
   };
-  const hideAlert = () => alertBox.classList.add("hidden");
+  const hideAlert = () => alertBox?.classList.add("hidden");
 
   const clearErrors = (scope) => {
+    if (!scope) return;
     scope.querySelectorAll("[data-error-for]").forEach((p) => {
       p.textContent = "";
       p.classList.add("hidden");
     });
   };
   const setError = (scope, field, msg) => {
+    if (!scope) return;
     const p = scope.querySelector(`[data-error-for="${field}"]`);
     if (!p) return;
     p.textContent = msg || "";
     p.classList.toggle("hidden", !msg);
   };
 
-  const openModal = (el) => el.classList.remove("hidden");
-  const closeModal = (el) => el.classList.add("hidden");
+  const openModal = (el) => el?.classList.remove("hidden");
+  const closeModal = (el) => el?.classList.add("hidden");
 
-  
   document
     .querySelectorAll("[data-close-modal]")
     .forEach((el) => el.addEventListener("click", () => closeModal(modal)));
@@ -63,68 +60,71 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  
-  
-  
   if (openCreate) {
     openCreate.addEventListener("click", () => {
-      form.reset();
+      form?.reset();
       clearErrors(form);
-      document.getElementById("room_type_id").value = "";
-      modalTitle.textContent = "New Room Type";
-      submitLbl.textContent = "Create Room Type";
+      const idField = document.getElementById("room_type_id");
+      if (idField) idField.value = "";
+      if (modalTitle) modalTitle.textContent = "New Room Type";
+      if (submitLbl) submitLbl.textContent = "Create Room Type";
       openModal(modal);
     });
   }
 
-  
-  
-  
   document.querySelectorAll(".edit-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       const rt = JSON.parse(btn.dataset.roomType);
 
-      form.reset();
+      form?.reset();
       clearErrors(form);
 
-      modalTitle.textContent = "Edit Room Type";
-      submitLbl.textContent = "Save Changes";
+      if (modalTitle) modalTitle.textContent = "Edit Room Type";
+      if (submitLbl) submitLbl.textContent = "Save Changes";
 
-      document.getElementById("room_type_id").value = rt.room_type_id;
-      document.getElementById("room_type_name").value = rt.room_type_name;
-      document.getElementById("description").value = rt.description || "";
-      document.getElementById("rate_per_day").value = rt.rate_per_day;
-      document.getElementById("capacity").value = rt.capacity;
-      document.getElementById("includes_meals").checked =
-        rt.includes_meals == 1;
+      const idField = document.getElementById("room_type_id");
+      const nameField = document.getElementById("room_type_name");
+      const descField = document.getElementById("description");
+      const rateField = document.getElementById("rate_per_day");
+      const capField = document.getElementById("capacity");
+
+      if (idField) idField.value = rt.room_type_id;
+      if (nameField) nameField.value = rt.room_type_name;
+      if (descField) descField.value = rt.description || "";
+      if (rateField) rateField.value = rt.rate_per_day;
+      if (capField) capField.value = rt.capacity;
 
       openModal(modal);
     });
   });
 
-  
-  form.addEventListener("submit", async (e) => {
+  form?.addEventListener("submit", async (e) => {
     e.preventDefault();
     hideAlert();
     clearErrors(form);
 
-    const id = document.getElementById("room_type_id").value;
+    const idField = document.getElementById("room_type_id");
+    const nameField = document.getElementById("room_type_name");
+    const descField = document.getElementById("description");
+    const rateField = document.getElementById("rate_per_day");
+    const capField = document.getElementById("capacity");
+
+    const id = idField?.value || "";
     const isEdit = id !== "";
 
     const payload = {
-      room_type_name: document.getElementById("room_type_name").value.trim(),
-      description: document.getElementById("description").value.trim(),
-      rate_per_day: document.getElementById("rate_per_day").value,
-      capacity: document.getElementById("capacity").value,
-      includes_meals: document.getElementById("includes_meals").checked ? 1 : 0,
+      room_type_name: nameField?.value.trim() || "",
+      description: descField?.value.trim() || "",
+      rate_per_day: rateField?.value || "",
+      capacity: capField?.value || "",
     };
 
     const url = isEdit
       ? `${baseUrl}/api/room-types/update.php?id=${id}`
       : `${baseUrl}/api/room-types/create.php`;
 
-    submitBtn.disabled = true;
-    submitLbl.textContent = isEdit ? "Saving…" : "Creating…";
+    if (submitBtn) submitBtn.disabled = true;
+    if (submitLbl) submitLbl.textContent = isEdit ? "Saving…" : "Creating…";
 
     try {
       const { data } = await axios.post(url, payload, {
@@ -149,21 +149,20 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       showAlert(res?.message || "Save failed.", "error");
     } finally {
-      submitBtn.disabled = false;
-      submitLbl.textContent = isEdit ? "Save Changes" : "Create Room Type";
+      if (submitBtn) submitBtn.disabled = false;
+      if (submitLbl) submitLbl.textContent = isEdit ? "Save Changes" : "Create Room Type";
     }
   });
 
-  
-  
-  
   let pendingDeleteId = null;
 
   document.querySelectorAll(".delete-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       pendingDeleteId = btn.getAttribute("data-room-type-id");
-      deleteRoomTypeName.textContent =
-        btn.getAttribute("data-room-type-name") || "this room type";
+      if (deleteRoomTypeName) {
+        deleteRoomTypeName.textContent =
+          btn.getAttribute("data-room-type-name") || "this room type";
+      }
       openModal(deleteModal);
     });
   });
@@ -173,7 +172,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!pendingDeleteId) return;
 
       confirmDeleteBtn.disabled = true;
-      confirmDeleteLbl.textContent = "Deleting…";
+      if (confirmDeleteLbl) confirmDeleteLbl.textContent = "Deleting…";
 
       try {
         const { data } = await axios.post(
@@ -201,15 +200,12 @@ document.addEventListener("DOMContentLoaded", () => {
         showAlert(err.response?.data?.message || "Delete failed.", "error");
       } finally {
         confirmDeleteBtn.disabled = false;
-        confirmDeleteLbl.textContent = "Yes, delete";
+        if (confirmDeleteLbl) confirmDeleteLbl.textContent = "Yes, delete";
         pendingDeleteId = null;
       }
     });
   }
 
-  
-  
-  
   const searchInput = document.getElementById("filterSearch");
   const filterClear = document.getElementById("filterClear");
   const filterSummary = document.getElementById("filterSummary");
@@ -252,9 +248,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   applyFilters();
 
-  
-  
-  
   const flash = sessionStorage.getItem("room_type_flash");
   if (flash) {
     sessionStorage.removeItem("room_type_flash");

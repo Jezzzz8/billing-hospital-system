@@ -10,6 +10,12 @@ $availableRooms   = $controller->getAvailableRooms();
 $doctors          = $controller->getDoctors();
 $allDiagnoses     = $controller->getDiagnoses();
 
+$byId = [];
+foreach ($patients as $row) {
+    $byId[(int)$row['patient_id']] = $row;
+}
+$patients = array_values($byId);
+
 $totalPatients    = count($patients);
 $activePatients   = count(array_filter($patients, fn($p) => (int)$p['is_active'] === 1));
 $archivedPatients = $totalPatients - $activePatients;
@@ -167,7 +173,12 @@ $admittedNow      = count(array_filter($patients, fn($p) => !empty($p['admission
 
                         <td class="px-6 py-4">
                             <?php if (!empty($p['room_number'])): ?>
-                                <p class="font-medium text-slate-900"><?= htmlspecialchars($p['room_number']) ?></p>
+                                <p class="font-medium text-slate-900">
+                                    <?= htmlspecialchars($p['room_number']) ?>
+                                    <?php if ((int)($p['room_assignment_is_active'] ?? 0) !== 1): ?>
+                                        <span class="ml-1 text-xs font-normal text-slate-400">(past)</span>
+                                    <?php endif; ?>
+                                </p>
                                 <p class="text-xs text-slate-500"><?= htmlspecialchars($p['room_type_name'] ?? '') ?></p>
                             <?php else: ?>
                                 <span class="text-xs text-slate-400">—</span>
@@ -394,9 +405,11 @@ $admittedNow      = count(array_filter($patients, fn($p) => !empty($p['admission
                         <select id="room_id" class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                             <option value="">— No room assigned —</option>
                             <?php foreach ($availableRooms as $r): ?>
-                                <option value="<?= (int)$r['room_id'] ?>">
+                                <option value="<?= (int)$r['room_id'] ?>"
+                                        data-occupied-by="<?= (int)($r['occupied_by_admission_id'] ?? 0) ?>">
                                     <?= htmlspecialchars($r['room_number']) ?> — <?= htmlspecialchars($r['room_type_name']) ?>
-                                    <?= $r['building'] ? ' · ' . htmlspecialchars($r['building']) : '' ?>
+                                    <?= $r['building_name'] ? ' · ' . htmlspecialchars($r['building_name']) : '' ?>
+                                    <?= $r['status_name'] === 'Occupied' ? ' (Occupied)' : '' ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>

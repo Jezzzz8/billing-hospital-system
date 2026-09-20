@@ -95,13 +95,13 @@ class CashierController
                     bst.status_id, bst.status_name, bst.color_code, bst.is_paid_status,
                     p.patient_id, p.first_name, p.last_name, p.contact_number, p.email,
                     a.admission_datetime
-            FROM `billing_statement` bs
-            INNER JOIN `billing_status` bst ON bst.status_id = bs.status_id
-            INNER JOIN `admission` a ON a.admission_id = bs.admission_id
-            INNER JOIN `patient` p ON p.patient_id = a.patient_id
-            WHERE bs.balance_amount > 0
-            AND bst.is_paid_status = 0
-            ORDER BY (bs.due_date IS NULL) ASC, bs.due_date ASC, bs.statement_id ASC'
+             FROM `billing_statement` bs
+             INNER JOIN `billing_status` bst ON bst.status_id = bs.status_id
+             INNER JOIN `admission` a ON a.admission_id = bs.admission_id
+             INNER JOIN `patient` p ON p.patient_id = a.patient_id
+             WHERE bs.balance_amount > 0
+               AND bst.is_paid_status = 0
+             ORDER BY (bs.due_date IS NULL) ASC, bs.due_date ASC, bs.statement_id ASC'
         )->fetchAll();
     }
 
@@ -109,15 +109,16 @@ class CashierController
     {
         $stmt = $this->pdo->prepare(
             'SELECT bs.statement_id, bs.admission_id, bs.statement_date, bs.due_date,
-                    bs.total_amount, bs.amount_paid, bs.balance_amount,
-                    bst.status_name, bst.color_code,
+                    bs.subtotal_amount, bs.tax_amount, bs.insurance_coverage_amount,
+                    bs.government_discount, bs.total_amount, bs.amount_paid, bs.balance_amount,
+                    bst.status_name, bst.color_code, bst.is_paid_status,
                     p.patient_id, p.first_name, p.last_name, p.contact_number
-            FROM `billing_statement` bs
-            INNER JOIN `billing_status` bst ON bst.status_id = bs.status_id
-            INNER JOIN `admission` a ON a.admission_id = bs.admission_id
-            INNER JOIN `patient` p ON p.patient_id = a.patient_id
-            WHERE bs.statement_id = ?
-            LIMIT 1'
+             FROM `billing_statement` bs
+             INNER JOIN `billing_status` bst ON bst.status_id = bs.status_id
+             INNER JOIN `admission` a ON a.admission_id = bs.admission_id
+             INNER JOIN `patient` p ON p.patient_id = a.patient_id
+             WHERE bs.statement_id = ?
+             LIMIT 1'
         );
         $stmt->execute([$statementId]);
         return $stmt->fetch() ?: null;
@@ -145,7 +146,11 @@ class CashierController
                     c.charge_datetime, c.notes, c.service_start_date, c.service_end_date,
                     ci.item_code, ci.item_name, ci.unit_of_measure, ci.is_taxable,
                     cc.category_name,
-                    (c.quantity * c.actual_price) AS line_total
+                    (c.quantity * c.actual_price) AS line_total,
+                    CASE WHEN ci.is_taxable = 1 THEN ROUND((c.quantity * c.actual_price) * 0.12, 2) ELSE 0 END AS line_tax,
+                    CASE WHEN ci.is_taxable = 1
+                         THEN ROUND((c.quantity * c.actual_price) * 1.12, 2)
+                         ELSE (c.quantity * c.actual_price) END AS line_total_with_tax
              FROM `charge` c
              INNER JOIN `charge_item` ci ON ci.charge_item_id = c.charge_item_id
              INNER JOIN `charge_category` cc ON cc.category_id = ci.category_id
@@ -215,7 +220,7 @@ class CashierController
 
     public function getAdmissionsWithoutStatement(): array
     {
-        return $this->pdo->query(
+        $stmt = $this->pdo->prepare(
             'SELECT a.admission_id, a.admission_datetime, a.chief_complaint,
                     p.first_name, p.last_name, p.patient_id,
                     ast.status_name AS admission_status_name,
@@ -225,9 +230,11 @@ class CashierController
              INNER JOIN `admission_status` ast ON ast.status_id = a.status_id
              LEFT JOIN `billing_statement` bs ON bs.admission_id = a.admission_id
              WHERE bs.statement_id IS NULL
-               AND a.status_id = 4
+               AND ast.status_name = "Ready for Discharge"
              ORDER BY a.admission_datetime DESC'
-        )->fetchAll();
+        );
+        $stmt->execute();
+        return $stmt->fetchAll();
     }
 
     public function syncChargesFromAdmission(int $statementId): void
@@ -273,7 +280,7 @@ class CashierController
             $note,
         ]);
 
-        $this->recomputeStatement($statementId);
+        (new ChargeSyncService($this->pdo))->recomputeStatement($statementId);
     }
 
     public function removeCharge(int $statementId, int $chargeId): void
@@ -303,7 +310,7 @@ class CashierController
         );
         $stmt->execute([$chargeId, $statementId]);
 
-        $this->recomputeStatement($statementId);
+        (new ChargeSyncService($this->pdo))->recomputeStatement($statementId);
     }
 
     public function addPayment(int $statementId, array $data): string
@@ -313,6 +320,22 @@ class CashierController
 
         if ($typeId <= 0 || $amount <= 0) {
             throw new Exception('Please provide a payment type and a positive amount.');
+        }
+
+        $stmt = $this->pdo->prepare(
+            'SELECT total_amount, amount_paid, balance_amount FROM `billing_statement`
+             WHERE statement_id = ? LIMIT 1'
+        );
+        $stmt->execute([$statementId]);
+        $row = $stmt->fetch();
+        if (!$row) throw new Exception('Statement not found.');
+
+        $balance = (float)$row['balance_amount'];
+        if ($amount > $balance + 0.001) {
+            throw new Exception(sprintf(
+                'Amount exceeds the outstanding balance of ₱%s.',
+                number_format($balance, 2)
+            ));
         }
 
         $this->pdo->beginTransaction();
@@ -334,7 +357,7 @@ class CashierController
                 !empty($data['notes']) ? $data['notes'] : null,
             ]);
 
-            $this->recomputeStatement($statementId);
+            (new ChargeSyncService($this->pdo))->recomputeStatement($statementId);
 
             $this->pdo->commit();
             return $reference;
@@ -351,7 +374,7 @@ class CashierController
         );
         $stmt->execute([$paymentId, $statementId]);
 
-        $this->recomputeStatement($statementId);
+        (new ChargeSyncService($this->pdo))->recomputeStatement($statementId);
     }
 
     private function generatePaymentReference(): string
@@ -376,11 +399,6 @@ class CashierController
         }
 
         return $prefix . str_pad((string)$next, 4, '0', STR_PAD_LEFT);
-    }
-
-    public function recomputeStatement(int $statementId): void
-    {
-        (new ChargeSyncService($this->pdo))->recomputeStatement($statementId);
     }
 
     public function getReportsData(): array
@@ -431,8 +449,6 @@ class CashierController
 
     public function createStatement(): void
     {
-        $this->guard();
-
         $data = $this->input();
         $admissionId = (int)($data['admission_id'] ?? 0);
         if ($admissionId <= 0) {
@@ -486,22 +502,7 @@ class CashierController
         } catch (Throwable $e) {
             if ($this->pdo->inTransaction()) $this->pdo->rollBack();
             error_log('[CashierController::createStatement] ' . $e->getMessage());
-            $this->json(500, ['success' => false, 'message' => 'Could not create statement.']);
-        }
-    }
-
-    public function guard(): void
-    {
-        header('Content-Type: application/json; charset=utf-8');
-
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->json(405, ['success' => false, 'message' => 'Method not allowed.']);
-        }
-
-        if (session_status() === PHP_SESSION_NONE) session_start();
-
-        if (empty($_SESSION['user']) || !in_array((int)$_SESSION['user']['role_id'], [1, 4], true)) {
-            $this->json(403, ['success' => false, 'message' => 'Access denied.']);
+            $this->json(500, ['success' => false, 'message' => 'Could not create statement: ' . $e->getMessage()]);
         }
     }
 

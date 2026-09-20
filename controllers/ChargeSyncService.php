@@ -215,44 +215,106 @@ class ChargeSyncService
         $paid = (float)$stmt->fetchColumn();
 
         $stmt = $this->pdo->prepare(
-            'SELECT insurance_coverage_amount, government_discount, status_id
+            'SELECT insurance_coverage_amount, government_discount
              FROM `billing_statement` WHERE statement_id = ? LIMIT 1'
         );
         $stmt->execute([$statementId]);
         $cur = $stmt->fetch();
         if (!$cur) return;
 
-        $insurance = (float)$cur['insurance_coverage_amount'];
-        $discount  = (float)$cur['government_discount'];
-        $statusId  = (int)$cur['status_id'];
+        $insuranceInput = (float)$cur['insurance_coverage_amount'];
+        $discountInput  = (float)$cur['government_discount'];
 
-        $total   = max(0, $subtotal + $tax - $insurance - $discount);
+        $gross = $subtotal + $tax;
+
+        $appliedInsurance = min($insuranceInput, $gross);
+        $afterInsurance   = max(0, $gross - $appliedInsurance);
+
+        $appliedDiscount = min($discountInput, $afterInsurance);
+        $total           = max(0, $afterInsurance - $appliedDiscount);
+
         $balance = max(0, $total - $paid);
 
         $stmtStatus = $this->pdo->query(
             'SELECT status_id, is_paid_status, status_name FROM `billing_status`'
         );
         $statuses = $stmtStatus->fetchAll();
-        $paidId = null; $partialId = null;
+
+        $paidId    = null;
+        $partialId = null;
+        $pendingId = null;
+
         foreach ($statuses as $s) {
             if ((int)$s['is_paid_status'] === 1) $paidId = (int)$s['status_id'];
-            if (strtolower($s['status_name']) === 'partially paid') $partialId = (int)$s['status_id'];
-        }
-        if ($paid > 0 && $balance <= 0 && $paidId) {
-            $statusId = $paidId;
-        } elseif ($paid > 0 && $partialId && $statusId !== 4) {
-            $statusId = $partialId;
+            $name = strtolower($s['status_name']);
+            if ($name === 'partially paid') $partialId = (int)$s['status_id'];
+            if ($name === 'pending')        $pendingId = (int)$s['status_id'];
         }
 
-        $upd = $this->pdo->prepare(
-            'UPDATE `billing_statement`
-             SET subtotal_amount = ?, tax_amount = ?, total_amount = ?,
-                 amount_paid = ?, balance_amount = ?, status_id = ?
-             WHERE statement_id = ?'
+        $newStatusId = null;
+
+        if ($balance <= 0 && $paidId) {
+            $newStatusId = $paidId;
+        } elseif ($paid > 0 && $balance > 0 && $partialId) {
+            $newStatusId = $partialId;
+        } elseif ($paid <= 0 && $total > 0 && $pendingId && !$this->isOverdue($statementId)) {
+            $newStatusId = $pendingId;
+        }
+
+        if ($newStatusId === null) {
+            $upd = $this->pdo->prepare(
+                'UPDATE `billing_statement`
+                 SET subtotal_amount = ?, tax_amount = ?,
+                     insurance_coverage_amount = ?, government_discount = ?,
+                     total_amount = ?, amount_paid = ?, balance_amount = ?
+                 WHERE statement_id = ?'
+            );
+            $upd->execute([
+                $subtotal,
+                $tax,
+                $appliedInsurance,
+                $appliedDiscount,
+                $total,
+                $paid,
+                $balance,
+                $statementId,
+            ]);
+        } else {
+            $upd = $this->pdo->prepare(
+                'UPDATE `billing_statement`
+                 SET subtotal_amount = ?, tax_amount = ?,
+                     insurance_coverage_amount = ?, government_discount = ?,
+                     total_amount = ?, amount_paid = ?, balance_amount = ?, status_id = ?
+                 WHERE statement_id = ?'
+            );
+            $upd->execute([
+                $subtotal,
+                $tax,
+                $appliedInsurance,
+                $appliedDiscount,
+                $total,
+                $paid,
+                $balance,
+                $newStatusId,
+                $statementId,
+            ]);
+        }
+    }
+
+    private function isOverdue(int $statementId): bool
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT due_date, balance_amount FROM `billing_statement`
+             WHERE statement_id = ? LIMIT 1'
         );
-        $upd->execute([
-            $subtotal, $tax, $total, $paid, $balance, $statusId, $statementId,
-        ]);
+        $stmt->execute([$statementId]);
+        $row = $stmt->fetch();
+        if (!$row) return false;
+
+        $due = $row['due_date'] ?? null;
+        if (!$due) return false;
+
+        return $due < date('Y-m-d') && (float)$row['balance_amount'] > 0;
     }
 
     private function findRoomChargeItem(string $roomTypeName): int
@@ -274,6 +336,7 @@ class ChargeSyncService
              FROM `charge_item` ci
              INNER JOIN `charge_category` cc ON cc.category_id = ci.category_id
              WHERE cc.category_name = "Room Charges" AND ci.is_active = 1
+             ORDER BY ci.charge_item_id ASC
              LIMIT 1'
         );
         $stmt->execute();

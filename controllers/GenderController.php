@@ -1,13 +1,11 @@
 <?php
 
-
 class GenderController
 {
     private PDO $pdo;
 
     public function __construct(PDO $pdo) { $this->pdo = $pdo; }
 
-    
     public function getAll(): array
     {
         return $this->pdo->query(
@@ -17,11 +15,8 @@ class GenderController
         )->fetchAll();
     }
 
-    
     public function create(): void
     {
-        $this->guard();
-
         $data   = $this->input();
         $errors = $this->validate($data);
         if ($errors) $this->json(422, ['success' => false, 'message' => 'Please fix the highlighted fields.', 'errors' => $errors]);
@@ -40,11 +35,8 @@ class GenderController
         ]);
     }
 
-    
     public function update(): void
     {
-        $this->guard();
-
         $id = (int)($_GET['id'] ?? 0);
         if ($id <= 0) $this->json(400, ['success' => false, 'message' => 'Missing gender id.']);
 
@@ -62,22 +54,17 @@ class GenderController
         $this->json(200, ['success' => true, 'message' => 'Gender updated successfully.']);
     }
 
-    
     public function delete(): void
     {
-        $this->guard();
-
         $id = (int)($_GET['id'] ?? 0);
         if ($id <= 0) $this->json(400, ['success' => false, 'message' => 'Missing gender id.']);
 
-        
         $stmt = $this->pdo->prepare('SELECT gender_id FROM `gender` WHERE gender_id = ? LIMIT 1');
         $stmt->execute([$id]);
         if (!$stmt->fetch()) {
             $this->json(404, ['success' => false, 'message' => 'Gender not found.']);
         }
 
-        
         $stmt = $this->pdo->prepare('SELECT COUNT(*) FROM `patient` WHERE gender_id = ?');
         $stmt->execute([$id]);
         $refCount = (int)$stmt->fetchColumn();
@@ -94,22 +81,6 @@ class GenderController
         $stmt->execute([$id]);
 
         $this->json(200, ['success' => true, 'message' => 'Gender deleted.']);
-    }
-
-    
-    private function guard(): void
-    {
-        header('Content-Type: application/json; charset=utf-8');
-
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->json(405, ['success' => false, 'message' => 'Method not allowed.']);
-        }
-
-        if (session_status() === PHP_SESSION_NONE) session_start();
-
-        if (empty($_SESSION['user']) || (int)$_SESSION['user']['role_id'] !== 1) {
-            $this->json(403, ['success' => false, 'message' => 'Access denied.']);
-        }
     }
 
     private function input(): array

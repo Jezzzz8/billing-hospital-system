@@ -1,99 +1,45 @@
-
-
 document.addEventListener("DOMContentLoaded", () => {
   const baseUrl = document.body.dataset.baseUrl || "";
   const alertBox = document.getElementById("alert");
 
-  
-  const statementModal = document.getElementById("statementModal");
-  const statementForm = document.getElementById("statementForm");
-  const statementModalTitle = document.getElementById("statementModalTitle");
-  const statementSubmitBtn = document.getElementById("statementSubmitBtn");
-  const statementSubmitLbl = document.getElementById("statementSubmitLabel");
+  const modal = document.getElementById("patientModal");
+  const form = document.getElementById("patientForm");
+  const modalTitle = document.getElementById("patientModalTitle");
+  const submitBtn = document.getElementById("patientSubmitBtn");
+  const submitLbl = document.getElementById("patientSubmitLabel");
   const openCreate = document.getElementById("openCreateBtn");
-  const admissionWrapper = document.getElementById("admissionWrapper");
 
-  
-  const manageModal = document.getElementById("manageModal");
-  const manageTitle = document.getElementById("manageTitle");
-  const manageSubtitle = document.getElementById("manageSubtitle");
-  const chargesBody = document.getElementById("chargesBody");
-  const paymentsBody = document.getElementById("paymentsBody");
-  const noCharges = document.getElementById("noCharges");
-  const noPayments = document.getElementById("noPayments");
-  const sumSubtotal = document.getElementById("sumSubtotal");
-  const sumTax = document.getElementById("sumTax");
-  const sumTotal = document.getElementById("sumTotal");
-  const sumBalance = document.getElementById("sumBalance");
+  const confirmModal = document.getElementById("confirmModal");
+  const confirmPatientName = document.getElementById("confirmPatientName");
+  const confirmDeactivateBtn = document.getElementById("confirmDeactivateBtn");
+  const confirmDeactivateLbl = document.getElementById("confirmDeactivateLabel");
 
-  
-  const chargeModal = document.getElementById("chargeModal");
-  const chargeForm = document.getElementById("chargeForm");
-  const saveChargeBtn = document.getElementById("saveChargeBtn");
-  const saveChargeLbl = document.getElementById("saveChargeLabel");
+  const tabButtons = document.querySelectorAll(".tab-btn");
+  const tabPanels = document.querySelectorAll(".tab-panel");
+  const prevBtn = document.getElementById("prevTab");
+  const nextBtn = document.getElementById("nextTab");
 
-  
-  const chargeSummary = document.getElementById("chargeSummary");
-  const summaryUnitPrice = document.getElementById("summaryUnitPrice");
-  const summaryQty = document.getElementById("summaryQty");
-  const summaryTaxRow = document.getElementById("summaryTaxRow");
-  const summaryTax = document.getElementById("summaryTax");
-  const summaryLineTotal = document.getElementById("summaryLineTotal");
-  const chargeItemEl = document.getElementById("charge_item_id");
-  const chargeQuantityEl = document.getElementById("charge_quantity");
-  const chargePriceEl = document.getElementById("charge_price");
+  const createAdmissionCb = document.getElementById("create_admission");
+  const admissionFields = document.getElementById("admissionFields");
+  const roomFields = document.getElementById("roomFields");
+  const doctorsFields = document.getElementById("doctorsFields");
+  const diagnosesFields = document.getElementById("diagnosesFields");
 
-  
-  const paymentModal = document.getElementById("paymentModal");
-  const paymentForm = document.getElementById("paymentForm");
-  const savePaymentBtn = document.getElementById("savePaymentBtn");
-  const savePaymentLbl = document.getElementById("savePaymentLabel");
-
-  const TAX_RATE = 0.12;
-
-  
-  const holder = document.getElementById("billingData");
-  let CHARGE_ITEMS = [];
-  let PAYMENT_TYPES = [];
+  const holder = document.getElementById("patientsData");
+  let DOCTORS = [];
+  let DIAGNOSES = [];
 
   if (holder) {
-    try {
-      CHARGE_ITEMS = JSON.parse(holder.dataset.chargeItems || "[]");
-    } catch (e) {
-      console.error(e);
-    }
-    try {
-      PAYMENT_TYPES = JSON.parse(holder.dataset.paymentTypes || "[]");
-    } catch (e) {
-      console.error(e);
-    }
+    try { DOCTORS = JSON.parse(holder.dataset.doctors || "[]"); } catch (e) { console.error(e); }
+    try { DIAGNOSES = JSON.parse(holder.dataset.diagnoses || "[]"); } catch (e) { console.error(e); }
   }
 
-  
-  if (chargeItemEl) {
-    CHARGE_ITEMS.forEach((c) => {
-      const opt = document.createElement("option");
-      opt.value = c.charge_item_id;
-      opt.textContent = `[${c.category}] ${c.item_name} (${c.item_code})`;
-      opt.dataset.price = c.default_price;
-      opt.dataset.taxable = c.is_taxable;
-      opt.dataset.unit = c.unit;
-      chargeItemEl.appendChild(opt);
-    });
-  }
+  const hardReload = () => {
+    const url = new URL(window.location.href);
+    url.searchParams.set("_r", Date.now().toString());
+    window.location.replace(url.toString());
+  };
 
-  
-  const paymentTypeSelect = document.getElementById("payment_type_id");
-  if (paymentTypeSelect) {
-    PAYMENT_TYPES.forEach((p) => {
-      const opt = document.createElement("option");
-      opt.value = p.payment_type_id;
-      opt.textContent = p.type_name;
-      paymentTypeSelect.appendChild(opt);
-    });
-  }
-
-  
   const showAlert = (msg, type = "error") => {
     const styles = {
       error: "bg-red-50 border-red-200 text-red-700",
@@ -122,129 +68,258 @@ document.addEventListener("DOMContentLoaded", () => {
   const openModal = (el) => el.classList.remove("hidden");
   const closeModal = (el) => el.classList.add("hidden");
 
-  const fmt = (n) =>
-    "₱" +
-    (parseFloat(n) || 0).toLocaleString(undefined, {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
+  function removeInjectedRoomOptions() {
+    document
+      .querySelectorAll('#room_id option[data-injected="1"]')
+      .forEach((o) => o.remove());
+  }
 
-  const parseNum = (str) => {
-    if (!str) return 0;
-    return parseFloat(str.replace(/[^0-9.\-]/g, "")) || 0;
-  };
+  function applyRoomOccupancy(editingAdmissionId) {
+    const roomSel = document.getElementById("room_id");
+    if (!roomSel) return;
 
-  
-  document
-    .querySelectorAll("[data-close-statement]")
-    .forEach((el) =>
-      el.addEventListener("click", () => closeModal(statementModal)),
-    );
-  document.querySelectorAll("[data-close-manage]").forEach((el) =>
-    el.addEventListener("click", () => {
-      closeModal(manageModal);
-      if (currentStatementId) {
-        loadStatement(currentStatementId).catch(() => {});
+    const editingId = String(editingAdmissionId || 0);
+
+    Array.from(roomSel.options).forEach((opt) => {
+      if (!opt.value) {
+        opt.disabled = false;
+        return;
       }
-    }),
-  );
-  document
-    .querySelectorAll("[data-close-charge]")
-    .forEach((el) =>
-      el.addEventListener("click", () => closeModal(chargeModal)),
-    );
-  document
-    .querySelectorAll("[data-close-payment]")
-    .forEach((el) =>
-      el.addEventListener("click", () => closeModal(paymentModal)),
-    );
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") {
-      closeModal(statementModal);
-      closeModal(manageModal);
-      closeModal(chargeModal);
-      closeModal(paymentModal);
-    }
-  });
+      if (opt.dataset.injected === "1") {
+        opt.disabled = false;
+        return;
+      }
 
-  
-  
-  
-  if (openCreate) {
-    openCreate.addEventListener("click", () => {
-      statementForm.reset();
-      clearErrors(statementForm);
-      document.getElementById("statement_id").value = "";
-      statementModalTitle.textContent = "New Statement";
-      statementSubmitLbl.textContent = "Create Statement";
-      admissionWrapper.classList.remove("hidden");
-      openModal(statementModal);
+      const occupiedBy = String(opt.dataset.occupiedBy || 0);
+      const isBlocked =
+        occupiedBy !== "0" && occupiedBy !== "" && occupiedBy !== editingId;
+
+      opt.disabled = isBlocked;
     });
   }
 
-  
-  
-  
-  document.querySelectorAll(".edit-btn").forEach((btn) => {
-    btn.addEventListener("click", async () => {
-      const id = btn.dataset.statementId;
-      statementForm.reset();
-      clearErrors(statementForm);
-      statementModalTitle.textContent = "Edit Statement";
-      statementSubmitLbl.textContent = "Save Changes";
-      admissionWrapper.classList.add("hidden");
-      document.getElementById("statement_id").value = id;
-      openModal(statementModal);
+  function selectCurrentRoom(p) {
+    const roomSel = document.getElementById("room_id");
+    if (!roomSel) return;
 
-      try {
-        const { data } = await axios.get(
-          `${baseUrl}/api/billing/get-details.php?id=${id}`,
-          { withCredentials: true },
-        );
-        if (!data.success) return;
+    const ra = p.room_assignment;
 
-        const s = data.data;
-        document.getElementById("status_id").value = s.status_id;
-        document.getElementById("due_date").value = s.due_date || "";
-        document.getElementById("insurance_coverage_amount").value =
-          s.insurance_coverage_amount || "";
-        document.getElementById("government_discount").value =
-          s.government_discount || "";
-        document.getElementById("notes").value = s.notes || "";
-      } catch (err) {
-        console.error(err);
-      }
+    applyRoomOccupancy(p.admission_id);
+
+    if (!ra || !ra.room_id) {
+      roomSel.value = "";
+      return;
+    }
+
+    const roomIdStr = String(ra.room_id);
+    let opt = Array.from(roomSel.options).find(
+      (o) => String(o.value) === roomIdStr,
+    );
+
+    if (!opt) {
+      opt = document.createElement("option");
+      opt.value = roomIdStr;
+      opt.dataset.injected = "1";
+      opt.textContent =
+        (ra.room_number || "Room") +
+        " — " +
+        (ra.room_type_name || "") +
+        (ra.is_active == 1 ? "" : " (past)");
+      roomSel.appendChild(opt);
+    }
+
+    opt.disabled = false;
+    roomSel.value = roomIdStr;
+  }
+
+  let currentTab = "info";
+  const TAB_ORDER = ["info", "admission", "room", "doctors", "diagnoses"];
+
+  function setActiveTab(tab) {
+    currentTab = tab;
+    tabButtons.forEach((b) => {
+      const active = b.dataset.tab === tab;
+      b.classList.toggle("border-blue-600", active);
+      b.classList.toggle("text-blue-600", active);
+      b.classList.toggle("border-transparent", !active);
+      b.classList.toggle("text-slate-500", !active);
     });
+    tabPanels.forEach((p) => {
+      p.classList.toggle("hidden", p.dataset.panel !== tab);
+    });
+    const idx = TAB_ORDER.indexOf(tab);
+    if (prevBtn) prevBtn.classList.toggle("hidden", idx <= 0);
+    if (nextBtn) nextBtn.classList.toggle("hidden", idx >= TAB_ORDER.length - 1);
+    if (submitBtn) submitBtn.classList.toggle("hidden", idx < TAB_ORDER.length - 1);
+  }
+
+  tabButtons.forEach((b) =>
+    b.addEventListener("click", () => setActiveTab(b.dataset.tab)),
+  );
+  prevBtn?.addEventListener("click", () => {
+    const idx = TAB_ORDER.indexOf(currentTab);
+    if (idx > 0) setActiveTab(TAB_ORDER[idx - 1]);
+  });
+  nextBtn?.addEventListener("click", () => {
+    const idx = TAB_ORDER.indexOf(currentTab);
+    if (idx < TAB_ORDER.length - 1) setActiveTab(TAB_ORDER[idx + 1]);
   });
 
-  
-  
-  
-  statementForm.addEventListener("submit", async (e) => {
+  function toggleAdmissionFields() {
+    const on = createAdmissionCb?.checked;
+    [admissionFields, roomFields, doctorsFields, diagnosesFields].forEach((el) => {
+      if (!el) return;
+      el.classList.toggle("opacity-50", !on);
+      el.classList.toggle("pointer-events-none", !on);
+    });
+  }
+  createAdmissionCb?.addEventListener("change", toggleAdmissionFields);
+
+  function addDoctorRow(selectedId = "", selectedRole = "Attending") {
+    const list = document.getElementById("doctorsList");
+    if (!list) return;
+    const row = document.createElement("div");
+    row.className = "flex items-center gap-2 doctor-row";
+    const options = DOCTORS.map(
+      (d) => `<option value="${d.doctor_id}" ${d.doctor_id == selectedId ? "selected" : ""}>${d.name} (₱${Number(d.fee).toFixed(2)})</option>`,
+    ).join("");
+    row.innerHTML = `
+      <select class="doctor-select flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm bg-white">
+        <option value="">— Select doctor —</option>
+        ${options}
+      </select>
+      <select class="doctor-role rounded-lg border border-slate-300 px-2 py-2 text-sm bg-white">
+        <option value="Attending" ${selectedRole === "Attending" ? "selected" : ""}>Attending</option>
+        <option value="Consulting" ${selectedRole === "Consulting" ? "selected" : ""}>Consulting</option>
+        <option value="Referring" ${selectedRole === "Referring" ? "selected" : ""}>Referring</option>
+      </select>
+      <button type="button" class="remove-row-btn text-rose-500 hover:text-rose-700 p-1">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    `;
+    row.querySelector(".remove-row-btn").addEventListener("click", () => row.remove());
+    list.appendChild(row);
+  }
+
+  function addDiagnosisRow(selectedId = "", selectedType = "Primary") {
+    const list = document.getElementById("diagnosesList");
+    if (!list) return;
+    const row = document.createElement("div");
+    row.className = "flex items-center gap-2 diagnosis-row";
+    const options = DIAGNOSES.map(
+      (d) => `<option value="${d.diagnosis_id}" ${d.diagnosis_id == selectedId ? "selected" : ""}>${d.icd_code ? "[" + d.icd_code + "] " : ""}${d.diagnosis_name}</option>`,
+    ).join("");
+    row.innerHTML = `
+      <select class="diagnosis-select flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm bg-white">
+        <option value="">— Select diagnosis —</option>
+        ${options}
+      </select>
+      <select class="diagnosis-type rounded-lg border border-slate-300 px-2 py-2 text-sm bg-white">
+        <option value="Primary" ${selectedType === "Primary" ? "selected" : ""}>Primary</option>
+        <option value="Secondary" ${selectedType === "Secondary" ? "selected" : ""}>Secondary</option>
+        <option value="Differential" ${selectedType === "Differential" ? "selected" : ""}>Differential</option>
+        <option value="Admitting" ${selectedType === "Admitting" ? "selected" : ""}>Admitting</option>
+      </select>
+      <button type="button" class="remove-row-btn text-rose-500 hover:text-rose-700 p-1">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    `;
+    row.querySelector(".remove-row-btn").addEventListener("click", () => row.remove());
+    list.appendChild(row);
+  }
+
+  document.getElementById("addDoctorRow")?.addEventListener("click", () => addDoctorRow());
+  document.getElementById("addDiagnosisRow")?.addEventListener("click", () => addDiagnosisRow());
+
+  document.querySelectorAll("[data-close-modal]").forEach((el) => {
+    el.addEventListener("click", () => closeModal(modal));
+  });
+  document.querySelectorAll("[data-close-confirm]").forEach((el) => {
+    el.addEventListener("click", () => closeModal(confirmModal));
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      closeModal(modal);
+      closeModal(confirmModal);
+    }
+  });
+
+  if (openCreate) {
+    openCreate.addEventListener("click", () => {
+      form.reset();
+      clearErrors(form);
+      removeInjectedRoomOptions();
+      document.getElementById("patient_id").value = "";
+      document.getElementById("admission_id").value = "";
+      document.getElementById("doctorsList").innerHTML = "";
+      document.getElementById("diagnosesList").innerHTML = "";
+      if (createAdmissionCb) createAdmissionCb.disabled = false;
+      modalTitle.textContent = "New Patient";
+      submitLbl.textContent = "Save Patient";
+      applyRoomOccupancy(0);
+      toggleAdmissionFields();
+      setActiveTab("info");
+      openModal(modal);
+    });
+  }
+
+  form.addEventListener("submit", async (e) => {
     e.preventDefault();
     hideAlert();
-    clearErrors(statementForm);
+    clearErrors(form);
 
-    const id = document.getElementById("statement_id").value;
+    const id = document.getElementById("patient_id").value;
     const isEdit = id !== "";
 
+    const doctors = [];
+    document.querySelectorAll(".doctor-row").forEach((row) => {
+      const dId = row.querySelector(".doctor-select")?.value;
+      const dRole = row.querySelector(".doctor-role")?.value;
+      if (dId) doctors.push({ doctor_id: parseInt(dId, 10), doctor_role: dRole });
+    });
+
+    const diagnoses = [];
+    document.querySelectorAll(".diagnosis-row").forEach((row) => {
+      const diId = row.querySelector(".diagnosis-select")?.value;
+      const diType = row.querySelector(".diagnosis-type")?.value;
+      if (diId) diagnoses.push({ diagnosis_id: parseInt(diId, 10), diagnosis_type: diType });
+    });
+
     const payload = {
-      admission_id: document.getElementById("admission_id").value || 0,
-      status_id: document.getElementById("status_id").value,
-      due_date: document.getElementById("due_date").value,
-      insurance_coverage_amount:
-        document.getElementById("insurance_coverage_amount").value || 0,
-      government_discount:
-        document.getElementById("government_discount").value || 0,
-      notes: document.getElementById("notes").value.trim(),
+      gender_id: document.getElementById("gender_id").value,
+      first_name: document.getElementById("first_name").value.trim(),
+      last_name: document.getElementById("last_name").value.trim(),
+      birth_date: document.getElementById("birth_date").value,
+      email: document.getElementById("email").value.trim(),
+      contact_number: document.getElementById("contact_number").value.trim(),
+      address: document.getElementById("address").value.trim(),
+      emergency_contact: document.getElementById("emergency_contact").value.trim(),
+      emergency_contact_number: document.getElementById("emergency_contact_number").value.trim(),
+      medical_history: document.getElementById("medical_history").value.trim(),
+      create_admission: createAdmissionCb?.checked ? 1 : 0,
+      admission_status_id: document.getElementById("admission_status_id")?.value || "",
+      admission_type: document.getElementById("admission_type")?.value || "",
+      chief_complaint: document.getElementById("chief_complaint")?.value.trim() || "",
+      admission_notes: document.getElementById("admission_notes")?.value.trim() || "",
+      room_id: document.getElementById("room_id")?.value || 0,
+      doctors: doctors,
+      diagnoses: diagnoses,
     };
 
-    const url = isEdit
-      ? `${baseUrl}/api/billing/update.php?id=${id}`
-      : `${baseUrl}/api/billing/create.php`;
+    if (isEdit) {
+      payload.admission_id = document.getElementById("admission_id").value || 0;
+    }
 
-    statementSubmitBtn.disabled = true;
-    statementSubmitLbl.textContent = isEdit ? "Saving…" : "Creating…";
+    const url = isEdit
+      ? `${baseUrl}/api/patients/update.php?id=${id}`
+      : `${baseUrl}/api/patients/create.php`;
+
+    submitBtn.disabled = true;
+    submitLbl.textContent = isEdit ? "Saving…" : "Creating…";
 
     try {
       const { data } = await axios.post(url, payload, {
@@ -253,511 +328,198 @@ document.addEventListener("DOMContentLoaded", () => {
       });
 
       if (data.success) {
-        closeModal(statementModal);
-        sessionStorage.setItem("billing_flash", data.message || "Saved.");
-        window.location.reload();
+        closeModal(modal);
+        sessionStorage.setItem("patient_flash", data.message || "Saved.");
+        hardReload();
       } else {
-        if (data.errors)
-          Object.entries(data.errors).forEach(([f, m]) =>
-            setError(statementForm, f, m),
-          );
+        if (data.errors) {
+          Object.entries(data.errors).forEach(([f, m]) => setError(form, f, m));
+        }
         showAlert(data.message || "Save failed.", "error");
       }
     } catch (err) {
       const res = err.response?.data;
-      if (res?.errors)
-        Object.entries(res.errors).forEach(([f, m]) =>
-          setError(statementForm, f, m),
-        );
+      if (res?.errors) {
+        Object.entries(res.errors).forEach(([f, m]) => setError(form, f, m));
+      }
       showAlert(res?.message || "Save failed.", "error");
     } finally {
-      statementSubmitBtn.disabled = false;
-      statementSubmitLbl.textContent = isEdit
-        ? "Save Changes"
-        : "Create Statement";
+      submitBtn.disabled = false;
+      submitLbl.textContent = isEdit ? "Save Changes" : "Save Patient";
     }
   });
 
-  
-  
-  
-  document.querySelectorAll(".delete-btn").forEach((btn) => {
+  document.querySelectorAll(".edit-btn").forEach((btn) => {
     btn.addEventListener("click", async () => {
-      const id = btn.dataset.statementId;
-      if (!confirm("Delete this statement? This cannot be undone.")) return;
+      const id = btn.dataset.patientId;
+      form.reset();
+      clearErrors(form);
+      removeInjectedRoomOptions();
+      document.getElementById("doctorsList").innerHTML = "";
+      document.getElementById("diagnosesList").innerHTML = "";
+      modalTitle.textContent = "Edit Patient";
+      submitLbl.textContent = "Save Changes";
+      document.getElementById("patient_id").value = id;
+      openModal(modal);
+
+      try {
+        const { data } = await axios.get(
+          `${baseUrl}/api/patients/get-details.php?id=${id}`,
+          { withCredentials: true },
+        );
+        if (!data.success) return;
+
+        const p = data.data;
+        document.getElementById("first_name").value = p.first_name || "";
+        document.getElementById("last_name").value = p.last_name || "";
+        document.getElementById("gender_id").value = p.gender_id || "";
+        document.getElementById("birth_date").value = p.birth_date || "";
+        document.getElementById("email").value = p.email || "";
+        document.getElementById("contact_number").value = p.contact_number || "";
+        document.getElementById("address").value = p.address || "";
+        document.getElementById("emergency_contact").value = p.emergency_contact || "";
+        document.getElementById("emergency_contact_number").value = p.emergency_contact_number || "";
+        document.getElementById("medical_history").value = p.medical_history || "";
+
+        document.getElementById("admission_id").value = p.admission_id || "";
+        document.getElementById("admission_status_id").value = p.admission_status_id || 1;
+        document.getElementById("admission_type").value = p.admission_type || "Emergency";
+        document.getElementById("chief_complaint").value = p.chief_complaint || "";
+        document.getElementById("admission_notes").value = p.admission_notes || "";
+
+        selectCurrentRoom(p);
+
+        if (p.admission_id) {
+          createAdmissionCb.checked = true;
+          createAdmissionCb.disabled = false;
+        } else {
+          createAdmissionCb.checked = false;
+          createAdmissionCb.disabled = false;
+        }
+
+        (p.doctors || []).forEach((d) => addDoctorRow(d.doctor_id, d.doctor_role));
+        (p.diagnoses || []).forEach((d) => addDiagnosisRow(d.diagnosis_id, d.diagnosis_type));
+
+        toggleAdmissionFields();
+        setActiveTab("info");
+      } catch (err) {
+        console.error(err);
+        showAlert("Could not load patient details.", "error");
+      }
+    });
+  });
+
+  let pendingArchiveId = null;
+
+  document.querySelectorAll(".deactivate-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      pendingArchiveId = btn.getAttribute("data-patient-id");
+      confirmPatientName.textContent =
+        btn.getAttribute("data-patient-name") || "this patient";
+      openModal(confirmModal);
+    });
+  });
+
+  if (confirmDeactivateBtn) {
+    confirmDeactivateBtn.addEventListener("click", async () => {
+      if (!pendingArchiveId) return;
+
+      confirmDeactivateBtn.disabled = true;
+      confirmDeactivateLbl.textContent = "Archiving…";
 
       try {
         const { data } = await axios.post(
-          `${baseUrl}/api/billing/delete.php?id=${id}`,
+          `${baseUrl}/api/patients/toggle-active.php?id=${pendingArchiveId}`,
           {},
           {
             headers: { "Content-Type": "application/json" },
             withCredentials: true,
           },
         );
+
         if (data.success) {
-          sessionStorage.setItem("billing_flash", data.message || "Deleted.");
-          window.location.reload();
+          closeModal(confirmModal);
+          sessionStorage.setItem("patient_flash", data.message || "Patient archived.");
+          hardReload();
         } else {
-          showAlert(data.message || "Delete failed.", "error");
+          closeModal(confirmModal);
+          showAlert(data.message || "Action failed.", "error");
         }
       } catch (err) {
-        showAlert(err.response?.data?.message || "Delete failed.", "error");
+        closeModal(confirmModal);
+        showAlert(err.response?.data?.message || "Action failed.", "error");
+      } finally {
+        confirmDeactivateBtn.disabled = false;
+        confirmDeactivateLbl.textContent = "Archive Patient";
+        pendingArchiveId = null;
       }
     });
-  });
+  }
 
-  
-  
-  
-  let currentStatementId = null;
-  let currentStatement = null;
-
-  document.querySelectorAll(".manage-tab-btn").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      document.querySelectorAll(".manage-tab-btn").forEach((b) => {
-        b.className =
-          "manage-tab-btn px-4 py-3 text-sm font-medium border-b-2 whitespace-nowrap " +
-          (b === btn
-            ? "border-blue-600 text-blue-600"
-            : "border-transparent text-slate-500 hover:text-slate-700");
-      });
-      document.querySelectorAll(".manage-tab-panel").forEach((p) => {
-        p.classList.toggle("hidden", p.dataset.mpanel !== btn.dataset.mtab);
-      });
-    });
-  });
-
-  document.querySelectorAll(".manage-btn").forEach((btn) => {
+  document.querySelectorAll(".reactivate-btn").forEach((btn) => {
     btn.addEventListener("click", async () => {
-      const id = btn.dataset.statementId;
-      currentStatementId = id;
-      openModal(manageModal);
-      await loadStatement(id);
-    });
-  });
+      const id = btn.getAttribute("data-patient-id");
+      if (!id) return;
 
-  async function loadStatement(id) {
-    try {
-      const { data } = await axios.get(
-        `${baseUrl}/api/billing/get-details.php?id=${id}`,
-        { withCredentials: true },
-      );
-      if (!data.success) {
-        showAlert(data.message || "Could not load statement.", "error");
-        return;
-      }
-      currentStatement = data.data;
-      renderStatement(currentStatement);
-      patchOuterRow(currentStatement);
-    } catch (err) {
-      console.error(err);
-      showAlert("Could not load statement.", "error");
-    }
-  }
-
-  function renderStatement(s) {
-    manageTitle.textContent = `Statement #${s.statement_id}`;
-    manageSubtitle.textContent = `${s.first_name} ${s.last_name} · Admission #${s.admission_id} · ${s.status_name}`;
-
-    sumSubtotal.textContent = fmt(s.subtotal_amount);
-    sumTax.textContent = fmt(s.tax_amount);
-    sumTotal.textContent = fmt(s.total_amount);
-    sumBalance.textContent = fmt(s.balance_amount);
-
-    
-    chargesBody.innerHTML = "";
-    if (!s.charges || !s.charges.length) {
-      noCharges.classList.remove("hidden");
-    } else {
-      noCharges.classList.add("hidden");
-      s.charges.forEach((c) => {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-                    <td class="px-4 py-2.5">
-                        <p class="font-medium text-slate-900">${c.item_name}</p>
-                        <p class="text-xs text-slate-500 font-mono">${c.item_code}</p>
-                    </td>
-                    <td class="px-4 py-2.5 text-center text-slate-700">${c.quantity}</td>
-                    <td class="px-4 py-2.5 text-right text-slate-700">${fmt(c.actual_price)}</td>
-                    <td class="px-4 py-2.5 text-right font-medium text-slate-900">${fmt(c.line_total)}</td>
-                    <td class="px-4 py-2.5 text-right">
-                        <button type="button" class="remove-charge-btn p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg" data-charge-id="${c.charge_id}">
-                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                            </svg>
-                        </button>
-                    </td>
-                `;
-        chargesBody.appendChild(tr);
-      });
-    }
-
-    
-    paymentsBody.innerHTML = "";
-    if (!s.payments || !s.payments.length) {
-      noPayments.classList.remove("hidden");
-    } else {
-      noPayments.classList.add("hidden");
-      s.payments.forEach((p) => {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-                    <td class="px-4 py-2.5 font-medium text-slate-900">${p.type_name}</td>
-                    <td class="px-4 py-2.5 text-slate-600 font-mono text-xs">${p.transaction_reference || "—"}</td>
-                    <td class="px-4 py-2.5 text-slate-600 text-xs">${p.payment_datetime}</td>
-                    <td class="px-4 py-2.5 text-right font-medium text-emerald-700">${fmt(p.amount)}</td>
-                    <td class="px-4 py-2.5 text-right">
-                        <button type="button" class="remove-payment-btn p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg" data-payment-id="${p.payment_id}">
-                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                            </svg>
-                        </button>
-                    </td>
-                `;
-        paymentsBody.appendChild(tr);
-      });
-    }
-
-    chargesBody.querySelectorAll(".remove-charge-btn").forEach((b) => {
-      b.addEventListener("click", () =>
-        removeCharge(s.statement_id, b.dataset.chargeId),
-      );
-    });
-    paymentsBody.querySelectorAll(".remove-payment-btn").forEach((b) => {
-      b.addEventListener("click", () =>
-        removePayment(s.statement_id, b.dataset.paymentId),
-      );
-    });
-  }
-
-  function patchOuterRow(s) {
-    const row = document.querySelector(
-      `.statement-row[data-statement-id="${s.statement_id}"]`,
-    );
-    if (!row) return;
-
-    row.dataset.status = s.status_name || "";
-    row.dataset.search = (
-      s.first_name +
-      " " +
-      s.last_name +
-      " #" +
-      s.statement_id +
-      " " +
-      (s.status_name || "")
-    ).toLowerCase();
-
-    const tds = row.querySelectorAll("td");
-    if (tds.length >= 6) {
-      tds[2].textContent = fmt(s.total_amount);
-      tds[3].textContent = fmt(s.amount_paid);
-
-      tds[4].textContent = fmt(s.balance_amount);
-      tds[4].classList.toggle(
-        "text-rose-700",
-        parseFloat(s.balance_amount) > 0,
-      );
-      tds[4].classList.toggle(
-        "text-slate-400",
-        parseFloat(s.balance_amount) <= 0,
-      );
-
-      const color = s.color_code || "#6b7280";
-      tds[5].innerHTML = `
-                <span class="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium"
-                      style="background-color: ${color}1A; color: ${color}; border-color: ${color}40;">
-                    <span class="w-1.5 h-1.5 rounded-full" style="background-color: ${color}"></span>
-                    ${s.status_name}
-                </span>
-            `;
-    }
-
-    refreshStatCards();
-    applyFilters();
-  }
-
-  function refreshStatCards() {
-    let billed = 0,
-      paid = 0,
-      balance = 0;
-
-    document.querySelectorAll(".statement-row").forEach((r) => {
-      const tds = r.querySelectorAll("td");
-      if (tds.length < 6) return;
-      billed += parseNum(tds[2].textContent);
-      paid += parseNum(tds[3].textContent);
-      balance += parseNum(tds[4].textContent);
-    });
-
-    const statGrid = document.querySelectorAll(
-      "main .grid.grid-cols-1.sm\\:grid-cols-4 > div",
-    );
-    if (statGrid.length >= 4) {
-      statGrid[1].querySelector("p:last-child").textContent = fmt(billed);
-      statGrid[2].querySelector("p:last-child").textContent = fmt(paid);
-      statGrid[3].querySelector("p:last-child").textContent = fmt(balance);
-    }
-  }
-
-  async function removeCharge(statementId, chargeId) {
-    if (!confirm("Remove this charge?")) return;
-    try {
-      const { data } = await axios.post(
-        `${baseUrl}/api/billing/remove-charge.php?id=${statementId}&charge_id=${chargeId}`,
-        {},
-        {
-          headers: { "Content-Type": "application/json" },
-          withCredentials: true,
-        },
-      );
-      if (data.success) {
-        await loadStatement(statementId);
-        sessionStorage.setItem("billing_flash", "Charge removed.");
-      } else {
-        showAlert(data.message || "Could not remove charge.", "error");
-      }
-    } catch (err) {
-      showAlert(
-        err.response?.data?.message || "Could not remove charge.",
-        "error",
-      );
-    }
-  }
-
-  async function removePayment(statementId, paymentId) {
-    if (!confirm("Remove this payment?")) return;
-    try {
-      const { data } = await axios.post(
-        `${baseUrl}/api/billing/remove-payment.php?id=${statementId}&payment_id=${paymentId}`,
-        {},
-        {
-          headers: { "Content-Type": "application/json" },
-          withCredentials: true,
-        },
-      );
-      if (data.success) {
-        await loadStatement(statementId);
-        sessionStorage.setItem("billing_flash", "Payment removed.");
-      } else {
-        showAlert(data.message || "Could not remove payment.", "error");
-      }
-    } catch (err) {
-      showAlert(
-        err.response?.data?.message || "Could not remove payment.",
-        "error",
-      );
-    }
-  }
-
-  
-  
-  
-
-  function refreshChargeSummary() {
-    const opt = chargeItemEl.selectedOptions[0];
-    const hasItem = !!chargeItemEl.value;
-
-    if (!hasItem) {
-      chargeSummary.classList.add("hidden");
-      return;
-    }
-
-    const unitPrice = parseFloat(chargePriceEl.value) || 0;
-    const qty = Math.max(1, parseInt(chargeQuantityEl.value, 10) || 1);
-    const isTaxable = opt && opt.dataset.taxable === "1";
-
-    const subtotal = unitPrice * qty;
-    const taxAmt = isTaxable ? subtotal * TAX_RATE : 0;
-    const lineTotal = subtotal + taxAmt;
-
-    summaryUnitPrice.textContent = fmt(unitPrice);
-    summaryQty.textContent = qty;
-
-    if (isTaxable) {
-      summaryTaxRow.classList.remove("hidden");
-      summaryTaxRow.classList.add("flex");
-      summaryTax.textContent = fmt(taxAmt);
-    } else {
-      summaryTaxRow.classList.add("hidden");
-      summaryTaxRow.classList.remove("flex");
-    }
-
-    summaryLineTotal.textContent = fmt(lineTotal);
-    chargeSummary.classList.remove("hidden");
-  }
-
-  
-  document.getElementById("addChargeBtn").addEventListener("click", () => {
-    chargeForm.reset();
-    chargeItemEl.value = "";
-    chargeQuantityEl.value = 1;
-    chargePriceEl.value = "";
-    document.getElementById("charge_notes").value = "";
-    chargeSummary.classList.add("hidden");
-    openModal(chargeModal);
-  });
-
-  
-  chargeItemEl.addEventListener("change", () => {
-    const opt = chargeItemEl.selectedOptions[0];
-
-    if (opt && opt.dataset.price !== undefined && opt.value !== "") {
-      chargePriceEl.value = parseFloat(opt.dataset.price).toFixed(2);
-    } else {
-      chargePriceEl.value = "";
-    }
-    refreshChargeSummary();
-  });
-
-  
-  chargeQuantityEl.addEventListener("input", refreshChargeSummary);
-  chargeQuantityEl.addEventListener("change", refreshChargeSummary);
-
-  if (saveChargeBtn) {
-    saveChargeBtn.addEventListener("click", async () => {
-      const itemId = chargeItemEl.value;
-      const quantity = chargeQuantityEl.value;
-      const price = chargePriceEl.value;
-      const notes = document.getElementById("charge_notes").value;
-
-      if (!itemId) {
-        showAlert("Please select a charge item.", "error");
-        return;
-      }
-      if (!quantity || parseInt(quantity, 10) < 1) {
-        showAlert("Please enter a valid quantity (1 or more).", "error");
-        return;
-      }
-      if (!price) {
-        showAlert(
-          "Unit price is missing — select a charge item again.",
-          "error",
-        );
-        return;
-      }
-
-      saveChargeBtn.disabled = true;
-      saveChargeLbl.textContent = "Adding…";
+      btn.disabled = true;
 
       try {
         const { data } = await axios.post(
-          `${baseUrl}/api/billing/add-charge.php?id=${currentStatementId}`,
-          { charge_item_id: itemId, quantity, actual_price: price, notes },
+          `${baseUrl}/api/patients/toggle-active.php?id=${id}`,
+          {},
           {
             headers: { "Content-Type": "application/json" },
             withCredentials: true,
           },
         );
+
         if (data.success) {
-          closeModal(chargeModal);
-          await loadStatement(currentStatementId);
-          sessionStorage.setItem("billing_flash", "Charge added.");
+          sessionStorage.setItem("patient_flash", data.message || "Patient reactivated.");
+          hardReload();
         } else {
-          showAlert(data.message || "Could not add charge.", "error");
+          showAlert(data.message || "Action failed.", "error");
         }
       } catch (err) {
-        showAlert(
-          err.response?.data?.message || "Could not add charge.",
-          "error",
-        );
+        showAlert(err.response?.data?.message || "Action failed.", "error");
       } finally {
-        saveChargeBtn.disabled = false;
-        saveChargeLbl.textContent = "Add Charge";
+        btn.disabled = false;
       }
     });
-  }
-
-  
-  
-  
-  document.getElementById("addPaymentBtn").addEventListener("click", () => {
-    paymentForm.reset();
-    document.getElementById("payment_type_id").value = "";
-    document.getElementById("payment_amount").value = "";
-    document.getElementById("payment_reference").value = "";
-    document.getElementById("payment_notes").value = "";
-    openModal(paymentModal);
   });
 
-  if (savePaymentBtn) {
-    savePaymentBtn.addEventListener("click", async () => {
-      const typeId = document.getElementById("payment_type_id").value;
-      const amount = document.getElementById("payment_amount").value;
-      const reference = document.getElementById("payment_reference").value;
-      const notes = document.getElementById("payment_notes").value;
-
-      if (!typeId || !amount) {
-        showAlert("Please select a payment type and enter an amount.", "error");
-        return;
-      }
-
-      savePaymentBtn.disabled = true;
-      savePaymentLbl.textContent = "Recording…";
-
-      try {
-        const { data } = await axios.post(
-          `${baseUrl}/api/billing/add-payment.php?id=${currentStatementId}`,
-          {
-            payment_type_id: typeId,
-            amount,
-            transaction_reference: reference,
-            notes,
-          },
-          {
-            headers: { "Content-Type": "application/json" },
-            withCredentials: true,
-          },
-        );
-        if (data.success) {
-          closeModal(paymentModal);
-          await loadStatement(currentStatementId);
-          sessionStorage.setItem("billing_flash", "Payment recorded.");
-        } else {
-          showAlert(data.message || "Could not record payment.", "error");
-        }
-      } catch (err) {
-        showAlert(
-          err.response?.data?.message || "Could not record payment.",
-          "error",
-        );
-      } finally {
-        savePaymentBtn.disabled = false;
-        savePaymentLbl.textContent = "Record Payment";
-      }
-    });
-  }
-
-  
-  
-  
   const searchInput = document.getElementById("filterSearch");
-  const statusFilter = document.getElementById("filterStatus");
+  const showArchived = document.getElementById("showArchived");
   const filterClear = document.getElementById("filterClear");
   const filterSummary = document.getElementById("filterSummary");
   const filteredCount = document.getElementById("filteredCount");
   const totalCount = document.getElementById("totalCount");
   const emptyState = document.getElementById("emptyState");
 
-  const rows = Array.from(document.querySelectorAll(".statement-row"));
+  const rows = Array.from(document.querySelectorAll(".patient-row"));
   if (totalCount) totalCount.textContent = rows.length;
 
   function applyFilters() {
     const q = (searchInput?.value || "").toLowerCase().trim();
-    const status = statusFilter?.value || "";
+    const showInactiveOnly = showArchived?.checked || false;
 
     let visible = 0;
+
     rows.forEach((row) => {
       const matchesSearch = q === "" || (row.dataset.search || "").includes(q);
-      const matchesStatus = status === "" || row.dataset.status === status;
-      const show = matchesSearch && matchesStatus;
+      const isArchived = row.dataset.status === "0";
+      const matchesArchiveFilter = showInactiveOnly ? isArchived : !isArchived;
+
+      const show = matchesSearch && matchesArchiveFilter;
       row.classList.toggle("hidden", !show);
       if (show) visible++;
     });
 
     if (filteredCount) filteredCount.textContent = visible;
-    const isFiltering = q !== "" || status !== "";
+
+    const isFiltering = q !== "" || showInactiveOnly;
     if (filterSummary) filterSummary.classList.toggle("hidden", !isFiltering);
     if (emptyState) emptyState.classList.toggle("hidden", visible > 0);
+
     if (filterClear) {
       filterClear.classList.toggle("hidden", !isFiltering);
       filterClear.classList.toggle("inline-flex", isFiltering);
@@ -765,22 +527,21 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   if (searchInput) searchInput.addEventListener("input", applyFilters);
-  if (statusFilter) statusFilter.addEventListener("change", applyFilters);
+  if (showArchived) showArchived.addEventListener("change", applyFilters);
   if (filterClear) {
     filterClear.addEventListener("click", () => {
       searchInput.value = "";
-      statusFilter.value = "";
+      showArchived.checked = false;
       applyFilters();
     });
   }
-  applyFilters();
 
-  
-  
-  
-  const flash = sessionStorage.getItem("billing_flash");
+  applyFilters();
+  setActiveTab("info");
+
+  const flash = sessionStorage.getItem("patient_flash");
   if (flash) {
-    sessionStorage.removeItem("billing_flash");
+    sessionStorage.removeItem("patient_flash");
     showAlert(flash, "success");
   }
 });

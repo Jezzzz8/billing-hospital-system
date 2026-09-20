@@ -1,14 +1,11 @@
 <?php
 
-
 require_once __DIR__ . '/ChargeSyncService.php';
 
 class BillingHook
 {
-    
     private static array $deferred = [];
 
-    
     public static function emit(PDO $pdo, int $admissionId): void
     {
         if ($admissionId <= 0) return;
@@ -21,9 +18,8 @@ class BillingHook
             $stmt->execute([$admissionId]);
             $statementId = (int)$stmt->fetchColumn();
 
-            if ($statementId <= 0) return; 
+            if ($statementId <= 0) return;
 
-            
             if ($pdo->inTransaction()) {
                 self::$deferred[$statementId] = $pdo;
                 return;
@@ -35,7 +31,6 @@ class BillingHook
         }
     }
 
-    
     public static function flushDeferred(): void
     {
         if (empty(self::$deferred)) return;
@@ -47,7 +42,7 @@ class BillingHook
             try {
                 (new ChargeSyncService($pdo))->syncStatement($statementId);
             } catch (Throwable $e) {
-                error_log('[BillingHook::flushDeferred] ' . $e->getMessage());
+                error_log('[BillingHook::flushDeferred] statement ' . $statementId . ': ' . $e->getMessage());
             }
         }
     }

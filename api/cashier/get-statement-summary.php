@@ -1,9 +1,9 @@
 <?php
 
-
 require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../config/connection.php';
 require_once __DIR__ . '/../../controllers/CashierController.php';
+require_once __DIR__ . '/../../controllers/ChargeSyncService.php';
 
 header('Content-Type: application/json; charset=utf-8');
 if (session_status() === PHP_SESSION_NONE) session_start();
@@ -17,6 +17,12 @@ $id = (int)($_GET['id'] ?? 0);
 if ($id <= 0) {
     echo json_encode(['success' => false, 'message' => 'Missing statement id.']);
     exit;
+}
+
+try {
+    (new ChargeSyncService($pdo))->recomputeStatement($id);
+} catch (Throwable $e) {
+    error_log('[get-statement-summary] recompute failed: ' . $e->getMessage());
 }
 
 $controller = new CashierController($pdo);

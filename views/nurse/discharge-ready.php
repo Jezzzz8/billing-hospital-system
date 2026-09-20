@@ -62,6 +62,10 @@ $readyPatients = $controller->getReadyForDischarge();
                         $billingStatusLower = strtolower($p['billing_status_name'] ?? '');
                         $canDischarge = !empty($p['statement_id'])
                             && in_array($billingStatusLower, ['paid', 'partially paid'], true);
+                        $isOverdue = !empty($p['due_date'])
+                            && $p['due_date'] < date('Y-m-d')
+                            && (float)$p['balance_amount'] > 0;
+                        if ($isOverdue) $canDischarge = false;
 
                         $reasonBlocked = '';
                         if (empty($p['statement_id'])) {

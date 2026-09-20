@@ -1,5 +1,4 @@
 <?php
-// controllers/DoctorPortalController.php
 
 require_once __DIR__ . '/BillingHook.php';
 
@@ -14,20 +13,41 @@ class DoctorPortalController
         $this->doctorId = $doctorId;
     }
 
-    // =========================================================
-    // DASHBOARD
-    // =========================================================
+    private function statusId(string $name): int
+    {
+        $stmt = $this->pdo->prepare('SELECT status_id FROM `admission_status` WHERE status_name = ? LIMIT 1');
+        $stmt->execute([$name]);
+        return (int)$stmt->fetchColumn();
+    }
+
+    private function activeStatusIds(): array
+    {
+        $ids = [];
+        foreach (['Admitted', 'Transferred', 'Ready for Discharge'] as $n) {
+            $id = $this->statusId($n);
+            if ($id > 0) $ids[] = $id;
+        }
+        return $ids ?: [1, 3, 4];
+    }
+
+    private function readyStatusId(): int
+    {
+        return $this->statusId('Ready for Discharge');
+    }
 
     public function getDashboardStats(): array
     {
+        $activeIds = $this->activeStatusIds();
+        $placeholders = implode(',', array_fill(0, count($activeIds), '?'));
+
         $stmt = $this->pdo->prepare(
-            'SELECT COUNT(DISTINCT ad.admission_id)
+            "SELECT COUNT(DISTINCT ad.admission_id)
              FROM `admission_doctor` ad
              INNER JOIN `admission` a ON a.admission_id = ad.admission_id
              WHERE ad.doctor_id = ? AND ad.ended_datetime IS NULL
-               AND a.status_id IN (1, 3)'
+               AND a.status_id IN ($placeholders)"
         );
-        $stmt->execute([$this->doctorId]);
+        $stmt->execute(array_merge([$this->doctorId], $activeIds));
         $assignedAdmissions = (int)$stmt->fetchColumn();
 
         $stmt = $this->pdo->prepare(
@@ -44,8 +64,7 @@ class DoctorPortalController
         $stmt->execute([$this->doctorId]);
         $pendingRequests = (int)$stmt->fetchColumn();
 
-        // Doctor's patients already cleared for discharge
-        $readyId = $this->getStatusIdByName('Ready for Discharge');
+        $readyId = $this->readyStatusId();
         $stmt = $this->pdo->prepare(
             'SELECT COUNT(DISTINCT ad.admission_id)
              FROM `admission_doctor` ad
@@ -66,9 +85,11 @@ class DoctorPortalController
 
     public function getAssignedPatients(): array
     {
-        // Actionable admissions only: Admitted (1) or Transferred (3).
+        $activeIds = $this->activeStatusIds();
+        $placeholders = implode(',', array_fill(0, count($activeIds), '?'));
+
         $stmt = $this->pdo->prepare(
-            'SELECT a.admission_id, a.admission_datetime, a.chief_complaint, a.admission_type,
+            "SELECT a.admission_id, a.admission_datetime, a.chief_complaint, a.admission_type,
                     p.patient_id, p.first_name, p.last_name, p.birth_date,
                     g.gender_name,
                     ast.status_name AS admission_status_name, ast.color_code AS admission_status_color,
@@ -83,16 +104,12 @@ class DoctorPortalController
              LEFT JOIN `room` r ON r.room_id = ra.room_id
              LEFT JOIN `room_type` rt ON rt.room_type_id = r.room_type_id
              WHERE ad.doctor_id = ? AND ad.ended_datetime IS NULL
-               AND a.status_id IN (1, 3)
-             ORDER BY a.admission_datetime DESC'
+               AND a.status_id IN ($placeholders)
+             ORDER BY a.admission_datetime DESC"
         );
-        $stmt->execute([$this->doctorId]);
+        $stmt->execute(array_merge([$this->doctorId], $activeIds));
         return $stmt->fetchAll();
     }
-
-    // =========================================================
-    // ADMISSION DETAILS
-    // =========================================================
 
     public function getAdmissionDetails(int $admissionId): ?array
     {
@@ -183,10 +200,6 @@ class DoctorPortalController
         return $admission;
     }
 
-    // =========================================================
-    // DIAGNOSES
-    // =========================================================
-
     public function getActiveDiagnoses(): array
     {
         return $this->pdo->query(
@@ -199,8 +212,6 @@ class DoctorPortalController
 
     public function saveDiagnosis(): void
     {
-        $this->guard();
-
         $data = $this->input();
         $admissionId = (int)($data['admission_id'] ?? 0);
         $diagnosisId = (int)($data['diagnosis_id'] ?? 0);
@@ -240,8 +251,6 @@ class DoctorPortalController
 
     public function removeDiagnosis(): void
     {
-        $this->guard();
-
         $id = (int)($_GET['id'] ?? 0);
         if ($id <= 0) $this->json(400, ['success' => false, 'message' => 'Missing diagnosis id.']);
 
@@ -263,10 +272,6 @@ class DoctorPortalController
         $this->json(200, ['success' => true, 'message' => 'Diagnosis removed.']);
     }
 
-    // =========================================================
-    // SERVICE REQUESTS
-    // =========================================================
-
     public function getChargeItems(): array
     {
         return $this->pdo->query(
@@ -282,8 +287,6 @@ class DoctorPortalController
 
     public function createServiceRequest(): void
     {
-        $this->guard();
-
         $data = $this->input();
         $admissionId = (int)($data['admission_id'] ?? 0);
         $itemId = (int)($data['charge_item_id'] ?? 0);
@@ -333,10 +336,39 @@ class DoctorPortalController
         }
     }
 
+    public function completeServiceRequest(): void
+    {
+        $id = (int)($_GET['id'] ?? 0);
+        if ($id <= 0) $this->json(400, ['success' => false, 'message' => 'Missing request id.']);
+
+        $stmt = $this->pdo->prepare(
+            'SELECT sr.request_id, sr.status, sr.admission_id
+             FROM `service_request` sr
+             WHERE sr.request_id = ? AND sr.doctor_id = ? LIMIT 1'
+        );
+        $stmt->execute([$id, $this->doctorId]);
+        $request = $stmt->fetch();
+
+        if (!$request) {
+            $this->json(404, ['success' => false, 'message' => 'Service request not found.']);
+        }
+
+        if ($request['status'] !== 'Pending') {
+            $this->json(409, ['success' => false, 'message' => 'Only pending requests can be completed.']);
+        }
+
+        $stmt = $this->pdo->prepare(
+            'UPDATE `service_request` SET status = "Completed" WHERE request_id = ?'
+        );
+        $stmt->execute([$id]);
+
+        BillingHook::emit($this->pdo, (int)$request['admission_id']);
+
+        $this->json(200, ['success' => true, 'message' => 'Service request marked as completed.']);
+    }
+
     public function cancelServiceRequest(): void
     {
-        $this->guard();
-
         $id = (int)($_GET['id'] ?? 0);
         if ($id <= 0) $this->json(400, ['success' => false, 'message' => 'Missing request id.']);
 
@@ -366,22 +398,26 @@ class DoctorPortalController
         $this->json(200, ['success' => true, 'message' => 'Service request cancelled.']);
     }
 
-    // =========================================================
-    // DISCHARGE READINESS
-    // =========================================================
-
-    /**
-     * Actionable patients: Admitted (1) or Transferred (3).
-     * Once doctor confirms, row becomes status 4 and drops out of this list.
-     */
     public function getReadyForDischarge(): array
     {
+        $activeIds = $this->activeStatusIds();
+        $placeholders = implode(',', array_fill(0, count($activeIds), '?'));
+
         $stmt = $this->pdo->prepare(
-            'SELECT a.admission_id, a.admission_datetime, a.chief_complaint,
+            "SELECT a.admission_id, a.admission_datetime, a.chief_complaint,
                     p.patient_id, p.first_name, p.last_name,
                     r.room_number, rt.room_type_name,
+                    ast.status_id AS status_id,
                     ast.status_name, ast.color_code,
-                    ad.doctor_role
+                    ad.doctor_role,
+                    (SELECT COUNT(*) FROM `service_request` sr
+                     WHERE sr.admission_id = a.admission_id
+                       AND sr.doctor_id = ?
+                       AND sr.status = 'Pending') AS pending_count,
+                    (SELECT COUNT(*) FROM `service_request` sr
+                     WHERE sr.admission_id = a.admission_id
+                       AND sr.doctor_id = ?
+                       AND sr.status = 'Completed') AS completed_count
              FROM `admission_doctor` ad
              INNER JOIN `admission` a ON a.admission_id = ad.admission_id
              INNER JOIN `patient` p ON p.patient_id = a.patient_id
@@ -390,20 +426,20 @@ class DoctorPortalController
              LEFT JOIN `room` r ON r.room_id = ra.room_id
              LEFT JOIN `room_type` rt ON rt.room_type_id = r.room_type_id
              WHERE ad.doctor_id = ? AND ad.ended_datetime IS NULL
-               AND a.status_id IN (1, 3)
-             ORDER BY a.admission_datetime ASC'
+               AND a.status_id IN ($placeholders)
+             HAVING pending_count = 0
+                AND completed_count > 0
+             ORDER BY a.admission_datetime ASC"
         );
-        $stmt->execute([$this->doctorId]);
+        $stmt->execute(array_merge(
+            [$this->doctorId, $this->doctorId, $this->doctorId],
+            $activeIds
+        ));
         return $stmt->fetchAll();
     }
 
-    /**
-     * Doctor confirms readiness. Flips status to 4 (Ready for Discharge).
-     */
     public function confirmDischarge(): void
     {
-        $this->guard();
-
         $data = $this->input();
         $admissionId = (int)($data['admission_id'] ?? 0);
 
@@ -432,7 +468,14 @@ class DoctorPortalController
             $this->json(404, ['success' => false, 'message' => 'Admission not found.']);
         }
 
-        if (!in_array((int)$row['status_id'], [1, 3], true)) {
+        $allowedIds = [];
+        foreach (['Admitted', 'Transferred'] as $n) {
+            $id = $this->statusId($n);
+            if ($id > 0) $allowedIds[] = $id;
+        }
+        if (!$allowedIds) $allowedIds = [1, 3];
+
+        if (!in_array((int)$row['status_id'], $allowedIds, true)) {
             $this->json(409, [
                 'success' => false,
                 'message' => 'This admission cannot be cleared for discharge (current status: '
@@ -440,7 +483,31 @@ class DoctorPortalController
             ]);
         }
 
-        $readyId = $this->getStatusIdByName('Ready for Discharge');
+        $stmt = $this->pdo->prepare(
+            'SELECT COUNT(*) FROM `service_request`
+             WHERE admission_id = ? AND doctor_id = ? AND status = "Pending"'
+        );
+        $stmt->execute([$admissionId, $this->doctorId]);
+        if ((int)$stmt->fetchColumn() > 0) {
+            $this->json(409, [
+                'success' => false,
+                'message' => 'You still have pending service requests for this patient. Complete or cancel them before clearing for discharge.',
+            ]);
+        }
+
+        $stmt = $this->pdo->prepare(
+            'SELECT COUNT(*) FROM `service_request`
+             WHERE admission_id = ? AND doctor_id = ? AND status = "Completed"'
+        );
+        $stmt->execute([$admissionId, $this->doctorId]);
+        if ((int)$stmt->fetchColumn() === 0) {
+            $this->json(409, [
+                'success' => false,
+                'message' => 'No completed service requests exist for this patient. Create and complete at least one service request before clearing for discharge.',
+            ]);
+        }
+
+        $readyId = $this->readyStatusId();
         if ($readyId <= 0) {
             $this->json(500, ['success' => false, 'message' => 'System configuration error: status "Ready for Discharge" is missing.']);
         }
@@ -471,10 +538,6 @@ class DoctorPortalController
         }
     }
 
-    // =========================================================
-    // CONSULTATIONS
-    // =========================================================
-
     public function getConsultations(): array
     {
         $stmt = $this->pdo->prepare(
@@ -492,8 +555,6 @@ class DoctorPortalController
 
     public function createConsultation(): void
     {
-        $this->guard();
-
         $data = $this->input();
         $patientId = (int)($data['patient_id'] ?? 0);
         $datetime = $data['consultation_datetime'] ?? date('Y-m-d H:i:s');
@@ -530,8 +591,6 @@ class DoctorPortalController
 
     public function updateConsultationStatus(): void
     {
-        $this->guard();
-
         $id = (int)($_GET['id'] ?? 0);
         $status = $_GET['status'] ?? '';
 
@@ -548,10 +607,6 @@ class DoctorPortalController
 
         $this->json(200, ['success' => true, 'message' => 'Consultation status updated.']);
     }
-
-    // =========================================================
-    // PATIENTS LIST
-    // =========================================================
 
     public function getAllMyPatients(): array
     {
@@ -571,34 +626,6 @@ class DoctorPortalController
         );
         $stmt->execute([$this->doctorId]);
         return $stmt->fetchAll();
-    }
-
-    // =========================================================
-    // HELPERS
-    // =========================================================
-
-    private function getStatusIdByName(string $name): int
-    {
-        $stmt = $this->pdo->prepare(
-            'SELECT status_id FROM `admission_status` WHERE status_name = ? LIMIT 1'
-        );
-        $stmt->execute([$name]);
-        return (int)$stmt->fetchColumn();
-    }
-
-    private function guard(): void
-    {
-        header('Content-Type: application/json; charset=utf-8');
-
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->json(405, ['success' => false, 'message' => 'Method not allowed.']);
-        }
-
-        if (session_status() === PHP_SESSION_NONE) session_start();
-
-        if (empty($_SESSION['user']) || !in_array((int)$_SESSION['user']['role_id'], [1, 2], true)) {
-            $this->json(403, ['success' => false, 'message' => 'Access denied.']);
-        }
     }
 
     private function input(): array

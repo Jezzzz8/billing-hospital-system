@@ -1,13 +1,11 @@
 <?php
 
-
 class ChargeItemController
 {
     private PDO $pdo;
 
     public function __construct(PDO $pdo) { $this->pdo = $pdo; }
 
-    
     public function getAll(): array
     {
         return $this->pdo->query(
@@ -21,7 +19,6 @@ class ChargeItemController
         )->fetchAll();
     }
 
-    
     public function getCategories(): array
     {
         return $this->pdo->query(
@@ -31,11 +28,8 @@ class ChargeItemController
         )->fetchAll();
     }
 
-    
     public function create(): void
     {
-        $this->guard();
-
         $data   = $this->input();
         $errors = $this->validate($data);
         if ($errors) $this->json(422, ['success' => false, 'message' => 'Please fix the highlighted fields.', 'errors' => $errors]);
@@ -67,11 +61,8 @@ class ChargeItemController
         ]);
     }
 
-    
     public function update(): void
     {
-        $this->guard();
-
         $id = (int)($_GET['id'] ?? 0);
         if ($id <= 0) $this->json(400, ['success' => false, 'message' => 'Missing charge item id.']);
 
@@ -103,11 +94,8 @@ class ChargeItemController
         $this->json(200, ['success' => true, 'message' => 'Charge item updated successfully.']);
     }
 
-    
     public function toggleActive(): void
     {
-        $this->guard();
-
         $id = (int)($_GET['id'] ?? 0);
         if ($id <= 0) $this->json(400, ['success' => false, 'message' => 'Missing charge item id.']);
 
@@ -128,11 +116,8 @@ class ChargeItemController
         ]);
     }
 
-    
     public function delete(): void
     {
-        $this->guard();
-
         $id = (int)($_GET['id'] ?? 0);
         if ($id <= 0) $this->json(400, ['success' => false, 'message' => 'Missing charge item id.']);
 
@@ -145,7 +130,6 @@ class ChargeItemController
             $this->json(409, ['success' => false, 'message' => 'Archive the charge item first before deleting.']);
         }
 
-        
         $stmt = $this->pdo->prepare('SELECT COUNT(*) FROM `charge` WHERE charge_item_id = ?');
         $stmt->execute([$id]);
         $chargeRefs = (int)$stmt->fetchColumn();
@@ -170,22 +154,6 @@ class ChargeItemController
         $this->json(200, ['success' => true, 'message' => 'Charge item permanently deleted.']);
     }
 
-    
-    private function guard(): void
-    {
-        header('Content-Type: application/json; charset=utf-8');
-
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->json(405, ['success' => false, 'message' => 'Method not allowed.']);
-        }
-
-        if (session_status() === PHP_SESSION_NONE) session_start();
-
-        if (empty($_SESSION['user']) || (int)$_SESSION['user']['role_id'] !== 1) {
-            $this->json(403, ['success' => false, 'message' => 'Access denied.']);
-        }
-    }
-
     private function input(): array
     {
         $raw = file_get_contents('php://input');
@@ -196,7 +164,6 @@ class ChargeItemController
     {
         $errors = [];
 
-        
         $catId = (int)($data['category_id'] ?? 0);
         if ($catId <= 0) {
             $errors['category_id'] = 'Please select a category.';

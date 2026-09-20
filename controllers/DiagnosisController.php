@@ -1,13 +1,11 @@
 <?php
 
-
 class DiagnosisController
 {
     private PDO $pdo;
 
     public function __construct(PDO $pdo) { $this->pdo = $pdo; }
 
-    
     public function getAll(): array
     {
         return $this->pdo->query(
@@ -17,11 +15,8 @@ class DiagnosisController
         )->fetchAll();
     }
 
-    
     public function create(): void
     {
-        $this->guard();
-
         $data   = $this->input();
         $errors = $this->validate($data);
         if ($errors) $this->json(422, ['success' => false, 'message' => 'Please fix the highlighted fields.', 'errors' => $errors]);
@@ -50,11 +45,8 @@ class DiagnosisController
         ]);
     }
 
-    
     public function update(): void
     {
-        $this->guard();
-
         $id = (int)($_GET['id'] ?? 0);
         if ($id <= 0) $this->json(400, ['success' => false, 'message' => 'Missing diagnosis id.']);
 
@@ -84,11 +76,8 @@ class DiagnosisController
         $this->json(200, ['success' => true, 'message' => 'Diagnosis updated successfully.']);
     }
 
-    
     public function toggleActive(): void
     {
-        $this->guard();
-
         $id = (int)($_GET['id'] ?? 0);
         if ($id <= 0) $this->json(400, ['success' => false, 'message' => 'Missing diagnosis id.']);
 
@@ -109,11 +98,8 @@ class DiagnosisController
         ]);
     }
 
-    
     public function delete(): void
     {
-        $this->guard();
-
         $id = (int)($_GET['id'] ?? 0);
         if ($id <= 0) $this->json(400, ['success' => false, 'message' => 'Missing diagnosis id.']);
 
@@ -126,7 +112,6 @@ class DiagnosisController
             $this->json(409, ['success' => false, 'message' => 'Archive the diagnosis first before deleting.']);
         }
 
-        
         $stmt = $this->pdo->prepare('SELECT COUNT(*) FROM `admission_diagnosis` WHERE diagnosis_id = ?');
         $stmt->execute([$id]);
         $refCount = (int)$stmt->fetchColumn();
@@ -143,22 +128,6 @@ class DiagnosisController
         $stmt->execute([$id]);
 
         $this->json(200, ['success' => true, 'message' => 'Diagnosis permanently deleted.']);
-    }
-
-    
-    private function guard(): void
-    {
-        header('Content-Type: application/json; charset=utf-8');
-
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->json(405, ['success' => false, 'message' => 'Method not allowed.']);
-        }
-
-        if (session_status() === PHP_SESSION_NONE) session_start();
-
-        if (empty($_SESSION['user']) || (int)$_SESSION['user']['role_id'] !== 1) {
-            $this->json(403, ['success' => false, 'message' => 'Access denied.']);
-        }
     }
 
     private function input(): array

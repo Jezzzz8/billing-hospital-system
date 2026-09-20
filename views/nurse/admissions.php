@@ -6,7 +6,7 @@ require_once __DIR__ . '/../../controllers/NurseController.php';
 $controller = new NurseController($pdo);
 $admissions = $controller->getAdmissions();
 
-$activeCount = count(array_filter($admissions, fn($a) => (int)$a['admission_id'] && empty($a['discharge_datetime'])));
+$activeCount     = count(array_filter($admissions, fn($a) => (int)$a['admission_id'] && (int)$a['admission_status_id'] !== 2));
 $dischargedCount = count($admissions) - $activeCount;
 ?>
 
@@ -81,7 +81,9 @@ $dischargedCount = count($admissions) - $activeCount;
                 </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
-                <?php foreach ($admissions as $a): ?>
+                <?php foreach ($admissions as $a):
+                    $isDischarged = (int)$a['admission_status_id'] === 2;
+                ?>
                     <tr class="hover:bg-slate-50 admission-row"
                         data-search="<?= htmlspecialchars(strtolower($a['first_name'] . ' ' . $a['last_name'] . ' ' . ($a['room_number'] ?? ''))) ?>">
 
@@ -126,14 +128,14 @@ $dischargedCount = count($admissions) - $activeCount;
 
                         <td class="px-6 py-4 text-right whitespace-nowrap">
                             <div class="inline-flex items-center gap-1.5">
-                                <?php if (empty($a['discharge_datetime'])): ?>
+                                <?php if (!$isDischarged): ?>
                                     <a href="<?= BASE_URL ?>/index.php?page=nurse-room-assignments&admission_id=<?= (int)$a['admission_id'] ?>"
-                                    class="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100">
+                                       class="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100">
                                         Manage
                                     </a>
                                 <?php else: ?>
                                     <span class="text-xs text-slate-400">
-                                        Discharged <?= htmlspecialchars(date('M j, Y', strtotime($a['discharge_datetime']))) ?>
+                                        Discharged <?= htmlspecialchars(date('M j, Y', strtotime($a['discharge_datetime'] ?? 'now'))) ?>
                                     </span>
                                 <?php endif; ?>
                             </div>
@@ -187,7 +189,7 @@ $dischargedCount = count($admissions) - $activeCount;
             totalCount.textContent = rows.length;
         } else {
             summary.classList.add('hidden');
-            clearBtn.classList.add('hidden');
+            clearBtn.classList.remove('hidden');
             clearBtn.classList.remove('flex');
         }
 
