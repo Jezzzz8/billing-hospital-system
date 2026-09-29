@@ -1,6 +1,5 @@
 <?php
 
-
 $pageTitle  = $pageTitle  ?? 'Cashier Dashboard';
 $pageScript = $pageScript ?? BASE_URL . '/assets/js/logout.js';
 
