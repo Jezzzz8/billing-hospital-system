@@ -1,11 +1,11 @@
 <?php
 
-
 require_once __DIR__ . '/../controllers/CashierController.php';
 
 $controller = new CashierController($pdo);
 $stats      = $controller->getDashboardStats();
 $recent     = $controller->getRecentStatements(10);
+$readyForBilling = $controller->getAdmissionsWithoutStatement();
 ?>
 
 <div class="mb-8">
@@ -13,6 +13,75 @@ $recent     = $controller->getRecentStatements(10);
     <p class="mt-1 text-sm text-slate-500">Statements, payments, and collections at a glance.</p>
 </div>
 
+<?php if (!empty($readyForBilling)): ?>
+    <div class="mb-6 bg-white rounded-xl border border-amber-200 overflow-hidden">
+        <div class="px-6 py-4 border-b border-amber-200 bg-amber-50 flex items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="text-base font-semibold text-slate-900">Ready for Discharge — Waiting for Billing</h3>
+                    <p class="text-xs text-slate-600">
+                        Doctor cleared these patients. Create their billing statement so the nurse can finish the discharge.
+                    </p>
+                </div>
+            </div>
+            <span class="inline-flex items-center gap-1.5 rounded-full bg-amber-100 border border-amber-200 px-3 py-1 text-xs font-semibold text-amber-800">
+                <?= count($readyForBilling) ?> patient<?= count($readyForBilling) === 1 ? '' : 's' ?>
+            </span>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="min-w-full text-sm">
+                <thead class="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                        <th class="text-left px-6 py-3 font-semibold text-slate-700 text-xs uppercase tracking-wide">Admission</th>
+                        <th class="text-left px-6 py-3 font-semibold text-slate-700 text-xs uppercase tracking-wide">Patient</th>
+                        <th class="text-left px-6 py-3 font-semibold text-slate-700 text-xs uppercase tracking-wide">Admitted</th>
+                        <th class="text-left px-6 py-3 font-semibold text-slate-700 text-xs uppercase tracking-wide">Chief Complaint</th>
+                        <th class="text-right px-6 py-3 font-semibold text-slate-700 text-xs uppercase tracking-wide">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    <?php foreach ($readyForBilling as $a): ?>
+                        <tr class="hover:bg-amber-50/40">
+                            <td class="px-6 py-4">
+                                <p class="font-semibold text-slate-900">#<?= (int)$a['admission_id'] ?></p>
+                            </td>
+                            <td class="px-6 py-4">
+                                <p class="font-medium text-slate-900"><?= htmlspecialchars($a['first_name'] . ' ' . $a['last_name']) ?></p>
+                                <span class="inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-medium mt-1"
+                                      style="background-color: <?= htmlspecialchars($a['admission_status_color'] ?? '#6b7280') ?>1A;
+                                             color: <?= htmlspecialchars($a['admission_status_color'] ?? '#6b7280') ?>;
+                                             border-color: <?= htmlspecialchars($a['admission_status_color'] ?? '#6b7280') ?>40;">
+                                    <?= htmlspecialchars($a['admission_status_name']) ?>
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 text-slate-600">
+                                <?= htmlspecialchars(date('M j, Y g:i A', strtotime($a['admission_datetime']))) ?>
+                            </td>
+                            <td class="px-6 py-4 text-slate-600 max-w-md truncate">
+                                <?= htmlspecialchars($a['chief_complaint'] ?? '—') ?>
+                            </td>
+                            <td class="px-6 py-4 text-right whitespace-nowrap">
+                                <a href="<?= BASE_URL ?>/index.php?page=cashier-statements&highlight_admission=<?= (int)$a['admission_id'] ?>"
+                                   class="inline-flex items-center gap-1.5 rounded-lg bg-amber-600 px-3 py-2 text-xs font-semibold text-white hover:bg-amber-700">
+                                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+                                    </svg>
+                                    Create Statement
+                                </a>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+<?php endif; ?>
 
 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
     <div class="bg-white rounded-xl border border-slate-200 p-5">
@@ -32,7 +101,6 @@ $recent     = $controller->getRecentStatements(10);
         <p class="mt-2 text-xl font-bold text-rose-700">₱<?= number_format($stats['total_outstanding'], 2) ?></p>
     </div>
 </div>
-
 
 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
     <a href="<?= BASE_URL ?>/index.php?page=cashier-statements"
@@ -74,7 +142,6 @@ $recent     = $controller->getRecentStatements(10);
         </div>
     </a>
 </div>
-
 
 <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
     <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between">

@@ -1,6 +1,5 @@
 <?php
 
-
 require_once __DIR__ . '/../controllers/DoctorPortalController.php';
 require_once __DIR__ . '/../controllers/DoctorHelper.php';
 
@@ -18,8 +17,6 @@ $controller = new DoctorPortalController($pdo, $doctorId);
 $stats = $controller->getDashboardStats();
 $patients = $controller->getAssignedPatients();
 $readyForDischarge = $controller->getReadyForDischarge();
-
-
 ?>
 
 <div class="mb-8">
@@ -27,6 +24,70 @@ $readyForDischarge = $controller->getReadyForDischarge();
     <p class="mt-1 text-sm text-slate-500">Your assigned patients and pending tasks.</p>
 </div>
 
+<?php if (!empty($readyForDischarge)): ?>
+    <div class="mb-6 bg-white rounded-xl border border-emerald-200 overflow-hidden">
+        <div class="px-6 py-4 border-b border-emerald-200 bg-emerald-50 flex items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="text-base font-semibold text-slate-900">Ready for Discharge — Awaiting Your Confirmation</h3>
+                    <p class="text-xs text-slate-600">
+                        These patients have completed service requests. Confirm them to notify nursing staff and the cashier.
+                    </p>
+                </div>
+            </div>
+            <span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 border border-emerald-200 px-3 py-1 text-xs font-semibold text-emerald-800">
+                <?= count($readyForDischarge) ?> patient<?= count($readyForDischarge) === 1 ? '' : 's' ?>
+            </span>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full text-sm">
+                <thead class="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                        <th class="text-left px-6 py-3 font-semibold text-slate-700 text-xs uppercase tracking-wide">Patient</th>
+                        <th class="text-left px-6 py-3 font-semibold text-slate-700 text-xs uppercase tracking-wide">Room</th>
+                        <th class="text-left px-6 py-3 font-semibold text-slate-700 text-xs uppercase tracking-wide">Admitted</th>
+                        <th class="text-right px-6 py-3 font-semibold text-slate-700 text-xs uppercase tracking-wide">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    <?php foreach (array_slice($readyForDischarge, 0, 5) as $r): ?>
+                        <tr class="hover:bg-emerald-50/40">
+                            <td class="px-6 py-4">
+                                <p class="font-semibold text-slate-900"><?= htmlspecialchars($r['first_name'] . ' ' . $r['last_name']) ?></p>
+                                <p class="text-xs text-slate-500">#<?= (int)$r['admission_id'] ?></p>
+                            </td>
+                            <td class="px-6 py-4">
+                                <?php if (!empty($r['room_number'])): ?>
+                                    <p class="font-medium text-slate-900"><?= htmlspecialchars($r['room_number']) ?></p>
+                                    <p class="text-xs text-slate-500"><?= htmlspecialchars($r['room_type_name'] ?? '') ?></p>
+                                <?php else: ?>
+                                    <span class="text-xs text-slate-400">—</span>
+                                <?php endif; ?>
+                            </td>
+                            <td class="px-6 py-4 text-slate-600">
+                                <?= htmlspecialchars(date('M j, Y', strtotime($r['admission_datetime']))) ?>
+                            </td>
+                            <td class="px-6 py-4 text-right whitespace-nowrap">
+                                <a href="<?= BASE_URL ?>/index.php?page=doctor-discharge-ready"
+                                   class="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700">
+                                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    </svg>
+                                    Confirm Ready
+                                </a>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+<?php endif; ?>
 
 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
     <div class="bg-white rounded-xl border border-slate-200 p-5">
@@ -46,7 +107,6 @@ $readyForDischarge = $controller->getReadyForDischarge();
         <p class="mt-2 text-2xl font-bold text-emerald-600"><?= $stats['ready_for_discharge'] ?></p>
     </div>
 </div>
-
 
 <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
     <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between">

@@ -398,6 +398,7 @@ $todayPaymentCount = (int)$pdo->query(
     const collectForm = document.getElementById('collectForm');
 
     let currentStatementId = null;
+    let paymentInFlight = false;
 
     function showAlert(type, msg) {
         if (!alertEl) return;
@@ -530,6 +531,8 @@ $todayPaymentCount = (int)$pdo->query(
     });
 
     document.getElementById('confirmCollectBtn').addEventListener('click', async function () {
+        if (paymentInFlight) return;
+
         if (!currentStatementId) return;
 
         const typeId = document.getElementById('col_payment_type_id').value;
@@ -543,6 +546,8 @@ $todayPaymentCount = (int)$pdo->query(
             showAlert('error', 'Please enter a valid amount.');
             return;
         }
+
+        paymentInFlight = true;
 
         const btn = this;
         const label = document.getElementById('confirmCollectLabel');
@@ -570,11 +575,11 @@ $todayPaymentCount = (int)$pdo->query(
         } finally {
             btn.disabled = false;
             label.textContent = 'Record Payment';
+            paymentInFlight = false;
         }
     });
 
     function showReceipt(data) {
-        const amount = parseFloat(document.getElementById('col_amount')?.value || 0);
         const statementId = currentStatementId;
 
         document.getElementById('receiptSubtitle').textContent =

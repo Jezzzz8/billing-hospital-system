@@ -323,6 +323,22 @@ class CashierController
         }
 
         $stmt = $this->pdo->prepare(
+            'SELECT payment_id
+             FROM `payment`
+             WHERE statement_id = ?
+               AND payment_type_id = ?
+               AND amount = ?
+               AND payment_datetime >= (NOW() - INTERVAL 15 SECOND)
+             LIMIT 1'
+        );
+        $stmt->execute([$statementId, $typeId, $amount]);
+        if ($stmt->fetch()) {
+            throw new Exception(
+                'This payment was just recorded. Please refresh if you do not see it.'
+            );
+        }
+
+        $stmt = $this->pdo->prepare(
             'SELECT total_amount, amount_paid, balance_amount FROM `billing_statement`
              WHERE statement_id = ? LIMIT 1'
         );

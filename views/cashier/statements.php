@@ -59,7 +59,7 @@ foreach ($statements as $s) {
 </div>
 
 <?php if (!empty($admissionsOpen)): ?>
-    <div class="mb-5 rounded-lg px-4 py-3 text-sm border border-blue-200 bg-blue-50 text-blue-800 flex items-start gap-3">
+    <div class="mb-5 rounded-lg px-4 py-3 text-sm border border-amber-200 bg-amber-50 text-amber-800 flex items-start gap-3">
         <svg class="w-5 h-5 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
         </svg>
@@ -429,7 +429,8 @@ foreach ($statements as $s) {
                         <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
                         </svg>
-                        Record Payment                    </button>
+                        Record Payment
+                    </button>
                 </div>
                 <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
                     <table class="min-w-full text-sm">
@@ -578,6 +579,7 @@ foreach ($statements as $s) {
 
     let currentStatementId = null;
     let currentStatement = null;
+    let paymentInFlight = false;
 
     function showAlert(type, msg) {
         alertEl.className = 'mb-5 rounded-lg px-4 py-3 text-sm border ' +
@@ -593,7 +595,6 @@ foreach ($statements as $s) {
         return '₱' + Number(n || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
 
-    // -------- Filters --------
     const rows = document.querySelectorAll('.statement-row');
     const searchInput = document.getElementById('filterSearch');
     const statusSelect = document.getElementById('filterStatus');
@@ -641,7 +642,6 @@ foreach ($statements as $s) {
         applyFilters();
     });
 
-    // -------- New Statement --------
     const newModal = document.getElementById('newStatementModal');
     document.getElementById('openCreateBtn')?.addEventListener('click', () => newModal.classList.remove('hidden'));
     newModal.querySelectorAll('[data-close-new-statement]').forEach(el =>
@@ -649,12 +649,18 @@ foreach ($statements as $s) {
     );
 
     document.getElementById('saveNewStatementBtn')?.addEventListener('click', async function () {
+        if (paymentInFlight) return;
+        paymentInFlight = true;
+
         const btn = this;
         const label = document.getElementById('saveNewStatementLabel');
         const admissionId = document.getElementById('new_admission_id').value;
 
         if (!admissionId) {
             showAlert('error', 'Please select an admission.');
+            btn.disabled = false;
+            label.textContent = 'Create Statement';
+            paymentInFlight = false;
             return;
         }
 
@@ -680,10 +686,10 @@ foreach ($statements as $s) {
         } finally {
             btn.disabled = false;
             label.textContent = 'Create Statement';
+            paymentInFlight = false;
         }
     });
 
-    // -------- Manage Modal --------
     const manageModal = document.getElementById('manageModal');
     document.querySelectorAll('.manage-btn').forEach(btn => {
         btn.addEventListener('click', () => openManage(btn.dataset.statementId));
@@ -855,7 +861,6 @@ foreach ($statements as $s) {
         }
     }
 
-    // -------- Sync --------
     document.getElementById('syncChargesBtn')?.addEventListener('click', async function () {
         if (!currentStatementId) return;
         this.disabled = true;
@@ -872,7 +877,6 @@ foreach ($statements as $s) {
         }
     });
 
-    // -------- Add Charge --------
     const chargeModal = document.getElementById('chargeModal');
     const chargeSelect = document.getElementById('charge_item_id');
 
@@ -894,10 +898,14 @@ foreach ($statements as $s) {
     );
 
     document.getElementById('saveChargeBtn')?.addEventListener('click', async function () {
+        if (paymentInFlight) return;
+        paymentInFlight = true;
+
         const itemId = document.getElementById('charge_item_id').value;
         const qty = parseInt(document.getElementById('charge_quantity').value) || 0;
         if (!itemId || qty <= 0) {
             showAlert('error', 'Please select a charge item and quantity.');
+            paymentInFlight = false;
             return;
         }
 
@@ -919,10 +927,10 @@ foreach ($statements as $s) {
             showAlert('error', err.response?.data?.message || 'Could not add charge.');
         } finally {
             this.disabled = false;
+            paymentInFlight = false;
         }
     });
 
-    // -------- Add Payment (inside Manage) --------
     const paymentModal = document.getElementById('paymentModal');
     const payTypeSelect = document.getElementById('payment_type_id');
 
@@ -943,6 +951,8 @@ foreach ($statements as $s) {
     );
 
     document.getElementById('savePaymentBtn')?.addEventListener('click', async function () {
+        if (paymentInFlight) return;
+
         const typeId = document.getElementById('payment_type_id').value;
         const amount = parseFloat(document.getElementById('payment_amount').value) || 0;
 
@@ -950,6 +960,8 @@ foreach ($statements as $s) {
             showAlert('error', 'Please select a payment type and enter an amount.');
             return;
         }
+
+        paymentInFlight = true;
 
         this.disabled = true;
         const label = document.getElementById('savePaymentLabel');
@@ -972,10 +984,10 @@ foreach ($statements as $s) {
         } finally {
             this.disabled = false;
             label.textContent = 'Record Payment';
+            paymentInFlight = false;
         }
     });
 
-    // -------- Collect Payment (row button) --------
     document.querySelectorAll('.collect-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             const id = btn.dataset.statementId;
@@ -983,5 +995,21 @@ foreach ($statements as $s) {
             window.open(printUrl, '_blank');
         });
     });
+
+    (function () {
+        const params = new URLSearchParams(window.location.search);
+        const highlightAdmission = params.get('highlight_admission');
+        if (!highlightAdmission) return;
+
+        const newModal = document.getElementById('newStatementModal');
+        const sel = document.getElementById('new_admission_id');
+        if (!newModal || !sel) return;
+
+        const opt = sel.querySelector(`option[value="${highlightAdmission}"]`);
+        if (!opt) return;
+
+        sel.value = highlightAdmission;
+        newModal.classList.remove('hidden');
+    })();
 })();
 </script>

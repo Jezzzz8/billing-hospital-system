@@ -99,11 +99,12 @@ class ChargeSyncService
     private function syncLiveServices(int $statementId, int $admissionId): void
     {
         $stmt = $this->pdo->prepare(
-            'SELECT sr.request_id, sr.charge_item_id, sr.quantity,
+            'SELECT sr.request_id, sr.charge_item_id, sr.quantity, sr.status,
                     ci.default_price, ci.item_name
              FROM `service_request` sr
              INNER JOIN `charge_item` ci ON ci.charge_item_id = sr.charge_item_id
-             WHERE sr.admission_id = ? AND sr.status = "Pending"'
+             WHERE sr.admission_id = ?
+               AND sr.status IN ("Pending", "Completed")'
         );
         $stmt->execute([$admissionId]);
         $requests = $stmt->fetchAll();
@@ -140,7 +141,10 @@ class ChargeSyncService
                     'Service request #' . $r['request_id'] . ' (' . $r['item_name'] . ') — ' . $marker,
                 ]);
             }
-            $markComplete->execute([(int)$r['request_id']]);
+
+            if ($r['status'] === 'Pending') {
+                $markComplete->execute([(int)$r['request_id']]);
+            }
         }
     }
 

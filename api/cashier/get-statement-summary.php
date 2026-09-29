@@ -20,13 +20,13 @@ if ($id <= 0) {
 }
 
 try {
-    (new ChargeSyncService($pdo))->recomputeStatement($id);
+    (new ChargeSyncService($pdo))->syncStatement($id);
 } catch (Throwable $e) {
-    error_log('[get-statement-summary] recompute failed: ' . $e->getMessage());
+    error_log('[get-statement] sync failed: ' . $e->getMessage());
 }
 
 $controller = new CashierController($pdo);
-$statement = $controller->getStatementSummary($id);
+$statement = $controller->getStatementDetails($id);
 if (!$statement) {
     echo json_encode(['success' => false, 'message' => 'Statement not found.']);
     exit;

@@ -1,12 +1,12 @@
 <?php
 
-
 require_once __DIR__ . '/../controllers/NurseController.php';
 
 $controller = new NurseController($pdo);
 $stats = $controller->getDashboardStats();
 $activeAdmissions = $controller->getActiveAdmissions();
 $roomsNeedingAttention = $controller->getRoomsNeedingAttention();
+$readyForDischarge = $controller->getReadyForDischarge();
 ?>
 
 <div class="mb-8">
@@ -14,6 +14,97 @@ $roomsNeedingAttention = $controller->getRoomsNeedingAttention();
     <p class="mt-1 text-sm text-slate-500">Patient assignments and room status at a glance.</p>
 </div>
 
+<?php if (!empty($readyForDischarge)): ?>
+    <div class="mb-6 bg-white rounded-xl border border-blue-200 overflow-hidden">
+        <div class="px-6 py-4 border-b border-blue-200 bg-blue-50 flex items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="text-base font-semibold text-slate-900">Ready for Discharge — Waiting for Billing</h3>
+                    <p class="text-xs text-slate-600">
+                        Doctor has cleared these patients. The cashier must create their billing statement before you can discharge.
+                    </p>
+                </div>
+            </div>
+            <span class="inline-flex items-center gap-1.5 rounded-full bg-blue-100 border border-blue-200 px-3 py-1 text-xs font-semibold text-blue-800">
+                <?= count($readyForDischarge) ?> patient<?= count($readyForDischarge) === 1 ? '' : 's' ?>
+            </span>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full text-sm">
+                <thead class="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                        <th class="text-left px-6 py-3 font-semibold text-slate-700 text-xs uppercase tracking-wide">Patient</th>
+                        <th class="text-left px-6 py-3 font-semibold text-slate-700 text-xs uppercase tracking-wide">Room</th>
+                        <th class="text-left px-6 py-3 font-semibold text-slate-700 text-xs uppercase tracking-wide">Admitted</th>
+                        <th class="text-left px-6 py-3 font-semibold text-slate-700 text-xs uppercase tracking-wide">Billing</th>
+                        <th class="text-right px-6 py-3 font-semibold text-slate-700 text-xs uppercase tracking-wide">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    <?php foreach (array_slice($readyForDischarge, 0, 5) as $r):
+                        $billingStatusLower = strtolower($r['billing_status_name'] ?? '');
+                        $canDischarge = !empty($r['statement_id'])
+                            && in_array($billingStatusLower, ['paid', 'partially paid'], true);
+                    ?>
+                        <tr class="hover:bg-blue-50/40">
+                            <td class="px-6 py-4">
+                                <p class="font-semibold text-slate-900"><?= htmlspecialchars($r['first_name'] . ' ' . $r['last_name']) ?></p>
+                                <p class="text-xs text-slate-500">#<?= (int)$r['admission_id'] ?></p>
+                            </td>
+                            <td class="px-6 py-4">
+                                <?php if (!empty($r['room_number'])): ?>
+                                    <p class="font-medium text-slate-900"><?= htmlspecialchars($r['room_number']) ?></p>
+                                    <p class="text-xs text-slate-500"><?= htmlspecialchars($r['room_type_name'] ?? '') ?></p>
+                                <?php else: ?>
+                                    <span class="text-xs text-slate-400">—</span>
+                                <?php endif; ?>
+                            </td>
+                            <td class="px-6 py-4 text-slate-600">
+                                <?= htmlspecialchars(date('M j, Y', strtotime($r['admission_datetime']))) ?>
+                            </td>
+                            <td class="px-6 py-4">
+                                <?php if (!empty($r['statement_id'])): ?>
+                                    <span class="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium"
+                                          style="background-color: <?= htmlspecialchars($r['billing_status_color'] ?? '#6b7280') ?>1A;
+                                                 color: <?= htmlspecialchars($r['billing_status_color'] ?? '#6b7280') ?>;
+                                                 border-color: <?= htmlspecialchars($r['billing_status_color'] ?? '#6b7280') ?>40;">
+                                        <?= htmlspecialchars($r['billing_status_name']) ?>
+                                    </span>
+                                    <p class="text-xs text-slate-500 mt-1">
+                                        Balance: ₱<?= number_format((float)$r['balance_amount'], 2) ?>
+                                    </p>
+                                <?php else: ?>
+                                    <span class="text-xs text-amber-600">No statement yet</span>
+                                <?php endif; ?>
+                            </td>
+                            <td class="px-6 py-4 text-right whitespace-nowrap">
+                                <?php if ($canDischarge): ?>
+                                    <a href="<?= BASE_URL ?>/index.php?page=nurse-discharge-ready"
+                                       class="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700">
+                                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                                        </svg>
+                                        Discharge
+                                    </a>
+                                <?php else: ?>
+                                    <a href="<?= BASE_URL ?>/index.php?page=nurse-discharge-ready"
+                                       class="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-medium text-blue-700 hover:bg-blue-100">
+                                        View
+                                    </a>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+<?php endif; ?>
 
 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
     <div class="bg-white rounded-xl border border-slate-200 p-5">
@@ -33,7 +124,6 @@ $roomsNeedingAttention = $controller->getRoomsNeedingAttention();
         <p class="mt-2 text-2xl font-bold text-blue-600"><?= $stats['ready_for_discharge'] ?></p>
     </div>
 </div>
-
 
 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
     <a href="<?= BASE_URL ?>/index.php?page=nurse-patient-search"
@@ -88,7 +178,6 @@ $roomsNeedingAttention = $controller->getRoomsNeedingAttention();
         </div>
     </a>
 </div>
-
 
 <div class="bg-white rounded-xl border border-slate-200 overflow-hidden mb-8">
     <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
@@ -156,7 +245,6 @@ $roomsNeedingAttention = $controller->getRoomsNeedingAttention();
         </table>
     </div>
 </div>
-
 
 <?php if (!empty($roomsNeedingAttention)): ?>
 <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
